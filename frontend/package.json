@@ -1,0 +1,1 @@
+{\n  "name": "redline-frontend",\n  "version": "0.1.0",\n  "scripts": {\n    "dev": "next dev",\n    "build": "next build",\n    "start": "next start"\n  }\n}
