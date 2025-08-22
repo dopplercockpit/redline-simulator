@@ -10,6 +10,12 @@ class Customer:
     pay_terms: str = "N30"   # e.g., "2/10 N30" (not used in JE yet)
 
 @dataclass(frozen=True)
+class Supplier:                    
+    id: str
+    name: str
+    pay_terms: str = "N30"
+
+@dataclass(frozen=True)
 class Material:
     id: str
     desc: str
@@ -32,6 +38,10 @@ class Bom:
 CUSTOMERS: Dict[str, Customer] = {
     "CUST-RETAIL": Customer("CUST-RETAIL", "Big Box Retailer", "1/29 N30"),
     "CUST-FLEET":  Customer("CUST-FLEET",  "Fleet Buyer LLC", "N45"),
+}
+
+SUPPLIERS: Dict[str, Supplier] = {         
+    # filled by seeds
 }
 
 MATERIALS: Dict[str, Material] = {

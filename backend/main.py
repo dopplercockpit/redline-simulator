@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from backend.api import finance
 from backend.api import revenue
-from backend.api import orders     # <<< add
+from backend.api import orders     
+from backend.api import admin
 
 app = FastAPI(title="Redline Simulator")
 
@@ -15,4 +16,5 @@ def health_check():
 
 app.include_router(finance.router)
 app.include_router(revenue.router)
-app.include_router(orders.router)  # <<< add
+app.include_router(orders.router) 
+app.include_router(admin.router)
