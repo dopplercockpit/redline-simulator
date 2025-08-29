@@ -1,8 +1,18 @@
 from fastapi import FastAPI
 from backend.api import finance, revenue, orders, admin
 from backend import ar, ap   # absolute imports for local modules
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(title="Redline Simulator")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # allow all origins (simplest for now)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
