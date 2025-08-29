@@ -18,7 +18,34 @@ def reset_ledger():
 # --- Admin helpers: JSON export/import/state ---
 
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 from ...models.journal import JournalEntry, JournalLine
+
+
+TWOPLACES = Decimal("0.01")
+
+def _q(x: float) -> Decimal:
+    # centralize rounding to 2dp
+    return Decimal(str(x)).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+
+def post_balanced_je(je_id: str, je_date: date, memo: str, lines: list[dict]):
+    """
+    Convenience poster that takes simple dict lines:
+    [{"account":"1100","debit":100.0},{"account":"4000","credit":100.0}]
+    Applies 2dp rounding, constructs JournalEntry, and posts it.
+    """
+    L = get_ledger()
+    jl = []
+    for l in lines:
+        jl.append(JournalLine(
+            account=l["account"],
+            debit=float(_q(l.get("debit", 0.0))),
+            credit=float(_q(l.get("credit", 0.0))),
+        ))
+    je = JournalEntry(je_id=je_id, je_date=je_date, memo=memo, lines=jl)
+    L.post(je)
+    return je_id
+
 
 def export_ledger_json() -> dict:
     """

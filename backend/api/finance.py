@@ -8,23 +8,21 @@ from ..services.finance.statements import (
 from traceback import format_exc
 from ..services.finance.ledger_store import get_ledger
 
+
 router = APIRouter(prefix="/finance", tags=["finance"])
 
-@router.get("/diag/trial_balance")
-def diag_trial_balance():
+@router.get("/diag/journal_dump")
+def api_journal_dump():
     L = get_ledger()
-    # each acct: code, name, debit_total, credit_total, balance
-    tb = []
-    for acct in L.accounts.values():
-        tb.append({
-            "code": acct.code,
-            "name": getattr(acct, "name", ""),
-            "debits": round(acct.debit_total, 2),
-            "credits": round(acct.credit_total, 2),
-            "balance": round(acct.balance(), 2)
+    out = []
+    for je in getattr(L, "entries", []):
+        out.append({
+            "je_id": je.je_id,
+            "date": str(je.je_date),
+            "memo": getattr(je, "memo", None),
+            "lines": [{"account": ln.account, "debit": ln.debit, "credit": ln.credit} for ln in je.lines]
         })
-    tb.sort(key=lambda x: x["code"])
-    return {"trial_balance": tb}
+    return {"entries": out, "count": len(out)}
 
 
 @router.get("/statements")
