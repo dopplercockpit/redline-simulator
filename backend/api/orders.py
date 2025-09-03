@@ -48,7 +48,6 @@ class OrderReq(BaseModel):
 # ------------------------------------------------------------------------------
 class PricingConditionLite:
     def __init__(self, **kw):
-        # mirror expected attributes used by your pricing engine
         self.code = kw.get("code", "")
         self.label = kw.get("label", "")
         self.basis = kw.get("basis", "AMOUNT")
@@ -57,6 +56,17 @@ class PricingConditionLite:
         self.sign = kw.get("sign", "-")
         self.category = kw.get("category")
         self.sequence = kw.get("sequence", 100)
+
+                # Guard: normalize & drop obvious junk so pricing doesn't create 0 steps
+        try:
+            self.value = float(self.value)
+        except (TypeError, ValueError):
+            self.value = 0.0
+        self.basis = str(self.basis).upper() or "AMOUNT"
+        self.scope = str(self.scope).upper() or "TOTAL"
+        self.sign  = self.sign if self.sign in ("-", "+") else "-"
+
+
 
 class PricingWaterfallInputLite:
     def __init__(self, *, units: float, list_price: float, conditions: List[PricingConditionLite]):
@@ -104,18 +114,20 @@ def api_price_order(req: OrderReq):
         line_disc = 0.0
         steps_out = []
         for s in getattr(wf, "steps", []):
-            amt = float(getattr(s, "amount", 0.0))
-            sign = getattr(s, "sign", "-")
+             # s is a dict from the pricing engine, not an object
+            amt = float(s.get("amount", 0.0))
+            sign = s.get("sign", "-")
             if sign == "-" and amt > 0:
                 line_disc += amt
             elif sign == "+" and amt < 0:
                 line_disc += abs(amt)
             steps_out.append({
-                "code": getattr(s, "code", ""),
-                "label": getattr(s, "label", ""),
-                "sign": sign,
-                "amount": amt
+            "code": s.get("code", ""),
+            "label": s.get("label", ""),
+            "sign": sign,
+            "amount": amt
             })
+
         net_line = line_gross - line_disc
         gross += line_gross
         discounts += line_disc

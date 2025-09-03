@@ -32,40 +32,112 @@ def _q(x: float | int) -> float:
 # Pricing logic (formerly compute_pricing_waterfall)
 # ==============================================================================
 
-def compute_pricing_waterfall(input_obj: Any):
+def compute_pricing_waterfall(input_obj: any):
     """
-    Simplified pricing engine.
-    Expects input_obj with:
-      .units (float)
-      .list_price (float)
-      .conditions (list of objects with .basis, .value, .scope, .sign, .sequence)
-    Returns an object with base_unit_price and steps[].
+    Robust pricing engine:
+    - Accepts any object with .units, .list_price, .conditions (each condition has .basis, .value, .scope, .sign, .sequence)
+    - Normalizes strings (AMOUNT/PERCENT, TOTAL/UNIT, +/-)
+    - Ignores invalid/empty conditions (value <= 0 or missing)
+    - Amounts:
+        AMOUNT: value is per-unit unless scope=="TOTAL" (then split per-unit for calc but report total)
+        PERCENT: value is % of current net unit price
     """
-    base_price = float(input_obj.list_price)
-    units = float(input_obj.units)
-    conditions = sorted(input_obj.conditions, key=lambda c: getattr(c, "sequence", 100))
+    base_unit_price = float(getattr(input_obj, "list_price", 0.0))
+    units = float(getattr(input_obj, "units", 0.0))
+    conditions = list(getattr(input_obj, "conditions", [])) or []
+
+    # Normalize & filter conditions
+    norm = []
+    for c in conditions:
+        basis = str(getattr(c, "basis", "AMOUNT")).upper()
+        scope = str(getattr(c, "scope", "TOTAL")).upper()
+        sign  = str(getattr(c, "sign", "-")).strip() or "-"
+        try:
+            value = float(getattr(c, "value", 0.0))
+        except (TypeError, ValueError):
+            value = 0.0
+        try:
+            seq = int(getattr(c, "sequence", 100))
+        except (TypeError, ValueError):
+            seq = 100
+
+        # ignore zeros/negatives
+        if value <= 0:
+            continue
+
+        norm.append({
+            "code":  getattr(c, "code", "") or "",
+            "label": getattr(c, "label", "") or "",
+            "basis": basis if basis in ("AMOUNT", "PERCENT") else "AMOUNT",
+            "scope": scope if scope in ("TOTAL", "UNIT") else "TOTAL",
+            "sign":  sign if sign in ("-", "+") else "-",
+            "value": value,
+            "sequence": seq,
+        })
+
+    norm.sort(key=lambda x: x["sequence"])
 
     steps = []
-    net_unit_price = base_price
+    net_unit = base_unit_price
 
-    for cond in conditions:
-        amt = 0.0
-        if cond.basis.upper() == "AMOUNT":
-            amt = cond.value
-        elif cond.basis.upper() == "PERCENT":
-            amt = (cond.value / 100.0) * net_unit_price
+    for c in norm:
+        if c["basis"] == "AMOUNT":
+            # amount is per-unit; if scope is TOTAL, convert to per-unit for math
+            per_unit_amt = c["value"] if c["scope"] == "UNIT" else (c["value"] / max(units, 1.0))
+        else:  # PERCENT
+            per_unit_amt = (c["value"] / 100.0) * net_unit
 
-        if cond.sign == "-":
-            net_unit_price -= amt
+        if c["sign"] == "-":
+            net_unit -= per_unit_amt
         else:
-            net_unit_price += amt
+            net_unit += per_unit_amt
 
+        reported_amt = per_unit_amt * units if c["scope"] == "TOTAL" or c["basis"] == "PERCENT" else per_unit_amt
         steps.append({
-            "code": getattr(cond, "code", ""),
-            "label": getattr(cond, "label", ""),
-            "sign": cond.sign,
-            "amount": round(amt * units, 2) if cond.scope.upper() == "TOTAL" else round(amt, 2),
+            "code": c["code"],
+            "label": c["label"],
+            "sign": c["sign"],
+            "amount": round(reported_amt, 2),
         })
+
+    class Result: pass
+    out = Result()
+    out.base_unit_price = base_unit_price
+    out.steps = steps
+    return out
+
+
+    norm.sort(key=lambda x: x["sequence"])
+
+    steps = []
+    net_unit = base_unit_price
+
+    for c in norm:
+        if c["basis"] == "AMOUNT":
+            # amount is per-unit; if scope is TOTAL, convert to per-unit for math
+            per_unit_amt = c["value"] if c["scope"] == "UNIT" else (c["value"] / max(units, 1.0))
+        else:  # PERCENT
+            per_unit_amt = (c["value"] / 100.0) * net_unit
+
+        if c["sign"] == "-":
+            net_unit -= per_unit_amt
+        else:
+            net_unit += per_unit_amt
+
+        reported_amt = per_unit_amt * units if c["scope"] == "TOTAL" or c["basis"] == "PERCENT" else per_unit_amt
+        steps.append({
+            "code": c["code"],
+            "label": c["label"],
+            "sign": c["sign"],
+            "amount": round(reported_amt, 2),
+        })
+
+    class Result: pass
+    out = Result()
+    out.base_unit_price = base_unit_price
+    out.steps = steps
+    return out
+
 
     class Result: pass
     result = Result()
