@@ -2,6 +2,8 @@
 # backend/services/finance/ledger_store.py
 from .seed import seed_ledger
 from ...models.journal import Ledger
+from datetime import date
+
 
 _ledger: Ledger | None = None
 
@@ -10,6 +12,13 @@ def get_ledger() -> Ledger:
     if _ledger is None:
         _ledger = seed_ledger()
     return _ledger
+
+def account_delta(code: str, start: date, end: date) -> float:
+    """Return signed movement for an account between start..end inclusive.
+       Uses the same sign convention as delta_tb (debit + / credit -)."""
+    L = get_ledger()
+    delta = L.delta_tb(start, end)
+    return float(delta.get(code, 0.0))
 
 def reset_ledger():
     global _ledger

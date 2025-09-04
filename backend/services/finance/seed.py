@@ -3,6 +3,83 @@
 from datetime import date
 from ...models.journal import Ledger, JournalEntry, JournalLine
 
+
+def post_invoice(order_id: str, amount: float, je_date: date, memo: str = ""):
+    """
+    Invoice/Ship:
+      DR 1100 Accounts Receivable
+        CR 4000 Revenue
+    """
+    L = get_ledger()
+    je = JournalEntry(
+        je_id=f"INV-{order_id}-{je_date.isoformat()}",
+        je_date=je_date,
+        memo=memo or f"Invoice for order {order_id}",
+        lines=[
+            JournalLine("1100", debit=amount, credit=0.0),  # AR
+            JournalLine("4000", debit=0.0, credit=amount),  # Revenue
+        ],
+    )
+    L.post(je)
+
+# --- Validation helpers (prevent dumb shit) ---
+def _ensure_positive(name: str, value: float):
+    if value is None:
+        raise ValueError(f"{name} is required")
+    if value < 0:
+        raise ValueError(f"{name} must be >= 0, got {value}")
+
+def _ensure_date(name: str, d):
+    if d is None:
+        raise ValueError(f"{name} is required")
+
+def post_invoice(L: Ledger, order_id: str, amount: float, je_date: date, memo: str = ""):
+    _ensure_positive("amount", amount); _ensure_date("je_date", je_date)
+    je = JournalEntry(
+        je_id=f"INV-{order_id}-{je_date.isoformat()}",
+        je_date=je_date,
+        memo=memo or f"Invoice for order {order_id}",
+        lines=[
+            JournalLine("1100", debit=amount, credit=0.0),  # AR +
+            JournalLine("4000", debit=0.0, credit=amount),  # REV -
+        ],
+    )
+    L.post(je)
+
+def post_cash_receipt(L: Ledger, order_id: str, cash_amount: float, discount: float, je_date: date, memo: str = ""):
+    _ensure_positive("cash_amount", cash_amount); _ensure_date("je_date", je_date)
+    discount = discount or 0.0
+    _ensure_positive("discount", discount)
+
+    total_release = cash_amount + discount
+    # Guard: you can't release more AR than exists (within this order’s window)
+    # We'll compute period AR balance below in the test; here we just post cleanly.
+    lines = [JournalLine("1000", debit=cash_amount, credit=0.0)]
+    if discount > 0:
+        lines.append(JournalLine("4100", debit=discount, credit=0.0))  # Contra-REV +
+    lines.append(JournalLine("1100", debit=0.0, credit=total_release)) # AR -
+    je = JournalEntry(
+        je_id=f"CASH-{order_id}-{je_date.isoformat()}",
+        je_date=je_date,
+        memo=memo or f"Cash receipt for order {order_id}",
+        lines=lines,
+    )
+    L.post(je)
+
+def post_return(L: Ledger, order_id: str, return_amount: float, je_date: date, memo: str = ""):
+    _ensure_positive("return_amount", return_amount); _ensure_date("je_date", je_date)
+    je = JournalEntry(
+        je_id=f"RET-{order_id}-{je_date.isoformat()}",
+        je_date=je_date,
+        memo=memo or f"Sales return for order {order_id}",
+        lines=[
+            JournalLine("4100", debit=return_amount, credit=0.0),  # Contra-REV +
+            JournalLine("1100", debit=0.0, credit=return_amount),  # AR -
+        ],
+    )
+    L.post(je)
+
+
 def seed_ledger() -> Ledger:
     """Posts a handful of entries to prove full statements work."""
     L = Ledger()
@@ -98,5 +175,23 @@ def seed_ledger() -> Ledger:
             JournalLine("2700", credit=6_000.00),   # Taxes Payable
         ]
     ))
+
+
+    ## --- Demo postings for sanity check ---
+    #post_invoice(L, order_id="1001", amount=10000.0, je_date=date(2025, 1, 16))
+    #post_cash_receipt(L, order_id="1001", cash_amount=8500.0, discount=500.0, je_date=date(2025, 1, 20))
+    #post_return(L, order_id="1001", return_amount=2000.0, je_date=date(2025, 1, 22))
+
+    # Multi-order demo (optional, but helpful)
+    #post_invoice(L, "A", 12000.0, date(2025,1,5))
+    #post_cash_receipt(L, "A", 10000.0, 0.0, date(2025,1,9))
+
+    #post_invoice(L, "B", 8000.0, date(2025,1,10))
+    #post_return(L, "B", 1000.0, date(2025,1,12))
+    #post_cash_receipt(L, "B", 5500.0, 500.0, date(2025,1,14))
+
+    #post_invoice(L, "C", 5000.0, date(2025,1,20))
+    # leave C open (no cash yet)
+
 
     return L
