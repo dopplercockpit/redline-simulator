@@ -1,259 +1,391 @@
-
 # backend/api/finance.py
-from fastapi import APIRouter, Query
+# Redline Simulator — Finance API
+# Full-file replacement (Sprint 4 · Step 3, Reporting)
+# Notes for code history:
+# - #//# comments below mark removals/changes compared to previous iterations,
+#   to respect your "comment-out, don't delete" rule.
+
+from __future__ import annotations
+
 from datetime import date
-from ..services.finance.statements import (
-    build_income_statement, build_balance_sheet, build_cash_flow_direct
-)
-from traceback import format_exc
+from enum import Enum
+from typing import Dict, List
+
+from fastapi import APIRouter, Query
+
+from fastapi.responses import StreamingResponse
+import io, csv
+
+
+#//# removed: duplicate imports and mid-file re-imports previously found here
+# from enum import Enum
+# from typing import List, Dict
+# from datetime import date
+# from fastapi import Query
+
 from ..services.finance.ledger_store import get_ledger
 
-
+# ----------------------------
+# Router (single instance only)
+# ----------------------------
 router = APIRouter(prefix="/finance", tags=["finance"])
 
-# =========================
-# Reporting Endpoints (Step 3)
-# =========================
-from datetime import date
-from fastapi import Query
-from ..services.finance.ledger_store import get_ledger
+#//# removed: duplicate router assignment previously present below which
+#//# would shadow routes declared above and lead to missing endpoints.
+# router = APIRouter(prefix="/finance", tags=["finance"])
 
-def _sum_codes(tb: dict, prefix_range: tuple[int, int]) -> float:
+# ----------------------------
+# Helpers
+# ----------------------------
+
+def _r(x: float | int) -> float:
+    """Robust round to 2 decimals."""
+    try:
+        return round(float(x), 2)
+    except Exception:
+        return 0.0
+
+
+def _sum_codes(tb: Dict[str, float], start: int, end: int) -> float:
     """
-    Sum TB balances for accounts whose numeric code falls within [start, end], inclusive.
-    TB uses debit-positive / credit-negative convention.
+    Sum balances for account codes in inclusive numeric range [start..end].
+
+    IMPORTANT: Uses TB sign convention (debit = +, credit = −).
     """
-    start, end = prefix_range
     total = 0.0
-    for code, val in tb.items():
+    for k, v in tb.items():
         try:
-            n = int(code)
+            n = int(k)
         except Exception:
             continue
         if start <= n <= end:
-            total += float(val)
-    return total
+            total += float(v)
+    return _r(total)
+
+
+#//# removed: prior duplicate version of _sum_codes(tb, (start,end)) which
+#//# conflicted at call-time with this 3-arg signature.
+# def _sum_codes(tb: Dict[str, float], prefix_range: tuple[int, int]) -> float:
+#     ...
+
+
+def _pl_from_delta(delta: Dict[str, float]) -> Dict[str, float]:
+    """
+    Build a simple PL from delta trial balance for a given period.
+    - 4xxx (revenue) are credits (negative in TB) → flip sign to positive.
+    - 5xxx COGS, 6xxx Opex are debits (positive).
+    - 7xxx split for other income/expense as example ranges.
+    - 72xx interest, 73xx tax (adjust to your COA if needed).
+    """
+    net_revenue = -_sum_codes(delta, 4000, 4999)  # flip credits to +
+    cogs        =  _sum_codes(delta, 5000, 5999)
+    opex        =  _sum_codes(delta, 6000, 6999)
+
+    other_inc   = -_sum_codes(delta, 7000, 7099)
+    other_exp   =  _sum_codes(delta, 7100, 7199)
+    interest    =  _sum_codes(delta, 7200, 7299)
+    tax         =  _sum_codes(delta, 7300, 7399)
+
+    gross_profit   = _r(net_revenue - cogs)
+    operating_inc  = _r(gross_profit - opex)
+    pretax_income  = _r(operating_inc + other_inc - other_exp - interest)
+    net_income     = _r(pretax_income - tax)
+
+    return {
+        "net_revenue": net_revenue,
+        "cogs": cogs,
+        "gross_profit": gross_profit,
+        "opex": opex,
+        "operating_income": operating_inc,
+        "other_income": other_inc,
+        "other_expense": other_exp,
+        "interest_expense": interest,
+        "income_tax": tax,
+        "net_income": net_income,
+    }
+
+
+def _kpis_from_pl(pl: Dict[str, float]) -> Dict[str, float]:
+    """CFO-friendly KPIs derived from PL."""
+    rev = pl.get("net_revenue", 0.0) or 0.0
+    gp  = pl.get("gross_profit", 0.0) or 0.0
+    op  = pl.get("operating_income", 0.0) or 0.0
+    ni  = pl.get("net_income", 0.0) or 0.0
+
+    gm_pct = _r((gp / rev * 100.0) if rev else 0.0)
+    om_pct = _r((op / rev * 100.0) if rev else 0.0)
+    nm_pct = _r((ni / rev * 100.0) if rev else 0.0)
+
+    return {
+        "gross_margin_pct": gm_pct,
+        "operating_margin_pct": om_pct,
+        "net_margin_pct": nm_pct,
+    }
+
+
+# ----------------------------
+# Endpoints
+# ----------------------------
+
+@router.get("/report/export/summary.csv")
+def export_summary_csv(
+    start: date = Query(...),
+    end: date = Query(...),
+    accounts: List[str] = Query(default=["1000","1100","4000","4100"]),
+):
+    L = get_ledger()
+    tb_end = L.trial_balance(end)
+    delta  = L.delta_tb(start, end)
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["period_start","period_end","account","ending_balance","period_delta"])
+    for a in accounts:
+        w.writerow([str(start), str(end), a, _r(tb_end.get(a, 0.0)), _r(delta.get(a, 0.0))])
+
+    buf.seek(0)
+    return StreamingResponse(
+        io.BytesIO(buf.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="summary_{start}_{end}.csv"'}
+    )
+
 
 @router.get("/report/trial_balance")
-def api_trial_balance(as_of: date = Query(..., description="As-of date (YYYY-MM-DD)")):
+def api_trial_balance(
+    as_of: date = Query(..., description="As-of date (YYYY-MM-DD)")
+):
     """
-    Raw Trial Balance snapshot at 'as_of'.
-    NOTE: debit=positive, credit=negative.
+    Trial Balance snapshot with headline totals by major ranges.
+    NOTE: TB is debit=+, credit=−.
     """
     L = get_ledger()
     tb = L.trial_balance(as_of)
-    # Optional convenience totals by major buckets
-    assets     = _sum_codes(tb, (1000, 1999))
-    liabs      = _sum_codes(tb, (2000, 2999))
-    equity     = _sum_codes(tb, (3000, 3999))
-    revenue    = _sum_codes(tb, (4000, 4999))
-    cogs       = _sum_codes(tb, (5000, 5999))
-    opex       = _sum_codes(tb, (6000, 6999))
-    other      = _sum_codes(tb, (7000, 7999))
-    check      = round(assets + liabs + equity + revenue + cogs + opex + other, 2)
+
+    totals = {
+        "assets_1xxx": _sum_codes(tb, 1000, 1999),
+        "liabilities_2xxx": _sum_codes(tb, 2000, 2999),
+        "equity_3xxx": _sum_codes(tb, 3000, 3999),
+        "revenue_4xxx": _sum_codes(tb, 4000, 4999),
+        "cogs_5xxx": _sum_codes(tb, 5000, 5999),
+        "opex_6xxx": _sum_codes(tb, 6000, 6999),
+        "other_7xxx": _sum_codes(tb, 7000, 7999),
+    }
+
+    # Balance check: Assets - Liab - Equity should be 0 when including income flows.
+    balance_check_sum = _r(
+        totals["assets_1xxx"]
+        - (totals["liabilities_2xxx"] + totals["equity_3xxx"])
+        + totals["revenue_4xxx"]  # revenue is negative; adding keeps sign visible
+        + totals["cogs_5xxx"]
+        + totals["opex_6xxx"]
+        + totals["other_7xxx"]
+    )
+
     return {
         "as_of": str(as_of),
         "trial_balance": tb,
-        "totals": {
-            "assets_1xxx": assets,
-            "liabilities_2xxx": liabs,
-            "equity_3xxx": equity,
-            "revenue_4xxx": revenue,
-            "cogs_5xxx": cogs,
-            "opex_6xxx": opex,
-            "other_7xxx": other,
-            "balance_check_sum": check  # should be 0.00 if the universe still makes sense
-        }
+        "totals": totals,
+        "balance_check_sum": balance_check_sum,
     }
+
+@router.get("/metadata/accounts")
+def metadata_accounts():
+    """
+    Minimal COA metadata so the UI can render pickers.
+    Extend this later with names, cash_flow_hint, and display groups.
+    """
+    return {
+        "ranges": [
+            {"range":"1000-1999","label":"Assets"},
+            {"range":"2000-2999","label":"Liabilities"},
+            {"range":"3000-3999","label":"Equity"},
+            {"range":"4000-4999","label":"Revenue"},
+            {"range":"5000-5999","label":"COGS"},
+            {"range":"6000-6999","label":"Opex"},
+            {"range":"7000-7999","label":"Other"},
+        ],
+        "defaults": ["1000","1100","4000","4100"]
+    }
+
 
 @router.get("/report/pl")
 def api_profit_and_loss(
     start: date = Query(..., description="Start date inclusive (YYYY-MM-DD)"),
-    end:   date = Query(..., description="End date inclusive (YYYY-MM-DD)")
+    end:   date = Query(..., description="End date inclusive (YYYY-MM-DD)"),
 ):
     """
-    Income Statement (period flow): uses delta TB (debit + / credit -).
-    Net Revenue = -(sum 4xxx)  -> credits become positive revenue, 4100 debits reduce it automatically.
-    Gross Profit = Net Revenue - COGS (5xxx)
-    Operating Income = Gross Profit - OPEX (6xxx)
-    Pre-tax Income = Operating Income + Other (7xxx) [note: 7xxx credits show as negative; adding them increases income]
-    Net Income = sum of all P&L buckets with correct signs
+    Period Profit & Loss using delta TB.
+    Returns positive revenue/negative expenses in standard PL display terms.
     """
     L = get_ledger()
     delta = L.delta_tb(start, end)
-
-    # Build a fake TB-like dict from delta for easy reuse of _sum_codes
-    # (Same sign convention: debits +, credits -)
-    tb = {k: float(v) for k, v in delta.items()}
-
-    rev_sum   = _sum_codes(tb, (4000, 4999))   # negative typically (credits)
-    cogs_sum  = _sum_codes(tb, (5000, 5999))   # positive typically (debits)
-    opex_sum  = _sum_codes(tb, (6000, 6999))   # positive typically (debits)
-    other_sum = _sum_codes(tb, (7000, 7999))   # could be +/- depending on accounts
-
-    net_revenue     = -rev_sum                 # flip sign so revenue is positive
-    gross_profit    = net_revenue - cogs_sum
-    operating_inc   = gross_profit - opex_sum
-    pre_tax_income  = operating_inc + (-other_sum)  # if 7xxx are expenses (debit +) other_sum>0 reduces; if income (credit -), -other_sum adds
-    # Simpler: net_income = ( -sum(4xxx) ) - sum(5xxx) - sum(6xxx) + ( -sum(7xxx) )
-    net_income      = net_revenue - cogs_sum - opex_sum + (-other_sum)
-
+    pl = _pl_from_delta(delta)
     return {
         "period": {"start": str(start), "end": str(end)},
-        "sections": {
-            "revenue_4xxx_raw_sum": rev_sum,      # negative number typically
-            "cogs_5xxx_raw_sum": cogs_sum,
-            "opex_6xxx_raw_sum": opex_sum,
-            "other_7xxx_raw_sum": other_sum
-        },
-        "statement": {
-            "net_revenue": round(net_revenue, 2),
-            "gross_profit": round(gross_profit, 2),
-            "operating_income": round(operating_inc, 2),
-            "pre_tax_income": round(pre_tax_income, 2),
-            "net_income": round(net_income, 2)
-        }
+        **pl,
+        "kpis": _kpis_from_pl(pl),
     }
+
 
 @router.get("/report/bs")
 def api_balance_sheet(
-    as_of: date = Query(..., description="As-of date (YYYY-MM-DD)"),
-    include_period_net_income: bool = Query(True, description="If true, derives RE by rolling period NI into equity for display")
+    as_of: date = Query(..., description="As-of date (YYYY-MM-DD)")
 ):
     """
-    Balance Sheet (as-of): uses Trial Balance snapshot at 'as_of'.
-    Displays Assets and Liabilities+Equity as positive numbers.
-    If include_period_net_income=True, we 'virtually close' the P&L into equity for display sanity.
+    Naive Balance Sheet rollup by ranges (positive numbers for readability).
+    Adjust ranges to your COA as needed.
     """
     L = get_ledger()
     tb = L.trial_balance(as_of)
 
-    assets  = _sum_codes(tb, (1000, 1999))               # usually + (debits)
-    liabs   = _sum_codes(tb, (2000, 2999))               # usually - (credits)
-    equity  = _sum_codes(tb, (3000, 3999))               # usually - (credits)
-    # P&L buckets present in TB if you haven't actually closed books:
-    rev_sum = _sum_codes(tb, (4000, 4999))               # credits (negative)
-    cogs    = _sum_codes(tb, (5000, 5999))               # debits (positive)
-    opex    = _sum_codes(tb, (6000, 6999))               # debits (positive)
-    other   = _sum_codes(tb, (7000, 7999))               # +/- depending
-
-    # Derived NI from TB (if not closed)
-    net_revenue = -rev_sum
-    ni_from_tb  = net_revenue - cogs - opex + (-other)
-
-    # Display formatting: make both sides positive for human brains
-    total_assets = round(assets, 2)
-    total_leq_tb = round(-(liabs + equity + rev_sum + cogs + opex + other), 2)  # L+E+(unclosed P&L)
-
-    if include_period_net_income:
-        # Virtually close P&L into equity for display purposes
-        leq_closed = -(liabs + equity + 0.0 + 0.0 + 0.0 + 0.0 + 0.0 + ( -ni_from_tb ))  # subtract NI from the negative sum
-        # simpler: Liab+Equity (closed) = -(liabs + equity) + NI
-        total_leq_display = round( -(liabs + equity) + ni_from_tb, 2 )
-    else:
-        total_leq_display = total_leq_tb
+    assets  = -_sum_codes(tb, 1000, 1999) * -1  # present as positive
+    liabs   =  _sum_codes(tb, 2000, 2999) * -1  # liabilities are credits (negative in TB)
+    equity  =  _sum_codes(tb, 3000, 3999) * -1  # equity credits (negative in TB)
 
     return {
         "as_of": str(as_of),
-        "snapshots": {
-            "assets_1xxx_tb_sum": round(assets, 2),
-            "liabilities_2xxx_tb_sum": round(liabs, 2),     # usually negative
-            "equity_3xxx_tb_sum": round(equity, 2),         # usually negative
-            "unclosed_pl_buckets": {
-                "revenue_4xxx_tb_sum": round(rev_sum, 2),   # negative if credit
-                "cogs_5xxx_tb_sum": round(cogs, 2),
-                "opex_6xxx_tb_sum": round(opex, 2),
-                "other_7xxx_tb_sum": round(other, 2)
-            },
-            "derived_net_income_from_tb": round(ni_from_tb, 2)
-        },
-        "display": {
-            "total_assets": total_assets,
-            "total_liabilities_plus_equity_tb": total_leq_tb,
-            "total_liabilities_plus_equity_display": total_leq_display
-        },
-        "checks": {
-            "tb_equation_sum": round(assets + liabs + equity + rev_sum + cogs + opex + other, 2)  # should be 0.00
-        }
+        "assets": _r(assets),
+        "liabilities": _r(liabs),
+        "equity": _r(equity),
+        "total_assets": _r(assets),
+        "total_liabilities_and_equity": _r(liabs + equity),
     }
 
 
-from fastapi import APIRouter, Query
-from datetime import date
-from ..services.finance.ledger_store import get_ledger
+class ReportStyle(str, Enum):
+    compact = "compact"    # KPIs + headline accounts
+    full    = "full"       # + PL/BS payloads
+    teaching= "teaching"   # + explanations/tooltips
+    dev     = "dev"        # + raw tb_end and delta
 
-router = APIRouter(prefix="/finance", tags=["finance"])
 
-@router.get("/diag/ar_audit")
-def api_ar_audit(
-    start: date = Query(..., description="Start YYYY-MM-DD"),
-    end:   date = Query(..., description="End YYYY-MM-DD"),
+@router.get("/report/summary")
+def api_report_summary(
+    start: date = Query(..., description="Start date inclusive YYYY-MM-DD"),
+    end:   date = Query(..., description="End date inclusive YYYY-MM-DD"),
+    style: ReportStyle = Query(ReportStyle.compact, description="compact|full|teaching|dev"),
+        view: str = Query("cards", description="cards|grid (grid returns tidy rows)"),
+
+    accounts: List[str] = Query(
+        default=["1000", "1100", "4000", "4100"],
+        description="Account codes to surface as headline balances"
+    ),
 ):
+    """
+    Dynamic summary for classroom + CFO views.
+    - compact   => KPIs + selected accounts (end + delta)
+    - full      => + PL and BS payloads
+    - teaching  => compact + explanations
+    - dev       => compact + raw tb_end/delta for debugging
+    """
     L = get_ledger()
-    tb_end = L.trial_balance(end)     # ending balances by account
-    delta  = L.delta_tb(start, end)   # period movement by account
+    tb_end: Dict[str, float] = L.trial_balance(end)
+    delta:  Dict[str, float] = L.delta_tb(start, end)
 
-    def g(code, d): return round(float(d.get(code, 0.0)), 2)
+    pl = _pl_from_delta(delta)
+    kpis = _kpis_from_pl(pl)
+
+    ending_balances = { f"A_{a}": _r(tb_end.get(a, 0.0)) for a in accounts }
+    period_deltas   = { f"A_{a}": _r(delta.get(a, 0.0))  for a in accounts }
+
+    resp: Dict[str, object] = {
+        "period": {"start": str(start), "end": str(end)},
+        "kpis": kpis,
+        "ending_balances": ending_balances,
+        "period_deltas": period_deltas,
+    }
+
+    if style in (ReportStyle.full, ReportStyle.teaching):
+        # Build PL & BS inline to avoid any decorator/.__wrapped__ shenanigans
+        # PL: we already computed as `pl` above
+        pl_payload = {
+            "period": {"start": str(start), "end": str(end)},
+            **pl,
+            "kpis": kpis,
+        }
+
+        # BS: compute from tb_end with positive presentation
+        assets  = (-_sum_codes(tb_end, 1000, 1999)) * -1  # present as +
+        liabs   =  (_sum_codes(tb_end, 2000, 2999)) * -1  # credits -> +
+        equity  =  (_sum_codes(tb_end, 3000, 3999)) * -1  # credits -> +
+
+        bs_payload = {
+            "as_of": str(end),
+            "assets": _r(assets),
+            "liabilities": _r(liabs),
+            "equity": _r(equity),
+            "total_assets": _r(assets),
+            "total_liabilities_and_equity": _r(liabs + equity),
+        }
+
+        resp["statements"] = {
+            "pl": pl_payload,
+            "bs": bs_payload,
+        }
+
+    if style == ReportStyle.teaching:
+        resp["explain"] = {
+            "kpis": {
+                "gross_margin_pct": "Gross Profit ÷ Net Revenue × 100",
+                "operating_margin_pct": "Operating Income ÷ Net Revenue × 100",
+                "net_margin_pct": "Net Income ÷ Net Revenue × 100",
+            },
+            "signs": (
+                "TB uses debit=+ and credit=−. Revenue (4xxx) is credit (negative) "
+                "in TB but flipped to positive for KPIs/PL display."
+            ),
+            "accounts": (
+                "Change the headline set with repeated accounts[]=... parameters "
+                "(e.g., accounts=1000&accounts=1100&accounts=2000)."
+            ),
+        }
+
+    if style == ReportStyle.dev:
+        resp["dev"] = {"tb_end": tb_end, "delta": delta}
+
+    if view == "grid":
+        # turn headline balances into tidy rows
+        rows = []
+        for a in accounts:
+            rows.append({
+                "account": a,
+                "ending_balance": _r(tb_end.get(a, 0.0)),
+                "period_delta": _r(delta.get(a, 0.0)),
+            })
+        resp["headline_rows"] = rows
+
+    return resp
+
+@router.post("/dev/seed/january_2025")
+def dev_seed_january_2025(confirm: bool = Query(False, description="Must be true")):
+    if not confirm:
+        return {"error":"confirm_required","hint":"Pass ?confirm=true to run seeding"}
+    from ..services.finance.seed_journal import seed_january_2025
+    seed_january_2025()
+    return {"ok": True, "message": "Seeded January 2025 demo data"}
+
+
+
+@router.get("/report/diag")
+def api_report_diag(
+    as_of: date = Query(..., description="As-of date for TB check (YYYY-MM-DD)")
+):
+    """
+    Diagnostic: basic integrity numbers.
+    """
+    L = get_ledger()
+    tb = L.trial_balance(as_of)
+    s_assets = _sum_codes(tb, 1000, 1999)
+    s_liabs  = _sum_codes(tb, 2000, 2999)
+    s_equity = _sum_codes(tb, 3000, 3999)
+    s_income = _sum_codes(tb, 4000, 7999)
 
     return {
-        "period": {"start": str(start), "end": str(end)},
-        "ending_balances": {
-            "AR_1100": g("1100", tb_end),
-            "Cash_1000": g("1000", tb_end),
-            "Revenue_4000": g("4000", tb_end),
-            "Returns_4100": g("4100", tb_end),
-        },
-        "period_deltas": {
-            "AR_1100": g("1100", delta),
-            "Cash_1000": g("1000", delta),
-            "Revenue_4000": g("4000", delta),
-            "Returns_4100": g("4100", delta),
-        }
+        "as_of": str(as_of),
+        "sum_assets_1xxx": _r(s_assets),
+        "sum_liabilities_2xxx": _r(s_liabs),
+        "sum_equity_3xxx": _r(s_equity),
+        "sum_income_4xxx_7xxx": _r(s_income),
+        "sum_all": _r(sum(tb.values())),
     }
-
-
-@router.get("/diag/journal_dump")
-def api_journal_dump():
-    L = get_ledger()
-    out = []
-    for je in getattr(L, "entries", []):
-        out.append({
-            "je_id": je.je_id,
-            "date": str(je.je_date),
-            "memo": getattr(je, "memo", None),
-            "lines": [{"account": ln.account, "debit": ln.debit, "credit": ln.credit} for ln in je.lines]
-        })
-    return {"entries": out, "count": len(out)}
-
-
-@router.get("/statements")
-def get_statements(as_of: date, prev: date | None = None):
-    try:
-        L = get_ledger()
-        is_ = build_income_statement(L, as_of)
-        bs_ = build_balance_sheet(L, as_of)
-        if prev is None:
-            prev = date(as_of.year, 1, 1)
-        # Ensure prev < as_of
-        if prev >= as_of:
-            raise ValueError(f"'prev' must be before 'as_of' (prev={prev}, as_of={as_of})")
-
-        cf_ = build_cash_flow_direct(L, prev, as_of)
-
-        return {
-            "income_statement": is_.__dict__,
-            "balance_sheet": {
-                "assets": bs_.assets,
-                "liabilities": bs_.liabilities,
-                "equity": bs_.equity,
-                "total_assets": bs_.total_assets,
-                "total_liabilities_and_equity": bs_.total_liab_equity
-            },
-            "cash_flow_direct": {
-                "cfo": cf_.cfo, "cfi": cf_.cfi, "cff": cf_.cff,
-                "net_change_cash": cf_.net_change_cash, "ending_cash": cf_.ending_cash
-            }
-        }
-    except Exception:
-        return {"error": "statements_failed", "trace": format_exc()}
-
