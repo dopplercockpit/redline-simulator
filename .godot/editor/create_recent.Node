@@ -1,0 +1,8 @@
+Camera2D
+Panel
+CollisionShape2D
+Area2D
+CollisionPolygon2D
+CanvasLayer
+Node2D
+Sprite2D

@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d4by7d43dqmw7"
+
+[deps]
+
+files=["res://summary_2025-01-01_2025-01-31.period.translation", "res://summary_2025-01-01_2025-01-31.account.translation", "res://summary_2025-01-01_2025-01-31.ending.translation", "res://summary_2025-01-01_2025-01-31.period.translation"]
+
+source_file="res://summary_2025-01-01_2025-01-31.csv"
+dest_files=["res://summary_2025-01-01_2025-01-31.period.translation", "res://summary_2025-01-01_2025-01-31.account.translation", "res://summary_2025-01-01_2025-01-31.ending.translation", "res://summary_2025-01-01_2025-01-31.period.translation"]
+
+[params]
+
+compress=true
+delimiter=0

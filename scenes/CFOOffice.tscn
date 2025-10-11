@@ -1,0 +1,248 @@
+[gd_scene load_steps=18 format=3 uid="uid://rgakiaegtdbw"]
+
+[ext_resource type="Texture2D" uid="uid://dnkbn27iitlan" path="res://assets/backgrounds/CFOOffice.png" id="1_6penh"]
+[ext_resource type="Script" uid="uid://cfyaru1vibuj8" path="res://scenes/cfo_office.gd" id="1_cjgwl"]
+[ext_resource type="Script" uid="uid://b60ai56i31hxq" path="res://scripts/ui/DialogueBox.gd" id="2_xfd65"]
+[ext_resource type="Script" uid="uid://bjgpp6tiik2yp" path="res://scenes/camera_2d.gd" id="3_qpouq"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6penh"]
+size = Vector2(1379, 221)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xfd65"]
+size = Vector2(257, 246)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qpouq"]
+size = Vector2(250.5, 145)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cjgwl"]
+size = Vector2(209, 104)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gw8bu"]
+size = Vector2(223, 349)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_88qf3"]
+size = Vector2(311.5, 294)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4sgfu"]
+size = Vector2(126.5, 208)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8a76f"]
+size = Vector2(307, 375)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ijerg"]
+size = Vector2(181, 233)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_p2a7w"]
+size = Vector2(270.5, 79)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_n78gf"]
+size = Vector2(196.5, 134)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6penh"]
+bg_color = Color(0.3372549, 0.3372549, 0.3372549, 0.8)
+corner_detail = 12
+
+[sub_resource type="FontFile" id="FontFile_cjgwl"]
+cache/0/16/0/ascent = 0.0
+cache/0/16/0/descent = 0.0
+cache/0/16/0/underline_position = 0.0
+cache/0/16/0/underline_thickness = 0.0
+cache/0/16/0/scale = 1.0
+cache/0/17/0/ascent = 0.0
+cache/0/17/0/descent = 0.0
+cache/0/17/0/underline_position = 0.0
+cache/0/17/0/underline_thickness = 0.0
+cache/0/17/0/scale = 1.0
+cache/0/18/0/ascent = 0.0
+cache/0/18/0/descent = 0.0
+cache/0/18/0/underline_position = 0.0
+cache/0/18/0/underline_thickness = 0.0
+cache/0/18/0/scale = 1.0
+cache/0/19/0/ascent = 0.0
+cache/0/19/0/descent = 0.0
+cache/0/19/0/underline_position = 0.0
+cache/0/19/0/underline_thickness = 0.0
+cache/0/19/0/scale = 1.0
+cache/0/20/0/ascent = 0.0
+cache/0/20/0/descent = 0.0
+cache/0/20/0/underline_position = 0.0
+cache/0/20/0/underline_thickness = 0.0
+cache/0/20/0/scale = 1.0
+cache/0/21/0/ascent = 0.0
+cache/0/21/0/descent = 0.0
+cache/0/21/0/underline_position = 0.0
+cache/0/21/0/underline_thickness = 0.0
+cache/0/21/0/scale = 1.0
+cache/0/22/0/ascent = 0.0
+cache/0/22/0/descent = 0.0
+cache/0/22/0/underline_position = 0.0
+cache/0/22/0/underline_thickness = 0.0
+cache/0/22/0/scale = 1.0
+cache/0/23/0/ascent = 0.0
+cache/0/23/0/descent = 0.0
+cache/0/23/0/underline_position = 0.0
+cache/0/23/0/underline_thickness = 0.0
+cache/0/23/0/scale = 1.0
+cache/0/24/0/ascent = 0.0
+cache/0/24/0/descent = 0.0
+cache/0/24/0/underline_position = 0.0
+cache/0/24/0/underline_thickness = 0.0
+cache/0/24/0/scale = 1.0
+cache/0/25/0/ascent = 0.0
+cache/0/25/0/descent = 0.0
+cache/0/25/0/underline_position = 0.0
+cache/0/25/0/underline_thickness = 0.0
+cache/0/25/0/scale = 1.0
+cache/0/26/0/ascent = 0.0
+cache/0/26/0/descent = 0.0
+cache/0/26/0/underline_position = 0.0
+cache/0/26/0/underline_thickness = 0.0
+cache/0/26/0/scale = 1.0
+cache/0/27/0/ascent = 0.0
+cache/0/27/0/descent = 0.0
+cache/0/27/0/underline_position = 0.0
+cache/0/27/0/underline_thickness = 0.0
+cache/0/27/0/scale = 1.0
+cache/0/28/0/ascent = 0.0
+cache/0/28/0/descent = 0.0
+cache/0/28/0/underline_position = 0.0
+cache/0/28/0/underline_thickness = 0.0
+cache/0/28/0/scale = 1.0
+cache/0/29/0/ascent = 0.0
+cache/0/29/0/descent = 0.0
+cache/0/29/0/underline_position = 0.0
+cache/0/29/0/underline_thickness = 0.0
+cache/0/29/0/scale = 1.0
+cache/0/30/0/ascent = 0.0
+cache/0/30/0/descent = 0.0
+cache/0/30/0/underline_position = 0.0
+cache/0/30/0/underline_thickness = 0.0
+cache/0/30/0/scale = 1.0
+cache/0/31/0/ascent = 0.0
+cache/0/31/0/descent = 0.0
+cache/0/31/0/underline_position = 0.0
+cache/0/31/0/underline_thickness = 0.0
+cache/0/31/0/scale = 1.0
+cache/0/32/0/ascent = 0.0
+cache/0/32/0/descent = 0.0
+cache/0/32/0/underline_position = 0.0
+cache/0/32/0/underline_thickness = 0.0
+cache/0/32/0/scale = 1.0
+
+[node name="CFOOffice" type="Node2D"]
+script = ExtResource("1_cjgwl")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(960, 540)
+texture = ExtResource("1_6penh")
+
+[node name="Hotspots" type="Node2D" parent="."]
+
+[node name="Hotspot_Desk" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Desk"]
+position = Vector2(902, 930)
+shape = SubResource("RectangleShape2D_6penh")
+
+[node name="Hotspot_Laptop" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Laptop"]
+position = Vector2(839, 666)
+shape = SubResource("RectangleShape2D_xfd65")
+
+[node name="Hotspot_Phone" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Phone"]
+position = Vector2(1323, 684)
+shape = SubResource("RectangleShape2D_qpouq")
+
+[node name="Hotspot_Newspaper" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Newspaper"]
+position = Vector2(495, 743)
+shape = SubResource("RectangleShape2D_cjgwl")
+
+[node name="Hotspot_Door" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Door"]
+position = Vector2(832, 340)
+shape = SubResource("RectangleShape2D_gw8bu")
+
+[node name="Hotspot_Bookcase" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Bookcase"]
+position = Vector2(1147, 354)
+shape = SubResource("RectangleShape2D_88qf3")
+
+[node name="Hotspot_Winefridge" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Winefridge"]
+position = Vector2(581, 548)
+shape = SubResource("RectangleShape2D_4sgfu")
+
+[node name="Hotspot_Window" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Window"]
+position = Vector2(1563, 294)
+shape = SubResource("RectangleShape2D_8a76f")
+
+[node name="Hotspot_Painting" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Painting"]
+position = Vector2(316, 273)
+shape = SubResource("RectangleShape2D_ijerg")
+
+[node name="Hotspot_Cabinet" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_Cabinet"]
+position = Vector2(1138, 558)
+shape = SubResource("RectangleShape2D_p2a7w")
+
+[node name="Hotspot_TV" type="Area2D" parent="Hotspots"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hotspots/Hotspot_TV"]
+position = Vector2(592, 261)
+shape = SubResource("RectangleShape2D_n78gf")
+
+[node name="DialogueBox" type="CanvasLayer" parent="."]
+script = ExtResource("2_xfd65")
+
+[node name="Panel" type="Panel" parent="DialogueBox"]
+anchors_preset = -1
+anchor_left = -0.22700001
+anchor_right = -0.22700001
+offset_left = 667.84
+offset_top = 755.0
+offset_right = 1997.8401
+offset_bottom = 970.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_6penh")
+
+[node name="Label" type="Label" parent="DialogueBox/Panel"]
+custom_minimum_size = Vector2(1000, 200)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -665.0
+offset_top = -215.0
+offset_right = 335.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = SubResource("FontFile_cjgwl")
+theme_override_font_sizes/font_size = 32
+autowrap_mode = 1
+
+[node name="UI_Inventory" type="CanvasLayer" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(960, 540)
+limit_enabled = false
+script = ExtResource("3_qpouq")
+
+[connection signal="input_event" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_input_event"]
+[connection signal="mouse_entered" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_mouse_entered"]
