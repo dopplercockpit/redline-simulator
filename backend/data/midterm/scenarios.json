@@ -2,122 +2,55 @@
   "company": "RevLine Industries",
   "currency": "EUR",
   "units": "thousands",
-  "iterations": [
+  "scenarios": [
     {
       "id": 1,
-      "title": "Q2 Baseline — Smooth Idle",
-      "narrative": "Baseline quarter. Stable demand. Clean channel mix. Nothing's on fire yet.",
+      "title": "Launch & Ramp-Up",
+      "narrative": "Baseline quarter with ramping production and startup inefficiencies.",
       "income_statement": {
-        "revenue": 25000,
-        "cogs": 15000,
-        "gross_profit": 10000,
-        "opex": 7000,
-        "operating_income": 3000,
-        "interest": 500,
-        "pretax_income": 2500,
-        "tax": 625,
-        "net_income": 1875
+        "gross_sales": 25000,
+        "promo_allowances": 1200,
+        "customer_allowances": 800,
+        "net_sales": 23000,
+        "materials_cost": 8500,
+        "labor_cost": 4200,
+        "overhead_cost": 2000,
+        "total_cogs": 14700,
+        "gross_profit": 8300,
+        "marketing_expense": 900,
+        "sga_expense": 2500,
+        "depreciation": 400,
+        "ebit": 4500,
+        "interest_expense": 300,
+        "net_income": 4200
       },
       "balance_sheet": {
         "cash": 5000,
-        "accounts_receivable": 4000,
-        "inventory": 6000,
+        "accounts_receivable": 4200,
+        "inventory_raw": 1800,
+        "inventory_wip": 900,
+        "inventory_fg": 2500,
+        "total_inventory": 5200,
         "ppe": 12000,
-        "total_assets": 27000,
-        "accounts_payable": 3500,
-        "short_term_debt": 2000,
-        "long_term_debt": 8000,
-        "equity": 13500,
-        "total_liabilities_equity": 27000
+        "total_assets": 21400,
+        "accounts_payable": 3200,
+        "current_debt": 1500,
+        "total_debt": 7000,
+        "equity": 11200,
+        "total_liab_equity": 21400
       },
       "cash_flow": {
-        "from_operations": 1200,
-        "from_investing": -300,
-        "from_financing": -200,
-        "net_change_cash": 700
+        "net_income": 4200,
+        "change_working_capital": -1200,
+        "capex": -400,
+        "debt_activity": 0,
+        "equity_activity": 0,
+        "net_change_cash": 2600,
+        "ending_cash": 7600
       },
       "teaching_flags": [
-        "Gross margin ~40%",
-        "Operating margin ~12%",
-        "Working capital in line"
-      ]
-    },
-    {
-      "id": 2,
-      "title": "Q3 Cost Shock — Misfire Under Load",
-      "narrative": "Raw materials spike (combustion blocks & power electronics). Channel mix tilts toward wholesale; promo discounts nibble margins. Factory runs to build stock for forecasted demand (that may or may not bloody arrive).",
-      "income_statement": {
-        "revenue": 24500,
-        "cogs": 16800,
-        "gross_profit": 7700,
-        "opex": 7100,
-        "operating_income": 600,
-        "interest": 520,
-        "pretax_income": 80,
-        "tax": 20,
-        "net_income": 60
-      },
-      "balance_sheet": {
-        "cash": 3200,
-        "accounts_receivable": 4800,
-        "inventory": 7500,
-        "ppe": 12000,
-        "total_assets": 27500,
-        "accounts_payable": 3900,
-        "short_term_debt": 2000,
-        "long_term_debt": 8000,
-        "equity": 12600,
-        "total_liabilities_equity": 27500
-      },
-      "cash_flow": {
-        "from_operations": -900,
-        "from_investing": -300,
-        "from_financing": 300,
-        "net_change_cash": -900
-      },
-      "teaching_flags": [
-        "Gross margin compresses to ~31%",
-        "Inventory build ties up cash",
-        "Receivables creep — watch DSO"
-      ]
-    },
-    {
-      "id": 3,
-      "title": "Q4 Price Action — Controlled Skid",
-      "narrative": "Mgmt pushes through selective price increases and trims discounts; marketing spends to defend brand. WC still bloated; cash gets squeezed; ST debt ticks up.",
-      "income_statement": {
-        "revenue": 26200,
-        "cogs": 17200,
-        "gross_profit": 9000,
-        "opex": 7600,
-        "operating_income": 1400,
-        "interest": 520,
-        "pretax_income": 880,
-        "tax": 220,
-        "net_income": 660
-      },
-      "balance_sheet": {
-        "cash": 2600,
-        "accounts_receivable": 5100,
-        "inventory": 8200,
-        "ppe": 12000,
-        "total_assets": 27900,
-        "accounts_payable": 4100,
-        "short_term_debt": 2500,
-        "long_term_debt": 8000,
-        "equity": 12700,
-        "total_liabilities_equity": 27900
-      },
-      "cash_flow": {
-        "from_operations": -600,
-        "from_investing": -300,
-        "from_financing": 300,
-        "net_change_cash": -600
-      },
-      "teaching_flags": [
-        "Partial margin recovery",
-        "CFO still negative due to WC",
-        "Short-term debt up — liquidity risk"
+        "Observe WIP buildup vs finished goods transition",
+        "Watch the impact of allowances on margin"
       ]
     }
   ]

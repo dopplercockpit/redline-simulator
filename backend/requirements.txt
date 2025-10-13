@@ -1,9 +1,11 @@
-flask\nfastapi\nuvicorn\npydantic
-
+#//# removed: unpinned duplicates 'flask', 'fastapi', 'uvicorn', 'pydantic' to avoid resolver conflicts
 fastapi==0.115.0
 uvicorn==0.30.6
 pydantic==2.9.2
 python-dotenv==1.0.1
 openai==1.50.2
 orjson==3.10.7
-
+swagger-ui-bundle==1.1.0
+# flask==3.0.3
+# flask-cors==4.0.0
+# flask-swagger-ui==3.36.0
