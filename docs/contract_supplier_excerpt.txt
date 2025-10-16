@@ -1,0 +1,9 @@
+SECTION 3 — PRICING & EARLY PAYMENT
+Standard: Net 45. Optional Early Payment Program (EPP): 2% discount if paid within 15 days on up to 50% of eligible spend.
+
+SECTION 4 — INCOTERMS & LOGISTICS
+Default: FCA Supplier Plant. Alternatives: FOB Port of Loading; DAP Buyer DC. Lanes may be switched per SKU/PO without amending the Agreement.
+
+NOTES
+• Under FCA/FOB, Buyer controls freight and is Importer of Record.
+• Use EPP on high landed-cost inputs first to cut COGS; watch cash timing and DPO.

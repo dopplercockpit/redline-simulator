@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bds31wvuhhwqw"]
+
+[ext_resource type="Script" uid="uid://o0gfadj8bqe5" path="res://ui/ContractPanel.gd" id="1_7pw8j"]
+
+[node name="ContractPanel" type="Node2D"]
+script = ExtResource("1_7pw8j")

@@ -1,19 +1,69 @@
 extends Node2D
 
+var cached_financials: Dictionary = {}
+
+# find-or-spawn the FinancialPanel
+var financial_panel: Node = null
+
 # --- CONFIG ---
 var backend_base := "http://127.0.0.1:8000" # replace with your Render URL
 
 # --- ON READY ---
-func _ready():
+func _ready() -> void:
+	# Ensure FinancialPanel exists (either placed in scene or spawned here)
+	financial_panel = get_node_or_null("FinancialPanel")
+	if financial_panel == null:
+		var fp_scene: PackedScene = preload("res://ui/FinancialPanel.tscn")
+		financial_panel = fp_scene.instantiate()
+		add_child(financial_panel)
+
+	# Connect the signal from the panel
+	if financial_panel and not financial_panel.is_connected("commentary_submitted", Callable(self, "_on_commentary_submitted")):
+		financial_panel.connect("commentary_submitted", Callable(self, "_on_commentary_submitted"))
+
+	# Normal startup
+	_load_demo_financials()
 	$Camera2D.make_current()
-	$DialogueBox.show_text("System boot complete. Welcome back, CFO.")
+	$DialogueBox.show_text("System boot complete. Welcome to REVline Industries.")
+
+
+func _load_demo_financials() -> void:
+	var file_path := "res://data/redline_financials.json"
+	if not FileAccess.file_exists(file_path):
+		push_error("Missing demo_financials.json at " + file_path)
+		return
+	var f := FileAccess.open(file_path, FileAccess.READ)
+	if f == null:
+		push_error("Could not open demo_financials.json")
+		return
+	
+	var data: Variant = JSON.parse_string(f.get_as_text())
+	if typeof(data) == TYPE_DICTIONARY and financial_panel and financial_panel.has_method("show_financials"):
+		# handle both shapes: with/without "iteration"
+		var payload: Variant = data
+		if payload.has("iteration") and typeof(payload["iteration"]) == TYPE_DICTIONARY:
+			payload = payload["iteration"]
+		cached_financials = payload
+	else:
+		push_error("demo_financials.json parse failed or FinancialPanel missing")
 
 # --- HOTSPOT EVENTS ---
 func _on_hotspot_laptop_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		$DialogueBox.show_text("System online. Accessing mainframe…")
+		
+	if financial_panel:
+		# toggle behavior: if already open, close it
+		if financial_panel.visible:
+			financial_panel.visible = false
+			return
+		# otherwise show it (populate first if we have cached data)
+		if cached_financials.size() > 0:
+			financial_panel.show_financials(cached_financials)
+		financial_panel.visible = true
+
 		# Optional: you can call show_financials(1) here when ready
-		show_financials(1)
+		# show_financials(1) # removed: wrong script & wrong arg
 
 # --- NETWORK CALL: GET FINANCIALS ---
 var _http_state: HTTPRequest
@@ -76,3 +126,19 @@ func _on_commentary_reviewed(result, response_code, headers, body, iteration):
 		$DialogueBox.show_text("[b]Analyst Panel Feedback (Iter %d):[/b]\n%s" % [iteration, data["analysis"]])
 	else:
 		$DialogueBox.show_text("[b]Invalid server response:[/b]\n%s" % str(data))
+
+func _on_commentary_submitted(text):
+	var name = OS.get_environment("USERNAME")
+	var path := "user://progress.log"
+	var file := FileAccess.open(path, FileAccess.READ_WRITE)
+	if file == null:
+		# file probably doesn't exist yet — create it
+		file = FileAccess.open(path, FileAccess.WRITE)
+	# move to end so we don't overwrite
+	file.seek_end()
+	file.store_line("%s | %s | %s" % [Time.get_datetime_string_from_system(), name, text])
+	file.close()
+
+func _unhandled_input(event):
+	if event.is_action_pressed("ui_cancel") and financial_panel and financial_panel.visible:
+		financial_panel.visible = false

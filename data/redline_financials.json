@@ -1,0 +1,47 @@
+{
+  "company": "Redline Industries",
+  "title": "Month-End Demo Report – FY2025-10",
+  "iteration": {
+    "income_statement": {
+      "gross_sales": 2500000,
+      "promo_allowances": -125000,
+      "customer_allowances": -50000,
+      "net_sales": 2325000,
+      "materials_cost": -725000,
+      "labor_cost": -450000,
+      "overhead_cost": -200000,
+      "total_cogs": -1375000,
+      "gross_profit": 950000,
+      "marketing_expense": -150000,
+      "sga_expense": -225000,
+      "depreciation": -50000,
+      "ebit": 525000,
+      "interest_expense": -25000,
+      "net_income": 500000
+    },
+    "balance_sheet": {
+      "cash": 300000,
+      "accounts_receivable": 350000,
+      "inventory_raw": 150000,
+      "inventory_wip": 100000,
+      "inventory_fg": 250000,
+      "total_inventory": 500000,
+      "ppe": 1000000,
+      "total_assets": 2150000,
+      "accounts_payable": 250000,
+      "current_debt": 150000,
+      "total_debt": 400000,
+      "equity": 1350000,
+      "total_liab_equity": 2150000
+    },
+    "cash_flow": {
+      "net_income": 500000,
+      "change_working_capital": -100000,
+      "capex": -75000,
+      "debt_activity": 25000,
+      "equity_activity": 0,
+      "net_change_cash": 350000,
+      "ending_cash": 300000
+    }
+  }
+}

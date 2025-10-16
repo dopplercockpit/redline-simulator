@@ -61,6 +61,16 @@ theme_override_constants/h_separation = 40
 theme_override_constants/v_separation = 6
 columns = 2
 
+[node name="CommentaryInput" type="TextEdit" parent="PanelContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 110)
+wrap_mode = 1
+autowrap_mode = 2
+placeholder_text = "Type your analysis here… (relationships between IS, BS, CF; margin drivers; working capital notes; risks/opportunities)"
+
+[node name="SubmitButton" type="Button" parent="PanelContainer/VBoxContainer"]
+text = "Submit Analysis"
+size_flags_horizontal = 4
+
 [node name="CloseButton" type="Button" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4

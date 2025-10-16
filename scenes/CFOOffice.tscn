@@ -1,9 +1,10 @@
-[gd_scene load_steps=17 format=3 uid="uid://rgakiaegtdbw"]
+[gd_scene load_steps=18 format=3 uid="uid://rgakiaegtdbw"]
 
 [ext_resource type="Texture2D" uid="uid://dnkbn27iitlan" path="res://assets/backgrounds/CFOOffice.png" id="1_6penh"]
 [ext_resource type="Script" uid="uid://cfyaru1vibuj8" path="res://scenes/cfo_office.gd" id="1_cjgwl"]
 [ext_resource type="Script" uid="uid://b60ai56i31hxq" path="res://scripts/ui/DialogueBox.gd" id="2_xfd65"]
 [ext_resource type="Script" uid="uid://bjgpp6tiik2yp" path="res://scenes/camera_2d.gd" id="3_qpouq"]
+[ext_resource type="PackedScene" uid="uid://b3cdrcsichfl5" path="res://ui/FinancialPanel.tscn" id="5_gw8bu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6penh"]
 size = Vector2(1379, 221)
@@ -155,6 +156,8 @@ autowrap_mode = 1
 position = Vector2(960, 540)
 limit_enabled = false
 script = ExtResource("3_qpouq")
+
+[node name="FinancialPanel" parent="." instance=ExtResource("5_gw8bu")]
 
 [connection signal="input_event" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_input_event"]
 [connection signal="mouse_entered" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_mouse_entered"]

@@ -1,9 +1,15 @@
 extends CanvasLayer
 
-@onready var income_grid = $PanelContainer/VBoxContainer/IncomeGrid
-@onready var balance_grid = $PanelContainer/VBoxContainer/BalanceGrid
-@onready var cash_grid = $PanelContainer/VBoxContainer/CashGrid
-@onready var close_button = $PanelContainer/VBoxContainer/CloseButton
+signal commentary_submitted(text)
+
+@onready var income_grid: GridContainer   = $PanelContainer/VBoxContainer/IncomeGrid
+@onready var balance_grid: GridContainer  = $PanelContainer/VBoxContainer/BalanceGrid
+@onready var cash_grid: GridContainer     = $PanelContainer/VBoxContainer/CashGrid
+@onready var close_button: Button         = $PanelContainer/VBoxContainer/CloseButton
+
+# NEW — add these two with explicit types:
+@onready var commentary_input: TextEdit   = $PanelContainer/VBoxContainer/CommentaryInput
+@onready var submit_button: Button        = $PanelContainer/VBoxContainer/SubmitButton
 
 # templates for ordering and labels
 var income_lines = [
@@ -53,16 +59,26 @@ var cash_lines = [
 
 func _ready():
 	close_button.connect("pressed", Callable(self, "_on_close_pressed"))
+	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
 	visible = false
+	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
 
 
 func show_financials(data: Dictionary) -> void:
-	if not data.has("income_statement"): return
-	visible = true
-	_populate_grid(income_grid, data["income_statement"], income_lines)
-	_populate_grid(balance_grid, data["balance_sheet"], balance_lines)
-	_populate_grid(cash_grid, data["cash_flow"], cash_lines)
+	var d := data
+	# accept both top-level and "iteration" payloads
+	if d.has("iteration") and typeof(d["iteration"]) == TYPE_DICTIONARY:
+		d = d["iteration"]
 
+	if not d.has("income_statement"):
+		push_warning("show_financials(): missing income_statement in payload")
+		return
+
+	visible = true
+	_populate_grid(income_grid, d["income_statement"], income_lines)
+	_populate_grid(balance_grid, d["balance_sheet"], balance_lines)
+	_populate_grid(cash_grid, d["cash_flow"], cash_lines)
+	commentary_input.grab_focus()
 
 func _populate_grid(grid: GridContainer, values: Dictionary, layout: Array) -> void:
 	for c in grid.get_children():
@@ -93,6 +109,20 @@ func _fmt(v) -> String:
 	else:
 		return str(v)
 
+func _on_submit_pressed() -> void:
+	var txt := commentary_input.text.strip_edges()
+	if txt.is_empty():
+		txt = "(empty commentary)"
+	emit_signal("commentary_submitted", txt)
 
+# optional: also emit on close
 func _on_close_pressed():
+	var txt := commentary_input.text.strip_edges()
+	if txt.is_empty():
+		txt = "(closed without commentary)"
+	emit_signal("commentary_submitted", txt)
 	visible = false
+
+
+#func _on_close_pressed():
+#	visible = false

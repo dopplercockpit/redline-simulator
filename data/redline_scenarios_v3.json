@@ -1,0 +1,43 @@
+{
+  "meta": {},
+  "scenarios": [],
+  "artifacts": {
+    "supplier_framework_shortform_doc": "/mnt/data/RevLine_Supplier_Framework_ShortForm.docx",
+    "notes": "Short-form supplier agreement used in Scenario 6 (Incoterms & Early Pay levers).",
+    "supplier_contract_packet_pdf": "/mnt/data/RevLine_Supplier_Contract_Packet_Student.pdf",
+    "distributor_terms_docx": "/mnt/data/RevLine_Distributor_Terms_ShortForm.docx",
+    "supplier_excerpt_txt": "/mnt/data/contract_supplier_excerpt.txt",
+    "distributor_excerpt_txt": "/mnt/data/contract_distributor_excerpt.txt"
+  },
+  "application_mapping_notes": {
+    "ui_controls_spec": {
+      "scenario1_pricing": {
+        "controls": {
+          "strategy": [
+            "blanket_list_cut",
+            "targeted_allowances",
+            "hybrid_tiered"
+          ],
+          "time_box_weeks": [
+            4,
+            8,
+            12
+          ],
+          "mfn_exposure_toggle": true
+        },
+        "effects_reference": "See scenario 1 effects mapping."
+      },
+      "scenario6_contract": {
+        "controls": {
+          "incoterm_choice": [
+            "FCA",
+            "FOB",
+            "DAP"
+          ],
+          "early_pay_toggle": true
+        },
+        "effects_reference": "See scenario 6 effects mapping."
+      }
+    }
+  }
+}
