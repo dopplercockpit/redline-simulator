@@ -76,6 +76,16 @@ func _load_demo_financials() -> void:
 	if typeof(data) == TYPE_DICTIONARY:
 		cached_financials = data
 
+func _load_financials_from(path: String) -> void:
+	if path == "" or not FileAccess.file_exists(path):
+		push_warning("Financials not found: " + path)
+		return
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f:
+		var parsed: Variant = JSON.parse_string(f.get_as_text())
+		if typeof(parsed) == TYPE_DICTIONARY:
+			cached_financials = parsed
+
 # ===========================
 # HOTSPOTS
 # ===========================
@@ -96,6 +106,23 @@ func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: in
 		if cached_financials.size() > 0:
 			financial_panel.show_financials(cached_financials)
 		financial_panel.visible = true
+		
+	if financial_panel:
+	# Hide scenario panel so UIs don't overlap
+		if has_node("ScenarioPanel") and $ScenarioPanel.visible:
+			$ScenarioPanel.visible = false
+
+		# Toggle
+		if financial_panel.visible:
+			financial_panel.visible = false
+			return
+
+		# (Re)populate every open (cached_financials is set at startup)
+		if cached_financials.size() > 0 and financial_panel.has_method("show_financials"):
+			financial_panel.show_financials(cached_financials)
+
+		financial_panel.visible = true
+
 
 func _on_hotspot_news_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -149,6 +176,11 @@ func _show_current_scenario() -> void:
 	var tips: Array = current_scenario.get("tips", [])
 	$ScenarioPanel.set_brief(title, brief, objectives, tips)
 	$ScenarioPanel.visible = true
+	
+	var fin_ref: String = str(current_scenario.get("starting_financials_ref", ""))
+	if fin_ref != "":
+		_load_financials_from(fin_ref)
+
 
 func _advance_scenario() -> void:
 	if scenarios.is_empty():
@@ -205,6 +237,16 @@ func _on_commentary_submitted(text: String) -> void:
 	var full_path := OS.get_user_data_dir().path_join("submissions.json")
 	$DialogueBox.show_text("Submission saved.\nLocal log:\n" + full_path + "\nSending to instructor…")
 	_advance_scenario()
+
+	# Close & reset the panel for the next scenario
+	if is_instance_valid(financial_panel):
+		financial_panel.reset_for_next_scenario()
+		financial_panel.visible = false
+
+	# Advance to the next scenario (keep your existing method if you already have it)
+	if has_method("_advance_scenario"):
+		_advance_scenario()
+
 
 func _on_submit_http_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
 	if response_code >= 200 and response_code < 300:

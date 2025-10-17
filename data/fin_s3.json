@@ -1,0 +1,32 @@
+{
+  "income_statement": {
+    "gross_sales": 2500000,
+    "promo_allowances": -125000,
+    "net_sales": 2375000,
+    "cogs": 1450000,
+    "gross_margin": 925000,
+    "opex": 425000,
+    "ebit": 500000
+  },
+  "balance_sheet": {
+    "inventory_wip": 100000,
+    "inventory_fg": 240000,
+    "total_inventory": 495000,
+    "ppe": 1000000,
+    "total_assets": 2145000,
+    "ap": 260000,
+    "current_debt": 150000,
+    "total_debt": 400000,
+    "equity": 1335000,
+    "liab_plus_equity": 2145000
+  },
+  "cash_flow": {
+    "net_income": 470000,
+    "change_in_working_capital": -120000,
+    "capex": -75000,
+    "debt_activity": 25000,
+    "equity_activity": 0,
+    "net_change_in_cash": 300000,
+    "ending_cash": 240000
+  }
+}

@@ -82,16 +82,15 @@ func reset_for_next_scenario() -> void:
 
 func show_financials(data: Dictionary) -> void:
 	# Accept multiple naming schemes and both Array/Dictionary payloads.
-	# explicit typing = no more compiler whining
 	var isec: Variant = _find_section(data, ["income_statement","incomeStatement","income","is"])
 	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])
 	var csec: Variant = _find_section(data, ["cash_flow","cashflow","cashFlow","cash","cf"])
 
-
-	# If any section is missing, still render the grid with zeros so the UI doesn't look empty.
+	# Render even if a section is missing (don’t leave the UI empty)
 	_populate_grid_dynamic(income_grid,  isec if isec != null else {}, income_lines)
 	_populate_grid_dynamic(balance_grid, bsec if bsec != null else {}, balance_lines)
 	_populate_grid_dynamic(cash_grid,    csec if csec != null else {}, cash_lines)
+	commentary_input.grab_focus()
 
 func _find_section(root: Dictionary, keys: Array) -> Variant:
 	# Direct hit on any of the provided key names
@@ -99,7 +98,7 @@ func _find_section(root: Dictionary, keys: Array) -> Variant:
 		if root.has(k):
 			return _unwrap_section(root[k])
 
-	# Sometimes data is wrapped in an array of sections with a "type" and inner payload.
+	# Sometimes data comes as an array of sections with "type" and inner payload
 	if root.has("sections") and typeof(root["sections"]) == TYPE_ARRAY:
 		for s in root["sections"]:
 			if typeof(s) == TYPE_DICTIONARY:
@@ -107,11 +106,9 @@ func _find_section(root: Dictionary, keys: Array) -> Variant:
 				for k in keys:
 					if t.begins_with(str(k).to_lower()):
 						return _unwrap_section(s.get("data", s))
-
 	return null
 
 func _unwrap_section(sec: Variant) -> Variant:
-	# If it's a dict with a common container property, unwrap it.
 	if typeof(sec) == TYPE_DICTIONARY:
 		var d: Dictionary = sec
 		if d.has("lines"): return d["lines"]
@@ -120,12 +117,57 @@ func _unwrap_section(sec: Variant) -> Variant:
 		if d.has("data"):  return d["data"]
 	return sec
 
-
-
 func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
 	if grid == null:
 		return
 	grid.columns = 2
+
+	# Clear children safely
+	while grid.get_child_count() > 0:
+		var n: Node = grid.get_child(0)
+		grid.remove_child(n)
+		n.queue_free()
+
+	# 1) Dictionary path
+	if typeof(src) == TYPE_DICTIONARY:
+		var dict: Dictionary = src
+
+		# Use canonical order if we can match any keys
+		var hits := 0
+		for pair in order:
+			var key: String = pair[0]
+			var label_text: String = pair[1]
+			if dict.has(key):
+				_add_row(grid, label_text, dict.get(key, 0))
+				hits += 1
+
+		# If we matched nothing, just iterate keys (better than zeros)
+		if hits == 0:
+			for k in dict.keys():
+				_add_row(grid, str(k), dict[k])
+		return
+
+	# 2) Array path: ["Label", value] or {label,value} or first k/v
+	if typeof(src) == TYPE_ARRAY:
+		for item in (src as Array):
+			if typeof(item) == TYPE_ARRAY and item.size() >= 2:
+				_add_row(grid, str(item[0]), item[1])
+			elif typeof(item) == TYPE_DICTIONARY:
+				var dict := item as Dictionary
+				var lbl: String = str(dict.get("label", ""))
+				var val: Variant = dict["value"] if dict.has("value") else null
+				if lbl == "" and dict.size() > 0:
+					var keys: Array = dict.keys()
+					var k: String = str(keys[0])
+					lbl = k
+					val = dict[k]
+				_add_row(grid, lbl, val)
+		return
+
+# func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
+#	if grid == null:
+#		return
+#	grid.columns = 2
 
 	# Clear children safely
 	while grid.get_child_count() > 0:
@@ -168,9 +210,18 @@ func _add_row(grid: GridContainer, left_text: String, right_val: Variant) -> voi
 	grid.add_child(r)
 
 func _fmt(v) -> String:
-	if typeof(v) in [TYPE_INT, TYPE_FLOAT]:
-		return "%d" % int(v)
-	return str(v)
+	match typeof(v):
+		TYPE_INT:
+			return "%d" % v
+		TYPE_FLOAT:
+			return "%d" % int(round(v))
+		TYPE_STRING:
+			return v
+		TYPE_NIL:
+			return "-"
+		_:
+			return str(v)
+
 
 func _on_submit_pressed() -> void:
 	var txt: String = commentary_input.text.strip_edges() if commentary_input else ""
