@@ -1,41 +1,55 @@
 extends Node2D
 
+# ===========================
+# CONFIG
+# ===========================
+const SUBMIT_WEBHOOK_URL := "https://script.google.com/macros/s/AKfycbw2XJuAMKD5Po9sEW3oAvQH251lIAsoWh3Ant-r8ZAK1iOI8OimUKouJy5esIn93pEz/exec"
+var backend_base := "" # keep empty for web demo (no backend calls)
 
+# ===========================
+# STATE
+# ===========================
 var cached_financials: Dictionary = {}
+var scenarios: Array = []
+var current_scenario_index: int = 0
+var current_scenario: Dictionary = {}
 
-# find-or-spawn the FinancialPanel
-#var financial_panel: Node = null
+# ===========================
+# NODES
+# ===========================
 @onready var financial_panel: CanvasLayer = $FinancialPanel
+@onready var submit_http: HTTPRequest = $SubmitHTTP
 
-
-# --- CONFIG ---
-var backend_base := "" # MIDTERM: disable backend for web demo; use local JSON
-
-# --- ON READY ---
+# ===========================
+# LIFECYCLE
+# ===========================
 func _ready() -> void:
-	# Ensure FinancialPanel exists (either placed in scene or spawned here)
-	financial_panel = get_node_or_null("FinancialPanel")
+	print("User data dir: ", OS.get_user_data_dir())
+
+	# Ensure FinancialPanel exists
 	if financial_panel == null:
 		var fp_scene: PackedScene = preload("res://ui/FinancialPanel.tscn")
 		financial_panel = fp_scene.instantiate()
 		add_child(financial_panel)
 
-	# Connect the signal from the panel
-	if financial_panel and not financial_panel.is_connected("commentary_submitted", Callable(self, "_on_commentary_submitted")):
-		financial_panel.connect("commentary_submitted", Callable(self, "_on_commentary_submitted"))
+	# Connect commentary submit
+	_connect_financial_panel()
 
-	if financial_panel and not financial_panel.analysis_submitted.is_connected(_on_analysis_submitted):
-		financial_panel.analysis_submitted.connect(_on_analysis_submitted)
-
-
-
-	# Normal startup
+	# Load demo financials + scenarios
 	_load_demo_financials()
+	_load_scenarios()
+
+	# Flavor
+	$DialogueBox.show_text("System boot complete. Welcome to RevLine Industries.")
 	$Camera2D.make_current()
-	$DialogueBox.show_text("System boot complete. Welcome to REVline Industries.")
 
+func _connect_financial_panel() -> void:
+	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
+		financial_panel.commentary_submitted.connect(_on_commentary_submitted)
 
-
+# ===========================
+# PANELS (lazy spawn helpers)
+# ===========================
 func _ensure_news_panel() -> void:
 	if not has_node("NewsPanel"):
 		var p := preload("res://ui/NewsPanel.tscn").instantiate()
@@ -46,44 +60,35 @@ func _ensure_compendium_panel() -> void:
 		var p := preload("res://ui/CompendiumPanel.tscn").instantiate()
 		add_child(p)
 
+# ===========================
+# DEMO FINANCIALS
+# ===========================
 func _load_demo_financials() -> void:
 	var file_path := "res://data/redline_financials.json"
 	if not FileAccess.file_exists(file_path):
-		push_error("Missing demo_financials.json at " + file_path)
+		push_error("Missing redline_financials.json at " + file_path)
 		return
-	var f := FileAccess.open(file_path, FileAccess.READ)
+	var f: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 	if f == null:
-		push_error("Could not open demo_financials.json")
+		push_error("Could not open redline_financials.json")
 		return
-	
 	var data: Variant = JSON.parse_string(f.get_as_text())
-	if typeof(data) == TYPE_DICTIONARY and financial_panel and financial_panel.has_method("show_financials"):
-		# handle both shapes: with/without "iteration"
-		var payload: Variant = data
-		if payload.has("iteration") and typeof(payload["iteration"]) == TYPE_DICTIONARY:
-			payload = payload["iteration"]
-		cached_financials = payload
-	else:
-		push_error("demo_financials.json parse failed or FinancialPanel missing")
+	if typeof(data) == TYPE_DICTIONARY:
+		cached_financials = data
 
-# --- HOTSPOT EVENTS ---
-func _on_hotspot_laptop_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
+# ===========================
+# HOTSPOTS
+# ===========================
+func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		$DialogueBox.show_text("System online. Accessing mainframe…")
-	
-	if financial_panel:
-		# toggle behavior: if already open, close it
+		# toggle panel
 		if financial_panel.visible:
 			financial_panel.visible = false
 			return
-		# otherwise show it (populate first if we have cached data)
 		if cached_financials.size() > 0:
 			financial_panel.show_financials(cached_financials)
 		financial_panel.visible = true
 
-		# Optional: you can call show_financials(1) here when ready
-		# show_financials(1) # removed: wrong script & wrong arg
-		
 func _on_hotspot_news_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_ensure_news_panel()
@@ -104,91 +109,64 @@ func _on_hotspot_mouse_entered() -> void:
 func _on_hotspot_mouse_exited() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
-# --- NETWORK CALL: GET FINANCIALS ---
-var _http_state: HTTPRequest
-
-func show_financials(iteration: int) -> void:
-	# Create or reuse a single HTTPRequest node for GET; connect first, then request.
-	if _http_state == null:
-		_http_state = HTTPRequest.new()
-		add_child(_http_state)
-	else:
-		if _http_state.is_connected("request_completed", Callable(self, "_on_state_loaded")):
-			_http_state.disconnect("request_completed", Callable(self, "_on_state_loaded"))
-
-	_http_state.connect("request_completed", Callable(self, "_on_state_loaded"), CONNECT_ONE_SHOT)
-
-	var url = backend_base + "/midterm/state?iteration_id=%d" % iteration
-	_http_state.request(url)
-
-func _on_state_loaded(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
-	if response_code != 200:
-		$DialogueBox.show_text("[b]Backend error:[/b] %s" % str(response_code))
+# ===========================
+# SCENARIOS
+# ===========================
+func _load_scenarios() -> void:
+	var path := "res://data/redline_scenarios_v3.json"
+	if not FileAccess.file_exists(path):
+		push_warning("No scenarios JSON at: " + path)
 		return
-	var data = JSON.parse_string(body.get_string_from_utf8())
-	if has_node("/root/CFOOffice/FinancialPanel"):
-		$FinancialPanel.show_financials(data)	
-	if typeof(data) != TYPE_DICTIONARY or data.get("iteration", null) == null:
-		$DialogueBox.show_text("[b]Invalid server response[/b]")
+	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+	var j: Variant = JSON.parse_string(f.get_as_text())
+	if typeof(j) != TYPE_DICTIONARY:
+		push_warning("Malformed scenarios JSON")
 		return
-	var it = data["iteration"]
-	var text := "[b]%s — %s[/b]\n[i]%s[/i]\n\n[b]Income Statement:[/b]\n%s\n\n[b]Balance Sheet:[/b]\n%s\n\n[b]Cash Flow:[/b]\n%s" % [
-		data["company"], it["title"], it["narrative"],
-		JSON.stringify(it["income_statement"]),
-		JSON.stringify(it["balance_sheet"]),
-		JSON.stringify(it["cash_flow"])
-	]
-	$DialogueBox.show_text(text)
+	var arr: Variant = j.get("scenarios", [])
+	if typeof(arr) == TYPE_ARRAY and arr.size() > 0:
+		scenarios = arr
+		current_scenario_index = 0
+		_show_current_scenario()
 
-#func _on_hotspot_laptop_mouse_entered() -> void:
-#	print("Mouse entered laptop hotspot.")
+func _show_current_scenario() -> void:
+	if scenarios.is_empty():
+		return
+	current_scenario = scenarios[current_scenario_index]
+	if not has_node("ScenarioPanel"):
+		var p := preload("res://ui/ScenarioPanel.tscn").instantiate()
+		add_child(p)
+	var title := str(current_scenario.get("title","Scenario"))
+	var brief := str(current_scenario.get("brief",""))
+	var objectives: Array = current_scenario.get("objectives", [])
+	var tips: Array = current_scenario.get("tips", [])
+	$ScenarioPanel.set_brief(title, brief, objectives, tips)
+	$ScenarioPanel.visible = true
 
-# --- NETWORK CALL: POST COMMENTARY ---
-func submit_commentary(iteration: int, commentary: String) -> void:
-	var url = backend_base + "/midterm/analyze"
-	var payload = {"iteration_id": iteration, "commentary": commentary}
-	var json = JSON.stringify(payload)
+func _advance_scenario() -> void:
+	if scenarios.is_empty():
+		return
+	current_scenario_index += 1
+	if current_scenario_index >= scenarios.size():
+		$DialogueBox.show_text("All scenarios complete. Nice driving.")
+		current_scenario_index = scenarios.size() - 1
+		return
+	_show_current_scenario()
+	if is_instance_valid(financial_panel):
+		financial_panel.reset_for_next_scenario()
 
-	var req := HTTPRequest.new()
-	add_child(req)
-	req.request(url, ["Content-Type: application/json"], HTTPClient.METHOD_POST, json)
-	req.connect("request_completed", Callable(self, "_on_commentary_reviewed").bind(iteration), CONNECT_ONE_SHOT)
-
-# --- CALLBACK: HANDLE RESPONSE ---
-func _on_commentary_reviewed(result, response_code, headers, body, iteration):
-	if response_code != 200:
-		$DialogueBox.show_text("[b]Feedback error:[/b] %s" % str(response_code))
+# ===========================
+# SUBMISSION HANDLING
+# ===========================
+func _on_commentary_submitted(text: String) -> void:
+	# A) Get student name from panel (required)
+	var student := ""
+	if is_instance_valid(financial_panel) and financial_panel.has_method("get_student_name"):
+		student = financial_panel.get_student_name()
+	if student.strip_edges() == "":
+		$DialogueBox.show_text("Please enter your name before submitting.")
 		return
 
-	var data = JSON.parse_string(body.get_string_from_utf8())
-	if typeof(data) == TYPE_DICTIONARY and data.has("analysis"):
-		$DialogueBox.show_text("[b]Analyst Panel Feedback (Iter %d):[/b]\n%s" % [iteration, data["analysis"]])
-	else:
-		$DialogueBox.show_text("[b]Invalid server response:[/b]\n%s" % str(data))
-
-func _on_commentary_submitted(text):
-	var name = OS.get_environment("USERNAME")
-	var path := "user://progress.log"
-	var file := FileAccess.open(path, FileAccess.READ_WRITE)
-	if file == null:
-		# file probably doesn't exist yet — create it
-		file = FileAccess.open(path, FileAccess.WRITE)
-	# move to end so we don't overwrite
-	file.seek_end()
-	file.store_line("%s | %s | %s" % [Time.get_datetime_string_from_system(), name, text])
-	file.close()
-
-func _unhandled_input(event):
-	if event.is_action_pressed("ui_cancel"):
-		if financial_panel and financial_panel.visible:
-			financial_panel.visible = false
-		if has_node("NewsPanel") and $NewsPanel.visible:
-			$NewsPanel.visible = false
-		if has_node("CompendiumPanel") and $CompendiumPanel.visible:
-			$CompendiumPanel.visible = false
-
-func _on_analysis_submitted(text: String) -> void:
-	$DialogueBox.show_text("Analysis received. Nice hustle.")
+	# B) Local log to user:// (desktop + HTML5 sandbox)
 	var path := "user://submissions.json"
 	var arr: Array = []
 	if FileAccess.file_exists(path):
@@ -196,9 +174,44 @@ func _on_analysis_submitted(text: String) -> void:
 		var parsed: Variant = JSON.parse_string(rf.get_as_text())
 		if typeof(parsed) == TYPE_ARRAY:
 			arr = parsed
-	arr.append({
+	var entry := {
 		"ts": Time.get_unix_time_from_system(),
+		"student_name": student,
+		"scenario_id": str(current_scenario.get("id","")),
+		"scenario_title": str(current_scenario.get("title","")),
 		"analysis": text
-	})
+	}
+	arr.append(entry)
 	var wf: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	wf.store_string(JSON.stringify(arr, "\t"))
+
+	# C) POST to Google Sheet Apps Script
+	if has_node("SubmitHTTP"):
+		var headers := ["Content-Type: application/json"]
+		var body := JSON.stringify(entry)
+		var err := submit_http.request(SUBMIT_WEBHOOK_URL, headers, HTTPClient.METHOD_POST, body)
+		if err != OK:
+			push_warning("Submit HTTP error: %s" % err)
+
+	# D) UX + advance
+	var full_path := OS.get_user_data_dir().path_join("submissions.json")
+	$DialogueBox.show_text("Submission saved.\nLocal log:\n" + full_path + "\nSending to instructor…")
+	_advance_scenario()
+
+func _on_submit_http_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+	if response_code >= 200 and response_code < 300:
+		print("Submit webhook OK: ", response_code)
+	else:
+		push_warning("Submit webhook failed: %s" % response_code)
+
+# ===========================
+# ESC to close open panels
+# ===========================
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if is_instance_valid(financial_panel) and financial_panel.visible:
+			financial_panel.visible = false
+		if has_node("NewsPanel") and $NewsPanel.visible:
+			$NewsPanel.visible = false
+		if has_node("CompendiumPanel") and $CompendiumPanel.visible:
+			$CompendiumPanel.visible = false

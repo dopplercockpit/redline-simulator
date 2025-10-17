@@ -1,43 +1,95 @@
 {
-  "meta": {},
-  "scenarios": [],
-  "artifacts": {
-    "supplier_framework_shortform_doc": "/mnt/data/RevLine_Supplier_Framework_ShortForm.docx",
-    "notes": "Short-form supplier agreement used in Scenario 6 (Incoterms & Early Pay levers).",
-    "supplier_contract_packet_pdf": "/mnt/data/RevLine_Supplier_Contract_Packet_Student.pdf",
-    "distributor_terms_docx": "/mnt/data/RevLine_Distributor_Terms_ShortForm.docx",
-    "supplier_excerpt_txt": "/mnt/data/contract_supplier_excerpt.txt",
-    "distributor_excerpt_txt": "/mnt/data/contract_distributor_excerpt.txt"
-  },
-  "application_mapping_notes": {
-    "ui_controls_spec": {
-      "scenario1_pricing": {
-        "controls": {
-          "strategy": [
-            "blanket_list_cut",
-            "targeted_allowances",
-            "hybrid_tiered"
-          ],
-          "time_box_weeks": [
-            4,
-            8,
-            12
-          ],
-          "mfn_exposure_toggle": true
-        },
-        "effects_reference": "See scenario 1 effects mapping."
-      },
-      "scenario6_contract": {
-        "controls": {
-          "incoterm_choice": [
-            "FCA",
-            "FOB",
-            "DAP"
-          ],
-          "early_pay_toggle": true
-        },
-        "effects_reference": "See scenario 6 effects mapping."
-      }
+  "meta": { "version": "3.0" },
+  "scenarios": [
+    {
+      "id": "S1_pricing_g2n",
+      "title": "Distributor Squeeze on Gross-to-Net",
+      "brief": "Your #1 distributor demands either a 3pp list price cut or 5pp structural allowances for 8 weeks. Protect contribution margin while avoiding stock-outs on I4 and V6 flagship SKUs.",
+      "objectives": [
+        "Choose pricing vs allowance vs hybrid strategy.",
+        "Keep service level ≥ 95% on top SKUs.",
+        "Maintain ending cash balance ≥ prior month."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Gross-to-net hits margin before cash.",
+        "Working capital moves can offset short-term margin pressure."
+      ]
+    },
+    {
+      "id": "S2_supply_castings",
+      "title": "APAC Castings Lead-Time Slip",
+      "brief": "Custom castings lead-times slip by 2–4 weeks. You can expedite at a premium or rebalance mix to avoid stock-outs on high-margin builds.",
+      "objectives": [
+        "Decide expedite budget vs mix replan.",
+        "Avoid stock-outs on I4 and Hybrid motors.",
+        "Hold gross margin within 50 bps of baseline."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Expedite cost is P&L now; stock-out has revenue and customer impact.",
+        "Use safety stock rules pragmatically, not dogmatically."
+      ]
+    },
+    {
+      "id": "S3_freight_transatlantic",
+      "title": "Freight Spike on Transatlantic",
+      "brief": "Spot freight on the transatlantic lane jumps 12% MoM. Decide whether to pull forward shipments or wait it out while meeting a new EU promo window.",
+      "objectives": [
+        "Balance freight cost vs promo revenue timing.",
+        "Keep DSO flat while hitting windowed demand.",
+        "Protect EBITDA ≥ plan."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Freight is part of gross-to-net for many orgs—treat it explicitly.",
+        "Pulling forward affects working capital and cash."
+      ]
+    },
+    {
+      "id": "S4_warranty_batch",
+      "title": "Warranty Signal on V6 Batch",
+      "brief": "Field failure rate suggests a potential warranty exposure on one V6 batch. Estimate reserve, decide whether to pause shipments, and communicate to distributors.",
+      "objectives": [
+        "Set a defensible warranty accrual.",
+        "Minimize unnecessary stop-ship risk.",
+        "Maintain credibility with key accounts."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Accrual hits margin now; cash impact may be lagged.",
+        "Use sensitivity ranges and scenario labels in your brief."
+      ]
+    },
+    {
+      "id": "S5_fx_eurusd",
+      "title": "EUR Strengthens vs USD",
+      "brief": "EUR appreciates 4% vs USD into month-end. You sell in both currencies. Decide pricing buffers, hedging stance, and forecast translation impact.",
+      "objectives": [
+        "Protect local price integrity without whiplash.",
+        "Quantify FX translation on revenue and COGS.",
+        "Keep guidance believable."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Pricing cadence ≠ FX tick-by-tick; avoid ping-pong.",
+        "Disclose FX impacts cleanly: revenue, COGS, gross margin."
+      ]
+    },
+    {
+      "id": "S6_credit_topcustomer",
+      "title": "Top Customer Slows Payments",
+      "brief": "Your largest customer stretches terms by ~20 days. Decide on credit policy, potential factoring, or partial hold, while avoiding channel conflict.",
+      "objectives": [
+        "Stabilize cash conversion (DSO, DPO, inventory).",
+        "Avoid burning the relationship unless necessary.",
+        "Keep payroll/capex funded without panic."
+      ],
+      "starting_financials_ref": "res://data/redline_financials.json",
+      "tips": [
+        "Cash lives on the balance sheet — show the movement.",
+        "Consider carrot/stick: early-pay discounts vs holds."
+      ]
     }
-  }
+  ]
 }

@@ -67,6 +67,19 @@ theme_override_constants/h_separation = 40
 theme_override_constants/v_separation = 6
 columns = 2
 
+[node name="NameRow" type="HBoxContainer" parent="PanelContainer/ScrollContainer/VBoxContainer"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="NameLabel" type="Label" parent="PanelContainer/ScrollContainer/VBoxContainer/NameRow"]
+text = "Name"
+size_flags_horizontal = 1
+
+[node name="StudentName" type="LineEdit" parent="PanelContainer/ScrollContainer/VBoxContainer/NameRow"]
+placeholder_text = "Type your name (required)"
+size_flags_horizontal = 3
+
+
 [node name="CommentaryInput" type="TextEdit" parent="PanelContainer/ScrollContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 110)
 wrap_mode = 1

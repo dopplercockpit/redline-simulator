@@ -159,6 +159,8 @@ script = ExtResource("3_qpouq")
 
 [node name="FinancialPanel" parent="." instance=ExtResource("5_gw8bu")]
 
+[node name="SubmitHTTP" type="HTTPRequest" parent="."]
+
 [connection signal="input_event" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_input_event"]
 [connection signal="mouse_entered" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_mouse_entered"]
 [connection signal="mouse_exited" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_mouse_exited"]
@@ -168,3 +170,4 @@ script = ExtResource("3_qpouq")
 [connection signal="input_event" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_bookcase_input_event"]
 [connection signal="mouse_entered" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_mouse_entered"]
 [connection signal="mouse_exited" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_mouse_exited"]
+[connection signal="request_completed" from="SubmitHTTP" to="." method="_on_submit_http_completed"]

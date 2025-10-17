@@ -1,3 +1,6 @@
+res://ui/ScenarioPanel.tscn
+res://ui/ScenarioPanel.gd
+res://ui/FinancialPanel.tscn
 res://scenes/CFOOffice.tscn
-res://scenes/cfo_office.gd
 res://ui/FinancialPanel.gd
+res://scenes/cfo_office.gd

@@ -1,8 +1,6 @@
 extends CanvasLayer
 
 signal commentary_submitted(text)
-signal analysis_submitted(text: String)
-
 
 @onready var income_grid: GridContainer   = $PanelContainer/ScrollContainer/VBoxContainer/IncomeGrid
 @onready var balance_grid: GridContainer  = $PanelContainer/ScrollContainer/VBoxContainer/BalanceGrid
@@ -10,133 +8,101 @@ signal analysis_submitted(text: String)
 @onready var close_button: Button         = $PanelContainer/ScrollContainer/VBoxContainer/CloseButton
 @onready var commentary_input: TextEdit   = $PanelContainer/ScrollContainer/VBoxContainer/CommentaryInput
 @onready var submit_button: Button        = $PanelContainer/ScrollContainer/VBoxContainer/SubmitButton
+@onready var student_name: LineEdit       = $PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName
+@onready var scroll_container: ScrollContainer = $PanelContainer/ScrollContainer
 
-
-# templates for ordering and labels
-var income_lines = [
+# Display order / labels
+var income_lines: Array = [
 	["gross_sales", "Gross Sales"],
 	["promo_allowances", "Promotional Allowances"],
-	["customer_allowances", "Customer / Distributor Allowances"],
-	["net_sales", "Net Sales Revenue"],
-	["materials_cost", "Materials"],
-	["labor_cost", "Labor"],
-	["overhead_cost", "Overhead"],
-	["total_cogs", "Total COGS"],
-	["gross_profit", "Gross Profit"],
-	["marketing_expense", "Marketing Expense"],
-	["sga_expense", "SG&A Expense"],
-	["depreciation", "Depreciation"],
-	["ebit", "EBIT"],
-	["interest_expense", "Interest Expense"],
-	["net_income", "Net Income"]
+	["net_sales", "Net Sales"],
+	["cogs", "COGS"],
+	["gross_margin", "Gross Margin"],
+	["opex", "Operating Expenses"],
+	["ebit", "EBIT"]
 ]
 
-var balance_lines = [
-	["cash", "Cash"],
-	["accounts_receivable", "Accounts Receivable"],
-	["inventory_raw", "Inventory - Raw"],
+var balance_lines: Array = [
 	["inventory_wip", "Inventory - WIP"],
 	["inventory_fg", "Inventory - Finished Goods"],
 	["total_inventory", "Total Inventory"],
 	["ppe", "Property, Plant & Equipment"],
 	["total_assets", "Total Assets"],
-	["accounts_payable", "Accounts Payable"],
+	["ap", "Accounts Payable"],
 	["current_debt", "Current Portion of Debt"],
 	["total_debt", "Total Debt"],
 	["equity", "Equity"],
-	["total_liab_equity", "Total Liabilities + Equity"]
+	["liab_plus_equity", "Total Liabilities + Equity"]
 ]
 
-var cash_lines = [
+var cash_lines: Array = [
 	["net_income", "Net Income"],
-	["change_working_capital", "Change in Working Capital"],
+	["change_in_working_capital", "Change in Working Capital"],
 	["capex", "Capital Expenditures"],
 	["debt_activity", "Debt Activity"],
 	["equity_activity", "Equity Activity"],
-	["net_change_cash", "Net Change in Cash"],
+	["net_change_in_cash", "Net Change in Cash"],
 	["ending_cash", "Ending Cash Balance"]
 ]
 
-
-func _ready():
-	close_button.connect("pressed", Callable(self, "_on_close_pressed"))
-	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
-	visible = false
-	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
+func _ready() -> void:
 	submit_button.pressed.connect(_on_submit_pressed)
+	close_button.pressed.connect(_on_close_pressed)
 
-	var sc: ScrollContainer = $PanelContainer/ScrollContainer
-	var vsb: VScrollBar = sc.get_v_scroll_bar()
+	# Make scrollbar visible/chunky for demo
+	var vsb: VScrollBar = scroll_container.get_v_scroll_bar()
 	vsb.visible = true
-	# Make the bar visually obvious for the demo
 	vsb.custom_minimum_size = Vector2(10, 0)
 	vsb.add_theme_constant_override("thickness", 10)
 
-func _on_submit_pressed() -> void:
-	var txt: String = commentary_input.text.strip_edges()
-	emit_signal("analysis_submitted", txt)
-	submit_button.disabled = true
-	submit_button.text = "Submitted"
+func get_student_name() -> String:
+	return student_name.text.strip_edges()
+
+func reset_for_next_scenario() -> void:
+	commentary_input.text = ""
+	submit_button.disabled = false
+	submit_button.text = "Submit Analysis"
+	# keep name as-is so they don't retype each round
 
 func show_financials(data: Dictionary) -> void:
-	var d := data
-	# accept both top-level and "iteration" payloads
-	if d.has("iteration") and typeof(d["iteration"]) == TYPE_DICTIONARY:
-		d = d["iteration"]
+	# expects keys: income_statement, balance_sheet, cash_flow
+	if not data.has("income_statement"): return
+	if not data.has("balance_sheet"): return
+	if not data.has("cash_flow"): return
 
-	if not d.has("income_statement"):
-		push_warning("show_financials(): missing income_statement in payload")
-		return
+	_populate_grid(income_grid, data["income_statement"], income_lines)
+	_populate_grid(balance_grid, data["balance_sheet"], balance_lines)
+	_populate_grid(cash_grid, data["cash_flow"], cash_lines)
 
-	visible = true
-	_populate_grid(income_grid, d["income_statement"], income_lines)
-	_populate_grid(balance_grid, d["balance_sheet"], balance_lines)
-	_populate_grid(cash_grid, d["cash_flow"], cash_lines)
-	commentary_input.grab_focus()
+func _populate_grid(grid: GridContainer, src: Dictionary, order: Array) -> void:
+	for i in range(0, grid.get_child_count()):
+		var node := grid.get_child(i)
+		if node is Label:
+			node.text = ""
 
-func _populate_grid(grid: GridContainer, values: Dictionary, layout: Array) -> void:
-	for c in grid.get_children():
-		c.queue_free()
-
-	for pair in layout:
-		var key = pair[0]
-		var label_text = pair[1]
-		var value = ""
-		if values.has(key):
-			value = _fmt(values[key])
-		else:
-			value = "-"
-		var label_left = Label.new()
-		label_left.text = label_text
-		label_left.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-		var label_right = Label.new()
-		label_right.text = value
-		label_right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		label_right.add_theme_color_override("font_color", Color(1, 1, 1))
-		grid.add_child(label_left)
-		grid.add_child(label_right)
-
+	var row := 0
+	for pair in order:
+		var key: String = pair[0]
+		var label_text: String = pair[1]
+		var value: Variant = src.get(key, 0)
+		var left: Label = grid.get_child(row * 2)
+		var right: Label = grid.get_child(row * 2 + 1)
+		left.text = label_text
+		right.text = _fmt(value)
+		row += 1
 
 func _fmt(v) -> String:
 	if typeof(v) in [TYPE_INT, TYPE_FLOAT]:
-		return "%s" % String.num(v, 0)  # no decimals
-	else:
-		return str(v)
+		return "%d" % int(v)
+	return str(v)
 
-#func _on_submit_pressed() -> void:
-#	var txt := commentary_input.text.strip_edges()
-#	if txt.is_empty():
-#		txt = "(empty commentary)"
-#	emit_signal("commentary_submitted", txt)
-
-# optional: also emit on close
-func _on_close_pressed():
-	var txt := commentary_input.text.strip_edges()
+func _on_submit_pressed() -> void:
+	var txt: String = commentary_input.text.strip_edges()
 	if txt.is_empty():
-		txt = "(closed without commentary)"
+		txt = "(empty commentary)"
 	emit_signal("commentary_submitted", txt)
-	visible = false
+	submit_button.disabled = true
+	submit_button.text = "Submitted"
 
-
-#func _on_close_pressed():
-#	visible = false
+func _on_close_pressed() -> void:
+	var txt: String = commentary_input.text.strip_edges()
