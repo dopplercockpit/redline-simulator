@@ -1,2 +1,3 @@
-res://ui/ContractPanel.tscn
-res://ui/ContractPanel.gd
+res://scenes/CFOOffice.tscn
+res://scenes/cfo_office.gd
+res://ui/FinancialPanel.gd

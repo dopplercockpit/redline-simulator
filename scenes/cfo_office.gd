@@ -1,12 +1,15 @@
 extends Node2D
 
+
 var cached_financials: Dictionary = {}
 
 # find-or-spawn the FinancialPanel
-var financial_panel: Node = null
+#var financial_panel: Node = null
+@onready var financial_panel: CanvasLayer = $FinancialPanel
+
 
 # --- CONFIG ---
-var backend_base := "http://127.0.0.1:8000" # replace with your Render URL
+var backend_base := "" # MIDTERM: disable backend for web demo; use local JSON
 
 # --- ON READY ---
 func _ready() -> void:
@@ -21,11 +24,27 @@ func _ready() -> void:
 	if financial_panel and not financial_panel.is_connected("commentary_submitted", Callable(self, "_on_commentary_submitted")):
 		financial_panel.connect("commentary_submitted", Callable(self, "_on_commentary_submitted"))
 
+	if financial_panel and not financial_panel.analysis_submitted.is_connected(_on_analysis_submitted):
+		financial_panel.analysis_submitted.connect(_on_analysis_submitted)
+
+
+
 	# Normal startup
 	_load_demo_financials()
 	$Camera2D.make_current()
 	$DialogueBox.show_text("System boot complete. Welcome to REVline Industries.")
 
+
+
+func _ensure_news_panel() -> void:
+	if not has_node("NewsPanel"):
+		var p := preload("res://ui/NewsPanel.tscn").instantiate()
+		add_child(p)
+
+func _ensure_compendium_panel() -> void:
+	if not has_node("CompendiumPanel"):
+		var p := preload("res://ui/CompendiumPanel.tscn").instantiate()
+		add_child(p)
 
 func _load_demo_financials() -> void:
 	var file_path := "res://data/redline_financials.json"
@@ -51,7 +70,7 @@ func _load_demo_financials() -> void:
 func _on_hotspot_laptop_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		$DialogueBox.show_text("System online. Accessing mainframe…")
-		
+	
 	if financial_panel:
 		# toggle behavior: if already open, close it
 		if financial_panel.visible:
@@ -64,6 +83,26 @@ func _on_hotspot_laptop_input_event(viewport: Node, event: InputEvent, shape_idx
 
 		# Optional: you can call show_financials(1) here when ready
 		# show_financials(1) # removed: wrong script & wrong arg
+		
+func _on_hotspot_news_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_ensure_news_panel()
+		$DialogueBox.show_text("Scanning markets…")
+		$NewsPanel.load_news("res://data/news.json")
+		$NewsPanel.visible = true
+
+func _on_hotspot_bookcase_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_ensure_compendium_panel()
+		$DialogueBox.show_text("Opening compendium…")
+		$CompendiumPanel.load_compendium("res://data/compendium.json")
+		$CompendiumPanel.visible = true
+
+func _on_hotspot_mouse_entered() -> void:
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
+
+func _on_hotspot_mouse_exited() -> void:
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 # --- NETWORK CALL: GET FINANCIALS ---
 var _http_state: HTTPRequest
@@ -101,8 +140,8 @@ func _on_state_loaded(result: int, response_code: int, headers: PackedStringArra
 	]
 	$DialogueBox.show_text(text)
 
-func _on_hotspot_laptop_mouse_entered() -> void:
-	print("Mouse entered laptop hotspot.")
+#func _on_hotspot_laptop_mouse_entered() -> void:
+#	print("Mouse entered laptop hotspot.")
 
 # --- NETWORK CALL: POST COMMENTARY ---
 func submit_commentary(iteration: int, commentary: String) -> void:
@@ -140,5 +179,26 @@ func _on_commentary_submitted(text):
 	file.close()
 
 func _unhandled_input(event):
-	if event.is_action_pressed("ui_cancel") and financial_panel and financial_panel.visible:
-		financial_panel.visible = false
+	if event.is_action_pressed("ui_cancel"):
+		if financial_panel and financial_panel.visible:
+			financial_panel.visible = false
+		if has_node("NewsPanel") and $NewsPanel.visible:
+			$NewsPanel.visible = false
+		if has_node("CompendiumPanel") and $CompendiumPanel.visible:
+			$CompendiumPanel.visible = false
+
+func _on_analysis_submitted(text: String) -> void:
+	$DialogueBox.show_text("Analysis received. Nice hustle.")
+	var path := "user://submissions.json"
+	var arr: Array = []
+	if FileAccess.file_exists(path):
+		var rf: FileAccess = FileAccess.open(path, FileAccess.READ)
+		var parsed: Variant = JSON.parse_string(rf.get_as_text())
+		if typeof(parsed) == TYPE_ARRAY:
+			arr = parsed
+	arr.append({
+		"ts": Time.get_unix_time_from_system(),
+		"analysis": text
+	})
+	var wf: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	wf.store_string(JSON.stringify(arr, "\t"))

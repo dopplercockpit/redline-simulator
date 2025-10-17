@@ -6,7 +6,7 @@ func load_compendium(path: String) -> void:
 	if f == null:
 		body.text = "[b]Missing compendium[/b]"
 		return
-	var data: Variant = JSON.parse_string(f.get_as_text())   # Explicit type kills the warning
+	var data: Variant = JSON.parse_string(f.get_as_text())
 	if typeof(data) != TYPE_DICTIONARY:
 		body.text = "[b]Malformed compendium[/b]"
 		return

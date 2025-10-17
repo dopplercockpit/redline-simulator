@@ -1,15 +1,16 @@
 extends CanvasLayer
 
 signal commentary_submitted(text)
+signal analysis_submitted(text: String)
 
-@onready var income_grid: GridContainer   = $PanelContainer/VBoxContainer/IncomeGrid
-@onready var balance_grid: GridContainer  = $PanelContainer/VBoxContainer/BalanceGrid
-@onready var cash_grid: GridContainer     = $PanelContainer/VBoxContainer/CashGrid
-@onready var close_button: Button         = $PanelContainer/VBoxContainer/CloseButton
 
-# NEW — add these two with explicit types:
-@onready var commentary_input: TextEdit   = $PanelContainer/VBoxContainer/CommentaryInput
-@onready var submit_button: Button        = $PanelContainer/VBoxContainer/SubmitButton
+@onready var income_grid: GridContainer   = $PanelContainer/ScrollContainer/VBoxContainer/IncomeGrid
+@onready var balance_grid: GridContainer  = $PanelContainer/ScrollContainer/VBoxContainer/BalanceGrid
+@onready var cash_grid: GridContainer     = $PanelContainer/ScrollContainer/VBoxContainer/CashGrid
+@onready var close_button: Button         = $PanelContainer/ScrollContainer/VBoxContainer/CloseButton
+@onready var commentary_input: TextEdit   = $PanelContainer/ScrollContainer/VBoxContainer/CommentaryInput
+@onready var submit_button: Button        = $PanelContainer/ScrollContainer/VBoxContainer/SubmitButton
+
 
 # templates for ordering and labels
 var income_lines = [
@@ -62,7 +63,20 @@ func _ready():
 	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
 	visible = false
 	submit_button.connect("pressed", Callable(self, "_on_submit_pressed"))
+	submit_button.pressed.connect(_on_submit_pressed)
 
+	var sc: ScrollContainer = $PanelContainer/ScrollContainer
+	var vsb: VScrollBar = sc.get_v_scroll_bar()
+	vsb.visible = true
+	# Make the bar visually obvious for the demo
+	vsb.custom_minimum_size = Vector2(10, 0)
+	vsb.add_theme_constant_override("thickness", 10)
+
+func _on_submit_pressed() -> void:
+	var txt: String = commentary_input.text.strip_edges()
+	emit_signal("analysis_submitted", txt)
+	submit_button.disabled = true
+	submit_button.text = "Submitted"
 
 func show_financials(data: Dictionary) -> void:
 	var d := data
@@ -109,11 +123,11 @@ func _fmt(v) -> String:
 	else:
 		return str(v)
 
-func _on_submit_pressed() -> void:
-	var txt := commentary_input.text.strip_edges()
-	if txt.is_empty():
-		txt = "(empty commentary)"
-	emit_signal("commentary_submitted", txt)
+#func _on_submit_pressed() -> void:
+#	var txt := commentary_input.text.strip_edges()
+#	if txt.is_empty():
+#		txt = "(empty commentary)"
+#	emit_signal("commentary_submitted", txt)
 
 # optional: also emit on close
 func _on_close_pressed():
