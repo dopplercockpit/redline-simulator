@@ -5,13 +5,19 @@ signal commentary_submitted(text)
 @onready var income_grid: GridContainer   = $PanelContainer/ScrollContainer/VBoxContainer/IncomeGrid
 @onready var balance_grid: GridContainer  = $PanelContainer/ScrollContainer/VBoxContainer/BalanceGrid
 @onready var cash_grid: GridContainer     = $PanelContainer/ScrollContainer/VBoxContainer/CashGrid
-@onready var close_button: Button         = $PanelContainer/ScrollContainer/VBoxContainer/CloseButton
 @onready var commentary_input: TextEdit   = $PanelContainer/ScrollContainer/VBoxContainer/CommentaryInput
 @onready var submit_button: Button        = $PanelContainer/ScrollContainer/VBoxContainer/SubmitButton
-@onready var student_name: LineEdit       = $PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName
 @onready var scroll_container: ScrollContainer = $PanelContainer/ScrollContainer
 
-# Display order / labels
+# Name input (robust: with or without NameRow wrapper)
+@onready var student_name: LineEdit = (
+	get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") as LineEdit
+) if get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") != null else (
+	get_node("PanelContainer/ScrollContainer/VBoxContainer/StudentName") as LineEdit
+)
+
+var close_button: Button  # resolved in _ready
+
 var income_lines: Array = [
 	["gross_sales", "Gross Sales"],
 	["promo_allowances", "Promotional Allowances"],
@@ -46,50 +52,120 @@ var cash_lines: Array = [
 ]
 
 func _ready() -> void:
-	submit_button.pressed.connect(_on_submit_pressed)
-	close_button.pressed.connect(_on_close_pressed)
+	# Find Close node whether it's named Close or CloseButton
+	close_button = get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/Close") as Button
+	if close_button == null:
+		close_button = get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/CloseButton") as Button
 
-	# Make scrollbar visible/chunky for demo
+	# Wire buttons (guarded)
+	if submit_button:
+		submit_button.pressed.connect(_on_submit_pressed)
+	if close_button:
+		close_button.pressed.connect(_on_close_pressed)
+
+	# Make scrollbar obvious (guard: can be null at ready)
 	var vsb: VScrollBar = scroll_container.get_v_scroll_bar()
-	vsb.visible = true
-	vsb.custom_minimum_size = Vector2(10, 0)
-	vsb.add_theme_constant_override("thickness", 10)
+	if vsb:
+		vsb.visible = true
+		vsb.custom_minimum_size = Vector2(10, 0)
+		vsb.add_theme_constant_override("thickness", 10)
 
 func get_student_name() -> String:
-	return student_name.text.strip_edges()
+	return student_name.text.strip_edges() if student_name else ""
 
 func reset_for_next_scenario() -> void:
-	commentary_input.text = ""
-	submit_button.disabled = false
-	submit_button.text = "Submit Analysis"
-	# keep name as-is so they don't retype each round
+	if commentary_input:
+		commentary_input.text = ""
+	if submit_button:
+		submit_button.disabled = false
+		submit_button.text = "Submit Analysis"
 
 func show_financials(data: Dictionary) -> void:
-	# expects keys: income_statement, balance_sheet, cash_flow
-	if not data.has("income_statement"): return
-	if not data.has("balance_sheet"): return
-	if not data.has("cash_flow"): return
+	# Accept multiple naming schemes and both Array/Dictionary payloads.
+	# explicit typing = no more compiler whining
+	var isec: Variant = _find_section(data, ["income_statement","incomeStatement","income","is"])
+	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])
+	var csec: Variant = _find_section(data, ["cash_flow","cashflow","cashFlow","cash","cf"])
 
-	_populate_grid(income_grid, data["income_statement"], income_lines)
-	_populate_grid(balance_grid, data["balance_sheet"], balance_lines)
-	_populate_grid(cash_grid, data["cash_flow"], cash_lines)
 
-func _populate_grid(grid: GridContainer, src: Dictionary, order: Array) -> void:
-	for i in range(0, grid.get_child_count()):
-		var node := grid.get_child(i)
-		if node is Label:
-			node.text = ""
+	# If any section is missing, still render the grid with zeros so the UI doesn't look empty.
+	_populate_grid_dynamic(income_grid,  isec if isec != null else {}, income_lines)
+	_populate_grid_dynamic(balance_grid, bsec if bsec != null else {}, balance_lines)
+	_populate_grid_dynamic(cash_grid,    csec if csec != null else {}, cash_lines)
 
-	var row := 0
-	for pair in order:
-		var key: String = pair[0]
-		var label_text: String = pair[1]
-		var value: Variant = src.get(key, 0)
-		var left: Label = grid.get_child(row * 2)
-		var right: Label = grid.get_child(row * 2 + 1)
-		left.text = label_text
-		right.text = _fmt(value)
-		row += 1
+func _find_section(root: Dictionary, keys: Array) -> Variant:
+	# Direct hit on any of the provided key names
+	for k in keys:
+		if root.has(k):
+			return _unwrap_section(root[k])
+
+	# Sometimes data is wrapped in an array of sections with a "type" and inner payload.
+	if root.has("sections") and typeof(root["sections"]) == TYPE_ARRAY:
+		for s in root["sections"]:
+			if typeof(s) == TYPE_DICTIONARY:
+				var t := str(s.get("type","")).to_lower()
+				for k in keys:
+					if t.begins_with(str(k).to_lower()):
+						return _unwrap_section(s.get("data", s))
+
+	return null
+
+func _unwrap_section(sec: Variant) -> Variant:
+	# If it's a dict with a common container property, unwrap it.
+	if typeof(sec) == TYPE_DICTIONARY:
+		var d: Dictionary = sec
+		if d.has("lines"): return d["lines"]
+		if d.has("items"): return d["items"]
+		if d.has("rows"):  return d["rows"]
+		if d.has("data"):  return d["data"]
+	return sec
+
+
+
+func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
+	if grid == null:
+		return
+	grid.columns = 2
+
+	# Clear children safely
+	while grid.get_child_count() > 0:
+		var n: Node = grid.get_child(0)
+		grid.remove_child(n)
+		n.queue_free()
+
+	# Dictionary path (use provided order)
+	if typeof(src) == TYPE_DICTIONARY:
+		for pair in order:
+			var key: String = pair[0]
+			var label_text: String = pair[1]
+			_add_row(grid, label_text, (src as Dictionary).get(key, 0))
+		return
+
+	# Array path (either ["Label", value] or {label,value} or first kv)
+	if typeof(src) == TYPE_ARRAY:
+		for item in (src as Array):
+			if typeof(item) == TYPE_ARRAY and item.size() >= 2:
+				_add_row(grid, str(item[0]), item[1])
+			elif typeof(item) == TYPE_DICTIONARY:
+				var dict := item as Dictionary
+				var lbl: String = str(dict.get("label", ""))
+				var val: Variant = dict["value"] if dict.has("value") else null
+				if lbl == "" and dict.size() > 0:
+					var keys: Array = dict.keys()
+					var k: String = str(keys[0])
+					lbl = k
+					val = dict[k]
+				_add_row(grid, lbl, val)
+		return
+
+func _add_row(grid: GridContainer, left_text: String, right_val: Variant) -> void:
+	var l := Label.new()
+	l.text = left_text
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var r := Label.new()
+	r.text = _fmt(right_val)
+	grid.add_child(l)
+	grid.add_child(r)
 
 func _fmt(v) -> String:
 	if typeof(v) in [TYPE_INT, TYPE_FLOAT]:
@@ -97,12 +173,13 @@ func _fmt(v) -> String:
 	return str(v)
 
 func _on_submit_pressed() -> void:
-	var txt: String = commentary_input.text.strip_edges()
+	var txt: String = commentary_input.text.strip_edges() if commentary_input else ""
 	if txt.is_empty():
 		txt = "(empty commentary)"
 	emit_signal("commentary_submitted", txt)
-	submit_button.disabled = true
-	submit_button.text = "Submitted"
+	if submit_button:
+		submit_button.disabled = true
+		submit_button.text = "Submitted"
 
 func _on_close_pressed() -> void:
-	var txt: String = commentary_input.text.strip_edges()
+	visible = false

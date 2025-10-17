@@ -81,10 +81,18 @@ func _load_demo_financials() -> void:
 # ===========================
 func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		# toggle panel
+		# Hide scenario so UIs don't overlap
+		if has_node("ScenarioPanel") and $ScenarioPanel.visible:
+			$ScenarioPanel.visible = false
+
+		# Toggle panel
 		if financial_panel.visible:
 			financial_panel.visible = false
 			return
+
+		# (Re)load financials defensively, then show
+		if cached_financials.size() == 0:
+			_load_demo_financials()
 		if cached_financials.size() > 0:
 			financial_panel.show_financials(cached_financials)
 		financial_panel.visible = true
