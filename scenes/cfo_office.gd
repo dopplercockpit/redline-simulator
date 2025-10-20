@@ -185,14 +185,38 @@ func _show_current_scenario() -> void:
 func _advance_scenario() -> void:
 	if scenarios.is_empty():
 		return
+
 	current_scenario_index += 1
 	if current_scenario_index >= scenarios.size():
 		$DialogueBox.show_text("All scenarios complete. Nice driving.")
 		current_scenario_index = scenarios.size() - 1
 		return
+
 	_show_current_scenario()
-	if is_instance_valid(financial_panel):
-		financial_panel.reset_for_next_scenario()
+
+	# 🔥 Load new scenario’s financials
+	var fin_ref: String = str(current_scenario.get("starting_financials_ref", ""))
+	if fin_ref != "":
+		_load_financials_from(fin_ref)
+
+	# 🔄 Force-refresh all panels that use scenario data
+	if has_node("FinancialPanel") and is_instance_valid($FinancialPanel):
+		$FinancialPanel.show_financials(cached_financials)
+		$FinancialPanel.reset_for_next_scenario()
+		$FinancialPanel.submit_button.disabled = false
+
+
+	if has_node("NewsPanel") and is_instance_valid($NewsPanel):
+		$NewsPanel.load_news("res://data/news.json")
+
+	if has_node("CompendiumPanel") and is_instance_valid($CompendiumPanel):
+		$CompendiumPanel.load_compendium("res://data/compendium.json")
+
+	# ✅ Tell player scenario changed
+	var title := str(current_scenario.get("title","Next Scenario"))
+	$DialogueBox.show_text("Scenario advanced: " + title)
+
+
 
 # ===========================
 # SUBMISSION HANDLING
