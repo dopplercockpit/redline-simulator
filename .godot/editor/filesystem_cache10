@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1760970092
+::res://::1761911102
 export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
 index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1760703503::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
 index.icon.png::CompressedTexture2D::985333505588180735::1760703484::1760703503::1::::<><><>0<>0<>39fb199ee2371977a6b27c8328516710<>res://.godot/imported/index.icon.png-5665fad188e88d1e882500a4376bfe02.ctex::
@@ -52,7 +52,7 @@ fin_s6.json::JSON::-1::1760699800::0::1::::<><><>0<>0<><>::
 news.json::JSON::-1::1760633498::0::1::::<><><>0<>0<><>::
 redline_financials.json::JSON::-1::1760470379::0::1::::<><><>0<>0<><>::
 redline_scenarios_v3.json::JSON::-1::1760699883::0::1::::<><><>0<>0<><>::
-::res://docs/::1760526752
+::res://docs/::1760971706
 contract_distributor_excerpt.txt::TextFile::-1::1760526328::0::1::::<><><>0<>0<><>::
 contract_supplier_excerpt.txt::TextFile::-1::1760526322::0::1::::<><><>0<>0<><>::
 game_rules.md::TextFile::-1::1755531092::0::1::::<><><>0<>0<><>::

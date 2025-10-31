@@ -1,0 +1,15 @@
+{
+  "meta": { "name": "Flightpath 001 – SkyLine Launch", "seed": 99321, "version": "1.0.0" },
+  "time": { "start": "2026-01-03", "month_length_days": 28 },
+  "initial_state": {
+    "cash": 12000000,
+    "fleet": {
+      "A320ceo": { "count": 4, "lease_usd_mpm": 220000, "hours_avail": 10.5, "age_avg": 8.2 }
+    },
+    "routes": {
+      "ORY–LIS": { "weekly_freq": 14, "price_usd": 109, "capacity_seats": 180, "demand_idx": 0.82 },
+      "LYS–BCN": { "weekly_freq": 10, "price_usd": 99,  "capacity_seats": 180, "demand_idx": 0.76 }
+    },
+    "fuel": { "price_usd_per_ton": 830, "hedge_pct": 0.2, "hedge_price": 700 }
+  }
+}
