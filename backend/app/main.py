@@ -8,8 +8,6 @@ from swagger_ui_bundle import swagger_ui_path
 
 from backend.app.routes import midterm
 
-
-
 app = FastAPI(title="Redline Simulator")
 
 # Serve Swagger UI assets locally to avoid CDN issues
@@ -53,3 +51,5 @@ def health_check():
 # app.include_router(ap.router)
 
 app.include_router(midterm.router)
+app.include_router(game.router)
+app.include_router(llm.router)

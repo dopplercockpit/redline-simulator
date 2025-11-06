@@ -289,3 +289,33 @@ func _unhandled_input(event: InputEvent) -> void:
 			$NewsPanel.visible = false
 		if has_node("CompendiumPanel") and $CompendiumPanel.visible:
 			$CompendiumPanel.visible = false
+
+# =====================================================
+# SECTION 8: CFO OFFICE SCENE UPDATE
+# Update your existing cfo_office.gd
+# =====================================================
+
+func _ready():
+    # ... existing code ...
+    
+    # Connect to GameController signals
+    GameController.game_started.connect(_on_game_started)
+    GameController.state_updated.connect(_on_state_updated)
+    GameController.decision_processed.connect(_on_decision_processed)
+
+func _on_game_started(session_id: String):
+    $DialogueBox.show_text("Game started! Session: " + session_id)
+
+func _on_state_updated(state: Dictionary):
+    # Update UI with new state
+    if financial_panel:
+        var financials = {
+            "cash": state.get("cash", 0),
+            "revenue_mtd": state.get("revenue_mtd", 0),
+            "costs_mtd": state.get("costs_mtd", 0),
+            "kpis": state.get("kpis", {})
+        }
+        financial_panel.update_display(financials)
+
+func _on_decision_processed(impacts: Dictionary):
+    $DialogueBox.show_text("Decision applied! Impact: " + str(impacts))
