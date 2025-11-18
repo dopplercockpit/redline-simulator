@@ -9,6 +9,7 @@ var backend_base := "" # keep empty for web demo (no backend calls)
 # ===========================
 # STATE
 # ===========================
+var game_state: GameState = GameState.new()  # Airline operational state
 var cached_financials: Dictionary = {}
 var scenarios: Array = []
 var current_scenario_index: int = 0
@@ -35,13 +36,19 @@ func _ready() -> void:
 	# Connect commentary submit
 	_connect_financial_panel()
 
-	# Load demo financials + scenarios
-	_load_demo_financials()
+	# Initialize airline state with demo data
+	_init_demo_airline_state()
+
+	# Load scenarios
 	_load_scenarios()
 
 	# Flavor
-	$DialogueBox.show_text("System boot complete. Welcome to RevLine Industries.")
+	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
 	$Camera2D.make_current()
+
+	# GameController.game_started.connect(_on_game_started)
+	# GameController.state_updated.connect(_on_state_updated)
+	# GameController.decision_processed.connect(_on_decision_processed)
 
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
@@ -61,20 +68,46 @@ func _ensure_compendium_panel() -> void:
 		add_child(p)
 
 # ===========================
-# DEMO FINANCIALS
+# DEMO AIRLINE STATE
 # ===========================
-func _load_demo_financials() -> void:
-	var file_path := "res://data/redline_financials.json"
-	if not FileAccess.file_exists(file_path):
-		push_error("Missing redline_financials.json at " + file_path)
-		return
-	var f: FileAccess = FileAccess.open(file_path, FileAccess.READ)
-	if f == null:
-		push_error("Could not open redline_financials.json")
-		return
-	var data: Variant = JSON.parse_string(f.get_as_text())
-	if typeof(data) == TYPE_DICTIONARY:
-		cached_financials = data
+func _init_demo_airline_state() -> void:
+	# Initialize with demo airline data
+	game_state.cash = 5000000.0
+	game_state.revenue_ytd = 0.0
+	game_state.expense_ytd = 0.0
+
+	# Demo fleet: A320ceo aircraft
+	game_state.fleet = {
+		"A320ceo": {
+			"count": 4,
+			"lease_usd_mpm": 220000.0,
+			"hours_avail": 10.5,
+			"age_avg": 8.2
+		}
+	}
+
+	# Demo routes
+	game_state.routes = {
+		"LYS-BCN": {
+			"weekly_freq": 10,
+			"price_usd": 99,
+			"capacity_seats": 180,
+			"demand_idx": 0.76
+		},
+		"LYS-MAD": {
+			"weekly_freq": 7,
+			"price_usd": 120,
+			"capacity_seats": 180,
+			"demand_idx": 0.68
+		}
+	}
+
+	# Fuel pricing
+	game_state.fuel = {
+		"price_usd_per_ton": 830.0,
+		"hedge_pct": 0.2,
+		"hedge_price": 700.0
+	}
 
 func _load_financials_from(path: String) -> void:
 	if path == "" or not FileAccess.file_exists(path):
@@ -84,7 +117,8 @@ func _load_financials_from(path: String) -> void:
 	if f:
 		var parsed: Variant = JSON.parse_string(f.get_as_text())
 		if typeof(parsed) == TYPE_DICTIONARY:
-			cached_financials = parsed
+			# Load into game state instead of cached_financials
+			game_state.load_config(parsed)
 
 # ===========================
 # HOTSPOTS
@@ -100,27 +134,9 @@ func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: in
 			financial_panel.visible = false
 			return
 
-		# (Re)load financials defensively, then show
-		if cached_financials.size() == 0:
-			_load_demo_financials()
-		if cached_financials.size() > 0:
-			financial_panel.show_financials(cached_financials)
-		financial_panel.visible = true
-		
-	if financial_panel:
-	# Hide scenario panel so UIs don't overlap
-		if has_node("ScenarioPanel") and $ScenarioPanel.visible:
-			$ScenarioPanel.visible = false
-
-		# Toggle
-		if financial_panel.visible:
-			financial_panel.visible = false
-			return
-
-		# (Re)populate every open (cached_financials is set at startup)
-		if cached_financials.size() > 0 and financial_panel.has_method("show_financials"):
-			financial_panel.show_financials(cached_financials)
-
+		# Get live financials from game state and show
+		var live_financials = game_state.get_financial_summary()
+		financial_panel.show_financials(live_financials)
 		financial_panel.visible = true
 
 
@@ -201,7 +217,8 @@ func _advance_scenario() -> void:
 
 	# 🔄 Force-refresh all panels that use scenario data
 	if has_node("FinancialPanel") and is_instance_valid($FinancialPanel):
-		$FinancialPanel.show_financials(cached_financials)
+		var live_financials = game_state.get_financial_summary()
+		$FinancialPanel.show_financials(live_financials)
 		$FinancialPanel.reset_for_next_scenario()
 		$FinancialPanel.submit_button.disabled = false
 
@@ -295,27 +312,20 @@ func _unhandled_input(event: InputEvent) -> void:
 # Update your existing cfo_office.gd
 # =====================================================
 
-func _ready():
-    # ... existing code ...
-    
-    # Connect to GameController signals
-    GameController.game_started.connect(_on_game_started)
-    GameController.state_updated.connect(_on_state_updated)
-    GameController.decision_processed.connect(_on_decision_processed)
 
 func _on_game_started(session_id: String):
-    $DialogueBox.show_text("Game started! Session: " + session_id)
+	$DialogueBox.show_text("Game started! Session: " + session_id)
 
 func _on_state_updated(state: Dictionary):
-    # Update UI with new state
-    if financial_panel:
-        var financials = {
-            "cash": state.get("cash", 0),
-            "revenue_mtd": state.get("revenue_mtd", 0),
-            "costs_mtd": state.get("costs_mtd", 0),
-            "kpis": state.get("kpis", {})
-        }
-        financial_panel.update_display(financials)
+	# Update UI with new state
+	if financial_panel:
+		var financials = {
+			"cash": state.get("cash", 0),
+			"revenue_mtd": state.get("revenue_mtd", 0),
+			"costs_mtd": state.get("costs_mtd", 0),
+			"kpis": state.get("kpis", {})
+		}
+		financial_panel.update_display(financials)
 
 func _on_decision_processed(impacts: Dictionary):
-    $DialogueBox.show_text("Decision applied! Impact: " + str(impacts))
+	$DialogueBox.show_text("Decision applied! Impact: " + str(impacts))

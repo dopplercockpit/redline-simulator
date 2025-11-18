@@ -17,30 +17,36 @@ signal commentary_submitted(text)
 )
 
 var close_button: Button  # resolved in _ready
+# res://ui/FinancialPanel.gd
 
+# AIRLINE P&L STRUCTURE
 var income_lines: Array = [
-	["gross_sales", "Gross Sales"],
-	["promo_allowances", "Promotional Allowances"],
-	["net_sales", "Net Sales"],
-	["cogs", "COGS"],
-	["gross_margin", "Gross Margin"],
-	["opex", "Operating Expenses"],
-	["ebit", "EBIT"]
+    ["ticket_rev", "Passenger Revenue"],
+    ["ancillary_rev", "Ancillary Revenue (Bags/Seats)"],
+    ["total_rev", "Total Revenue"],
+    ["fuel_costs", "Fuel Costs"],
+    ["crew_costs", "Crew & Salaries"],
+    ["airport_fees", "Landing & Navigation Fees"],
+    ["maintenance", "MRO (Maintenance)"],
+    ["leasing_costs", "Aircraft Leases"],
+    ["ebitdar", "EBITDAR"], # Important Airline Metric (Earnings Before Interest, Taxes, Depreciation, Amortization, and Restructuring/Rent)
+    ["net_income", "Net Income"]
 ]
 
+# AIRLINE BALANCE SHEET
 var balance_lines: Array = [
-	["inventory_wip", "Inventory - WIP"],
-	["inventory_fg", "Inventory - Finished Goods"],
-	["total_inventory", "Total Inventory"],
-	["ppe", "Property, Plant & Equipment"],
-	["total_assets", "Total Assets"],
-	["ap", "Accounts Payable"],
-	["current_debt", "Current Portion of Debt"],
-	["total_debt", "Total Debt"],
-	["equity", "Equity"],
-	["liab_plus_equity", "Total Liabilities + Equity"]
+    ["cash", "Cash & Equivalents"],
+    ["receivables", "Accounts Receivable (OTA/Credit Cards)"],
+    ["rotable_parts", "Spare Parts Inventory"], # Replaces "WIP"
+    ["flight_equipment", "Flight Equipment (Owned)"],
+    ["rou_assets", "Right-of-Use Assets (Leased Planes)"], # IFRS 16 standard for airlines
+    ["total_assets", "Total Assets"],
+    ["accounts_payable", "Accounts Payable"],
+    ["air_traffic_liab", "Unearned Revenue (Future Flights)"], # Crucial for Airlines (Cash received but flight hasn't happened)
+    ["lease_liabilities", "Lease Liabilities"],
+    ["long_term_debt", "Long Term Debt"],
+    ["equity", "Shareholder Equity"]
 ]
-
 var cash_lines: Array = [
 	["net_income", "Net Income"],
 	["change_in_working_capital", "Change in Working Capital"],
@@ -234,3 +240,33 @@ func _on_submit_pressed() -> void:
 
 func _on_close_pressed() -> void:
 	visible = false
+
+# res://engine/state.gd
+
+# ... existing variables ...
+
+# Calculate financial summary on the fly based on operational state
+func get_financial_summary() -> Dictionary:
+    var monthly_lease_cost = 0.0
+    for plane_type in fleet:
+        var p = fleet[plane_type]
+        monthly_lease_cost += p["count"] * p["lease_usd_mpm"]
+
+    var monthly_fuel_cost = 0.0 # You would calculate this based on routes * distance * fuel price
+    
+    # Return the dictionary structured for the FinancialPanel
+    return {
+        "income_statement": {
+            "ticket_rev": revenue_ytd, # Placeholder, replace with actual logic
+            "ancillary_rev": revenue_ytd * 0.15, # Assumption: 15% upsell
+            "total_rev": revenue_ytd * 1.15,
+            "leasing_costs": monthly_lease_cost,
+            "fuel_costs": monthly_fuel_cost,
+            # ... fill in other calculated fields ...
+        },
+        "balance_sheet": {
+            "cash": cash,
+            "rou_assets": monthly_lease_cost * 12 * 5, # Rough valuation of leased planes
+            "equity": cash - 50000 # Simplified equity logic
+        }
+    }

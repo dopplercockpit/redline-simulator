@@ -19,6 +19,7 @@ config/icon="res://assets/icons/icon.png"
 
 Telemetry="*res://engine/telemetry.gd"
 RSE="*res://engine/engine.gd"
+GameManager="*res://engine/GameManager.gd"
 
 [display]
 

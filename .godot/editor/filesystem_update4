@@ -1,8 +1,0 @@
-res://scenes/CFOOffice.tscn
-res://engine/engine.gd
-res://engine/time.gd
-res://engine/state.gd
-res://engine/rng.gd
-res://engine/finance.gd
-res://engine/telemetry.gd
-res://scenes/cfo_office.gd
