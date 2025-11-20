@@ -75,7 +75,7 @@ func _ready() -> void:
 		vsb.add_theme_constant_override("thickness", 10)
 
 func get_student_name() -> String:
-	return student_name != null ? student_name.text.strip_edges() : ""
+	return student_name.text.strip_edges() if student_name != null else ""
 
 func update_display(data: Dictionary) -> void:
 	show_financials(data)
@@ -92,9 +92,9 @@ func show_financials(data: Dictionary) -> void:
 	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])
 	var csec: Variant = _find_section(data, ["cash_flow","cashflow","cashFlow","cash","cf"])
 
-	_populate_grid_dynamic(income_grid,  isec != null ? isec : {}, income_lines)
-	_populate_grid_dynamic(balance_grid, bsec != null ? bsec : {}, balance_lines)
-	_populate_grid_dynamic(cash_grid,    csec != null ? csec : {}, cash_lines)
+	_populate_grid_dynamic(income_grid,  isec if isec != null else {}, income_lines)
+	_populate_grid_dynamic(balance_grid, bsec if bsec != null else {}, balance_lines)
+	_populate_grid_dynamic(cash_grid,    csec if csec != null else {}, cash_lines)
 	commentary_input.grab_focus()
 
 func _find_section(root: Dictionary, keys: Array) -> Variant:
@@ -120,46 +120,18 @@ func _unwrap_section(sec: Variant) -> Variant:
 		if d.has("data"):  return d["data"]
 	return sec
 
-	func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
-		while grid.get_child_count() > 0:
-			var n: Node = grid.get_child(0)
-			grid.remove_child(n)
-			n.queue_free()
+func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
+	# Clear existing children
+	while grid.get_child_count() > 0:
+		var n: Node = grid.get_child(0)
+		grid.remove_child(n)
+		n.queue_free()
 
-		if typeof(src) == TYPE_DICTIONARY:
-			var dict: Dictionary = src
-			var hits := 0
-			for pair in order:
-				var key: String = pair[0]
-				var label_text: String = pair[1]
-				if dict.has(key):
-					_add_row(grid, label_text, dict.get(key, 0))
-					hits += 1
-
-			if hits == 0:
-				for k in dict.keys():
-					_add_row(grid, str(k), dict[k])
-			return
-
-		if typeof(src) == TYPE_ARRAY:
-			for item in (src as Array):
-				if typeof(item) == TYPE_ARRAY and item.size() >= 2:
-					_add_row(grid, str(item[0]), item[1])
-				elif typeof(item) == TYPE_DICTIONARY:
-					var dict := item as Dictionary
-					var lbl: String = str(dict.get("label", ""))
-					var val: Variant = dict.has("value") ? dict["value"] : null
-					if lbl == "" and dict.size() > 0:
-						var keys: Array = dict.keys()
-						var k: String = str(keys[0])
-						lbl = k
-						val = dict[k]
-					_add_row(grid, lbl, val)
-			return
-
+	# Handle Dictionary source
 	if typeof(src) == TYPE_DICTIONARY:
 		var dict: Dictionary = src
 		var hits := 0
+		# Try to match keys from the order array
 		for pair in order:
 			var key: String = pair[0]
 			var label_text: String = pair[1]
@@ -167,11 +139,13 @@ func _unwrap_section(sec: Variant) -> Variant:
 				_add_row(grid, label_text, dict.get(key, 0))
 				hits += 1
 
+		# If no matches, just dump all keys
 		if hits == 0:
 			for k in dict.keys():
 				_add_row(grid, str(k), dict[k])
 		return
 
+	# Handle Array source
 	if typeof(src) == TYPE_ARRAY:
 		for item in (src as Array):
 			if typeof(item) == TYPE_ARRAY and item.size() >= 2:
@@ -179,7 +153,7 @@ func _unwrap_section(sec: Variant) -> Variant:
 			elif typeof(item) == TYPE_DICTIONARY:
 				var dict := item as Dictionary
 				var lbl: String = str(dict.get("label", ""))
-				var val: Variant = dict.has("value") ? dict["value"] : null
+				var val: Variant = dict["value"] if dict.has("value") else null
 				if lbl == "" and dict.size() > 0:
 					var keys: Array = dict.keys()
 					var k: String = str(keys[0])
@@ -211,7 +185,7 @@ func _fmt(v) -> String:
 			return str(v)
 
 func _on_submit_pressed() -> void:
-	var txt: String = commentary_input != null ? commentary_input.text.strip_edges() : ""
+	var txt: String = commentary_input.text.strip_edges() if commentary_input != null else ""
 	if txt.is_empty():
 		txt = "(empty commentary)"
 	emit_signal("commentary_submitted", txt)
@@ -222,32 +196,37 @@ func _on_submit_pressed() -> void:
 func _on_close_pressed() -> void:
 	visible = false
 
-# res://engine/state.gd
-
-# ... existing variables ...
-
-# Calculate financial summary on the fly based on operational state
-func get_financial_summary() -> Dictionary:
+# Example helper function for calculating financial summary
+# This would typically live in your state management script (e.g., res://engine/state.gd)
+# but is included here as a reference for how to structure the data
+func get_financial_summary_example() -> Dictionary:
+	# This is just a template - replace with actual game state data
 	var monthly_lease_cost = 0.0
-	for plane_type in fleet:
-		var p = fleet[plane_type]
-		monthly_lease_cost += p["count"] * p["lease_usd_mpm"]
+	# for plane_type in fleet:
+	#     var p = fleet[plane_type]
+	#     monthly_lease_cost += p["count"] * p["lease_usd_mpm"]
 
-	var monthly_fuel_cost = 0.0 # You would calculate this based on routes * distance * fuel price
+	var monthly_fuel_cost = 0.0
 	
 	# Return the dictionary structured for the FinancialPanel
 	return {
 		"income_statement": {
-			"ticket_rev": revenue_ytd, # Placeholder, replace with actual logic
-			"ancillary_rev": revenue_ytd * 0.15, # Assumption: 15% upsell
-			"total_rev": revenue_ytd * 1.15,
+			"ticket_rev": 0.0,
+			"ancillary_rev": 0.0,
+			"total_rev": 0.0,
 			"leasing_costs": monthly_lease_cost,
 			"fuel_costs": monthly_fuel_cost,
-			# ... fill in other calculated fields ...
+			"ebitdar": 0.0,
+			"net_income": 0.0
 		},
 		"balance_sheet": {
-			"cash": cash,
-			"rou_assets": monthly_lease_cost * 12 * 5, # Rough valuation of leased planes
-			"equity": cash - 50000 # Simplified equity logic
+			"cash": 0.0,
+			"rou_assets": monthly_lease_cost * 12 * 5,
+			"equity": 0.0
+		},
+		"cash_flow": {
+			"net_income": 0.0,
+			"net_change_in_cash": 0.0,
+			"ending_cash": 0.0
 		}
 	}

@@ -21,6 +21,11 @@ var current_scenario: Dictionary = {}
 @onready var financial_panel: CanvasLayer = $FinancialPanel
 @onready var submit_http: HTTPRequest = $SubmitHTTP
 
+# Reference to GameController (if it exists as an autoload)
+# If GameController is registered as an autoload in Project Settings, it's accessible globally
+# If not, you can comment out the lines that reference it (lines 49-54 in _ready)
+var game_controller = null  # Will be set if GameController autoload exists
+
 # ===========================
 # LIFECYCLE
 # ===========================
@@ -46,12 +51,17 @@ func _ready() -> void:
 	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
 	$Camera2D.make_current()
 
-	GameController.game_started.connect(_on_game_started)
-	GameController.state_updated.connect(_on_state_updated)
-	GameController.decision_processed.connect(_on_decision_processed)
-
-# API Call -> Backend -> Signal -> UI Update
-	GameController.start_new_game("Player1", "scenario_001")
+	# Connect to GameController if it exists as an autoload
+	# If GameController doesn't exist yet, comment out these lines
+	if Engine.has_singleton("GameController"):
+		game_controller = Engine.get_singleton("GameController")
+		game_controller.game_started.connect(_on_game_started)
+		game_controller.state_updated.connect(_on_state_updated)
+		game_controller.decision_processed.connect(_on_decision_processed)
+		# API Call -> Backend -> Signal -> UI Update
+		game_controller.start_new_game("Player1", "scenario_001")
+	else:
+		print("GameController not found - running in standalone mode")
 
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
@@ -213,7 +223,7 @@ func _advance_scenario() -> void:
 
 	_show_current_scenario()
 
-	# 🔥 Load new scenario’s financials
+	# 🔥 Load new scenario's financials
 	var fin_ref: String = str(current_scenario.get("starting_financials_ref", ""))
 	if fin_ref != "":
 		_load_financials_from(fin_ref)
@@ -292,7 +302,7 @@ func _on_commentary_submitted(text: String) -> void:
 		_advance_scenario()
 
 
-func _on_submit_http_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_submit_http_completed(_result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
 	if response_code >= 200 and response_code < 300:
 		print("Submit webhook OK: ", response_code)
 	else:

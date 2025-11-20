@@ -1,6 +1,6 @@
 # res://engine/state.gd
 extends Resource
-class_name GameState
+# GameState class is registered globally in Project Settings
 const VERSION := "1.0.0"
 
 # Cash & accruals
