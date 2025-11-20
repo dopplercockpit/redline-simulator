@@ -1,111 +1,172 @@
+"""
 
-# backend/services/finance/statements.py
-from __future__ import annotations
-from dataclasses import dataclass
-from datetime import date
-from typing import Dict
-from ...models.accounts import COA, AcctType
-from ...models.journal import Ledger
+backend/services/finance/statements.py
+Generates the P&L Dictionary based on Game State
+"""
 
-@dataclass
-class IncomeStatement:
-    revenue: float
-    cogs: float
-    gross_profit: float
-    opex: float
-    operating_income: float
-    other_income: float
-    other_expense: float
-    interest: float
-    pretax_income: float
-    tax: float
-    net_income: float
+from typing import Dict, Any
+from backend.models.chart_of_accounts import P_AND_L_STRUCTURE
+from backend.app.services.game_state import GameState
 
-@dataclass
-class BalanceSheet:
-    assets: Dict[str, float]
-    liabilities: Dict[str, float]
-    equity: Dict[str, float]
-    total_assets: float
-    total_liab_equity: float
 
-@dataclass
-class CashFlowDirect:
-    cfo: Dict[str, float]
-    cfi: Dict[str, float]
-    cff: Dict[str, float]
-    net_change_cash: float
-    ending_cash: float
+class StatementGenerator:
 
-def _sum_by_type(tb: Dict[str, float], acct_type: AcctType) -> float:
-    total = 0.0
-    for code, bal in tb.items():
-        if COA[code].type == acct_type:
-            # Conventions: debit-positive balances for assets/expenses,
-            # credit-negative for liabilities/equity/revenue.
-            # For IS numbers, we want natural signs: revenue positive, expenses positive.
-            if acct_type in (AcctType.REV,):
-                total += -bal  # credits increase revenue => negative in TB => flip sign
-            elif acct_type in (AcctType.COGS, AcctType.OPEX, AcctType.OTHER_EXP, AcctType.INTEREST, AcctType.TAX):
-                total += bal   # expenses are debits => positive in TB
-            else:
-                total += bal
-    return round(total, 2)
+    def generate_p_and_l(self, state: GameState) -> Dict[str, Any]:
+        """
+        Takes the raw simulation state (clicks, hours flown, fuel burned)
+        and maps it into the rigorous Chart of Accounts structure.
+        """
+        
+        # 1. Calculate Raw Inputs from State (Simulation Logic)
+        # In a real implementation, these come from the simulation history
+        # using placeholders based on the simple state for MVP
+        
+        # Revenue Drivers
+        volume = 1000  # proxy for pax
+        base_price = 500
+        
+        # Cost Drivers
+        fuel_price = 850  # per ton
+        fuel_burn = 400  # tons
+        
+        # -----------------------------------------
+        # MAPPING VALUES TO ACCOUNTS
+        # -----------------------------------------
+        
+        # 4000: Revenue
+        gross_ticket = state.revenue_mtd  # This is calculated in game_state.tick()
+        ancillary = gross_ticket * 0.12  # 12% upsell
+        discounts = gross_ticket * 0.05  # 5% leakage
+        
+        # 5000: COGS
+        # Logic: Costs scale with utilization
+        fuel_cost = (state.costs_mtd * 0.40)  # 40% of costs are fuel
+        crew_cost = (state.costs_mtd * 0.20)
+        landing_fees = (state.costs_mtd * 0.15)
+        maintenance = (state.costs_mtd * 0.10)
+        catering = (gross_ticket * 0.03)  # 3% of ticket sales
+        
+        # 6000: OPEX (Fixed)
+        marketing = 50000  # Fixed monthly
+        admin = 120000    # Fixed monthly
+        insurance = 20000
+        
+        # 7000: Leases
+        leases = 200000   # Fixed monthly for fleet
+        depreciation = 15000
+        
+        # 8000: Financial
+        interest = 5000
+        
+        # -----------------------------------------
+        # BUILD THE LEDGER
+        # -----------------------------------------
+        ledger = {}
+        
+        # Map specific Account IDs to calculated values
+        # In the future, this map can be dynamic based on a proper General Ledger (GL)
+        ledger[4000] = gross_ticket
+        ledger[4100] = ancillary
+        ledger[4200] = discounts
+        
+        ledger[5000] = fuel_cost
+        ledger[5100] = landing_fees
+        ledger[5200] = crew_cost
+        ledger[5300] = maintenance
+        ledger[5400] = catering
+        
+        ledger[6000] = marketing
+        ledger[6100] = admin
+        ledger[6200] = insurance
+        
+        ledger[7000] = leases
+        ledger[7100] = depreciation
+        
+        ledger[8000] = interest
+        
+        # -----------------------------------------
+        # CALCULATE SUBTOTALS (The Waterfall)
+        # -----------------------------------------
+        
+        # Net Revenue
+        net_revenue = ledger[4000] + ledger[4100] - ledger[4200]
+        
+        # Total COGS
+        total_cogs = sum([ledger[k] for k in [5000, 5100, 5200, 5300, 5400]])
+        
+        # Gross Margin
+        gross_margin = net_revenue - total_cogs
+        
+        # Total OPEX
+        total_opex = sum([ledger[k] for k in [6000, 6100, 6200]])
+        
+        # EBITDAR
+        ebitdar = gross_margin - total_opex
+        
+        # EBITDA
+        ebitda = ebitdar - ledger[7000]
+        
+        # EBIT
+        ebit = ebitda - ledger[7100]
+        
+        # Taxes (Simplified 21% rate on positive EBIT)
+        taxes = max(0, (ebit - interest) * 0.21)
+        ledger[8100] = taxes
+        
+        # Net Income
+        net_income = ebit - interest - taxes
+        
+        # -----------------------------------------
+        # FORMAT FOR FRONTEND
+        # -----------------------------------------
+        # Returns a list of lines ready to render in the Godot GridContainer
+        
+        statement_lines = []
+        
+        # Helper to format line
+        def add_line(label, value, type_="std", indent=0, lever=""):
+            statement_lines.append({
+                "label": label,
+                "value": value,
+                "type": type_,  # std, header, subtotal, total
+                "indent": indent,
+                "lever_hint": lever
+            })
 
-def build_income_statement(ledger: Ledger, end: date) -> IncomeStatement:
-    tb = ledger.trial_balance(end)
-    revenue = _sum_by_type(tb, AcctType.REV)
-    cogs = _sum_by_type(tb, AcctType.COGS)
-    gp = revenue - cogs
-    opex = _sum_by_type(tb, AcctType.OPEX)
-    op_inc = gp - opex
-    other_inc = _sum_by_type(tb, AcctType.OTHER_INC)
-    other_exp = _sum_by_type(tb, AcctType.OTHER_EXP)
-    interest = _sum_by_type(tb, AcctType.INTEREST)
-    pretax = op_inc + other_inc - other_exp - interest
-    tax = _sum_by_type(tb, AcctType.TAX)
-    ni = pretax - tax
-    return IncomeStatement(revenue, cogs, gp, opex, op_inc, other_inc, other_exp, interest, pretax, tax, ni)
-
-def build_balance_sheet(ledger: Ledger, as_of: date) -> BalanceSheet:
-    tb = ledger.trial_balance(as_of)
-    assets, liab, eq = {}, {}, {}
-    for code, bal in tb.items():
-        a = COA[code]
-        if a.type in (AcctType.ASSET, AcctType.CONTRA_ASSET):
-            assets[a.name] = round(bal, 2)
-        elif a.type == AcctType.LIABILITY:
-            liab[a.name] = round(-bal, 2)  # liability natural credit → positive display
-        elif a.type == AcctType.EQUITY:
-            # equity natural credit → positive display, except retained earnings we will recompute
-            if a.code != "3200":
-                eq[a.name] = round(-bal, 2)
-
-    # Retained Earnings derived: plug to balance assets = L+E
-    total_assets = round(sum(assets.values()), 2)
-    total_liab = round(sum(liab.values()), 2)
-    non_re_eq = round(sum(v for k, v in eq.items()), 2)
-    retained = round(total_assets - (total_liab + non_re_eq), 2)
-    eq["Retained Earnings"] = retained
-
-    total_le = round(total_liab + non_re_eq + retained, 2)
-    return BalanceSheet(assets, liab, eq, total_assets, total_le)
-
-def build_cash_flow_direct(ledger: Ledger, start: date, end: date) -> CashFlowDirect:
-    """Direct method: uses delta TB and cash_flow_hint on accounts to classify.
-    Also computes ending cash to reconcile."""
-    delta = ledger.delta_tb(start, end)
-    cfo, cfi, cff = {}, {}, {}
-    for code, change in delta.items():
-        acct = COA[code]
-        hint = acct.cash_flow_hint
-        if hint == "CFO":
-            cfo[acct.name] = round(change * -1, 2)  # TB deltas are debit-positive; invert for cash sign
-        elif hint == "CFI":
-            cfi[acct.name] = round(change * -1, 2)
-        elif hint == "CFF":
-            cff[acct.name] = round(change * -1, 2)
-
-    net = round(sum(cfo.values()) + sum(cfi.values()) + sum(cff.values()), 2)
-    ending_cash = round(ledger.trial_balance(end)["1000"], 2)
-    return CashFlowDirect(cfo, cfi, cff, net, ending_cash)
+        add_line("REVENUE", None, "header")
+        add_line("Gross Ticket Revenue", ledger[4000], "std", 0, "Pricing")
+        add_line("Ancillary Revenue", ledger[4100], "std", 0, "Upsell")
+        add_line("Less: Discounts & Adj.", ledger[4200], "std", 0, "Sales Strategy")
+        add_line("NET REVENUE", net_revenue, "subtotal")
+        
+        add_line("DIRECT COSTS", None, "header")
+        add_line("Fuel", ledger[5000], "std", 0, "Hedging")
+        add_line("Crew", ledger[5200], "std", 0, "Rostering")
+        add_line("Airport Fees", ledger[5100], "std", 0, "Route Mix")
+        add_line("Maintenance", ledger[5300], "std", 0, "Fleet Age")
+        add_line("Catering", ledger[5400], "std", 0, "Service Level")
+        add_line("GROSS MARGIN", gross_margin, "subtotal")
+        
+        add_line("OPERATING EXPENSES", None, "header")
+        add_line("Sales & Marketing", ledger[6000], "std", 0, "Ads")
+        add_line("G&A (HQ)", ledger[6100], "std", 0, "Efficiency")
+        add_line("Insurance", ledger[6200], "std", 0, "Risk")
+        add_line("EBITDAR", ebitdar, "total", 0, "Operational Efficiency")
+        
+        add_line("Aircraft Leases", ledger[7000], "std", 0, "Financing")
+        add_line("EBITDA", ebitda, "total")
+        
+        add_line("Depreciation", ledger[7100], "std", 0)
+        add_line("EBIT (Operating Profit)", ebit, "total")
+        
+        add_line("Interest & Tax", ledger[8000] + ledger[8100], "std", 0)
+        add_line("NET INCOME", net_income, "final_total")
+        
+        return {
+            "lines": statement_lines,
+            "kpis": {
+                "gross_margin_pct": (gross_margin / net_revenue) if net_revenue else 0,
+                "operating_margin_pct": (ebit / net_revenue) if net_revenue else 0,
+                "net_margin_pct": (net_income / net_revenue) if net_revenue else 0
+            }
+        }

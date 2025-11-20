@@ -1,1 +1,1 @@
-# init files for real Python package
+from .statements import StatementGenerator

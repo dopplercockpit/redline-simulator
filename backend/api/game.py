@@ -4,7 +4,7 @@
 # =====================================================
 
 """
-# backend/api/game.py
+backend/api/game.py
 Game API endpoints for Redline Simulator
 """
 
@@ -12,9 +12,13 @@ from fastapi import APIRouter, HTTPException, Query, Body
 from typing import Dict, Optional, List
 from datetime import date
 from pydantic import BaseModel, Field
-# Import from the game_state module created above
+from backend.services.finance.statements import StatementGenerator
+from backend.services.game_state import GameState, PlayerDecision, GameManager
 
 router = APIRouter(prefix="/game", tags=["game"])
+
+# Initialize game manager (you'll need to implement this)
+game_manager = GameManager()
 
 class NewGameRequest(BaseModel):
     player_name: str = Field(..., description="Player/student name")
@@ -101,6 +105,9 @@ def get_game_state(session_id: str):
     if not state:
         raise HTTPException(status_code=404, detail=f"Game session not found: {session_id}")
     
+    pnl_gen = StatementGenerator()
+    pnl_data = pnl_gen.generate_p_and_l(state)
+    
     return {
         "session_id": session_id,
         "current_date": str(state.current_date),
@@ -110,5 +117,49 @@ def get_game_state(session_id: str):
         "costs_mtd": state.costs_mtd,
         "capacity_utilization": state.capacity_utilization,
         "customer_satisfaction": state.customer_satisfaction,
-        "kpis": state.kpis
+        "kpis": state.kpis,
+        "financial_statements": {
+            "income_statement": pnl_data
+        }
+    }
+
+# Add this request model
+class ActionRequest(BaseModel):
+    action_type: Literal["look", "talk", "hack", "use"]
+    target_id: str  # e.g., "coffee_machine", "window", "hr_rep"
+
+# --- ADD THIS NEW ENDPOINT ---
+@router.post("/{session_id}/action")
+def player_action(session_id: str, request: ActionRequest):
+    state = game_manager.get_state(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    response_text = "You can't do that."
+    
+    # 1. TALK LOGIC
+    if request.action_type == "talk":
+        if request.target_id == "coffee_machine_oracle":
+            response_text = "The interns are whispering: 'I heard the supplier in China is doubling prices next week.'"
+        elif request.target_id == "hr_rep":
+            if state.employee_morale < 0.5:
+                response_text = "HR sighs. 'People are quitting. We need to fix the culture.'"
+            else:
+                response_text = "HR smiles. 'Everyone is excited about the new direction!'"
+
+    # 2. LOOK LOGIC
+    elif request.action_type == "look":
+        if request.target_id == "window":
+            response_text = "Downtown is glowing. If only our revenue looked that bright."
+
+    # 3. HACK LOGIC (The "Audit Score" mechanic)
+    elif request.action_type == "hack":
+        if request.target_id == "competitor_database":
+            state.audit_score += 10 # Risk increases!
+            response_text = "Access Granted: Competitor is launching a product next month."
+            
+    return {
+        "narrative": response_text,
+        "audit_score": state.audit_score,
+        "inbox_unread": sum(1 for m in state.inbox if not m.read)
     }

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from enum import Enum
 import json
 import random
+from typing import Literal
 
 class DecisionType(str, Enum):
     PRICING = "pricing"
@@ -52,6 +53,70 @@ class GameState(BaseModel):
     decisions: List[PlayerDecision] = Field(default_factory=list)
     pending_events: List[Dict] = Field(default_factory=list)
     kpis: Dict[str, float] = Field(default_factory=dict)
+
+# --- ADD THESE NEW MODELS ---
+class Message(BaseModel):
+    sender: str
+    subject: str
+    body: str
+    read: bool = False
+    timestamp: date
+
+class Mission(BaseModel):
+    id: str
+    title: str
+    status: Literal["locked", "active", "completed", "failed"] = "locked"
+    unlocks_tool: Optional[str] = None
+
+# --- UPDATE GameState CLASS ---
+class GameState(BaseModel):
+    # ... (Keep existing fields: session_id, cash, etc.) ...
+    
+    # ADD THESE NEW FIELDS:
+    inbox: List[Message] = Field(default_factory=list)
+    active_mission: Optional[Mission] = None
+    unlocked_tools: List[str] = ["long_term_debt"] 
+    audit_score: int = 0  # The "Game Rule" metric
+    
+    # ... (Keep existing fields: decisions, pending_events, kpis)
+
+# --- UPDATE GameStateManager CLASS ---
+class GameStateManager:
+    # ... (Keep existing methods) ...
+
+    # MODIFY the tick method to include Mission Logic
+    def tick(self, session_id: str, days: int = 1) -> GameState:
+        state = self.states.get(session_id)
+        if not state:
+            raise ValueError(f"No game session: {session_id}")
+        
+        for _ in range(days):
+            state.current_date += timedelta(days=1)
+            self._process_daily_operations(state)
+            self._check_mission_triggers(state)  # <--- ADD THIS CALL
+            
+            # Check for Month End (Every 4 weeks)
+            if state.week_number % 4 == 0 and state.current_date.weekday() == 4:
+                self._trigger_month_close(state)
+
+        return state
+
+    # ADD THIS NEW METHOD
+    def _check_mission_triggers(self, state: GameState):
+        # Example: Trigger "IPO Mission" if revenue is high
+        if state.revenue_mtd > 2000000 and "equity" not in state.unlocked_tools:
+            self._send_email(state, "Board", "IPO Opportunity", "We are ready to go public.")
+            state.unlocked_tools.append("equity") # Simplified unlock
+
+    # ADD THIS NEW METHOD
+    def _trigger_month_close(self, state: GameState):
+        state.phase = GamePhase.MONTH_END
+        self._send_email(state, "System", "MONTH END CLOSE", "Please report to the Archive Room to close the books.")
+
+    # ADD THIS HELPER
+    def _send_email(self, state: GameState, sender: str, subject: str, body: str):
+        msg = Message(sender=sender, subject=subject, body=body, timestamp=state.current_date)
+        state.inbox.append(msg)
 
 class GameStateManager:
     def __init__(self):
