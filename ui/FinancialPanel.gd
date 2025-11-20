@@ -120,10 +120,42 @@ func _unwrap_section(sec: Variant) -> Variant:
 		if d.has("data"):  return d["data"]
 	return sec
 
-	while grid.get_child_count() > 0:
-		var n: Node = grid.get_child(0)
-		grid.remove_child(n)
-		n.queue_free()
+	func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
+		while grid.get_child_count() > 0:
+			var n: Node = grid.get_child(0)
+			grid.remove_child(n)
+			n.queue_free()
+
+		if typeof(src) == TYPE_DICTIONARY:
+			var dict: Dictionary = src
+			var hits := 0
+			for pair in order:
+				var key: String = pair[0]
+				var label_text: String = pair[1]
+				if dict.has(key):
+					_add_row(grid, label_text, dict.get(key, 0))
+					hits += 1
+
+			if hits == 0:
+				for k in dict.keys():
+					_add_row(grid, str(k), dict[k])
+			return
+
+		if typeof(src) == TYPE_ARRAY:
+			for item in (src as Array):
+				if typeof(item) == TYPE_ARRAY and item.size() >= 2:
+					_add_row(grid, str(item[0]), item[1])
+				elif typeof(item) == TYPE_DICTIONARY:
+					var dict := item as Dictionary
+					var lbl: String = str(dict.get("label", ""))
+					var val: Variant = dict.has("value") ? dict["value"] : null
+					if lbl == "" and dict.size() > 0:
+						var keys: Array = dict.keys()
+						var k: String = str(keys[0])
+						lbl = k
+						val = dict[k]
+					_add_row(grid, lbl, val)
+			return
 
 	if typeof(src) == TYPE_DICTIONARY:
 		var dict: Dictionary = src
