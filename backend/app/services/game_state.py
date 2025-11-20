@@ -14,7 +14,20 @@ from pydantic import BaseModel, Field
 from enum import Enum
 import json
 import random
-from typing import Literal
+from typing import Dict, List, Optional, Any, Literal
+
+class Message(BaseModel):
+    sender: str
+    subject: str
+    body: str
+    read: bool = False
+    timestamp: date
+
+class Mission(BaseModel):
+    id: str
+    title: str
+    status: Literal["locked", "active", "completed", "failed"] = "locked"
+    unlocks_tool: Optional[str] = None
 
 class DecisionType(str, Enum):
     PRICING = "pricing"
@@ -53,6 +66,12 @@ class GameState(BaseModel):
     decisions: List[PlayerDecision] = Field(default_factory=list)
     pending_events: List[Dict] = Field(default_factory=list)
     kpis: Dict[str, float] = Field(default_factory=dict)
+    points: int = 0
+    audit_score: int = 0
+    inbox: List[Message] = Field(default_factory=list)
+    active_mission: Optional[Mission] = None
+    unlocked_tools: List[str] = ["long_term_debt", "profit"]
+    market_volatility: float = 0.5
 
 # --- ADD THESE NEW MODELS ---
 class Message(BaseModel):
@@ -100,6 +119,10 @@ class GameStateManager:
                 self._trigger_month_close(state)
 
         return state
+
+    def _send_email(self, state: GameState, sender: str, subject: str, body: str):
+        msg = Message(sender=sender, subject=subject, body=body, timestamp=state.current_date)
+        state.inbox.append(msg)
 
     # ADD THIS NEW METHOD
     def _check_mission_triggers(self, state: GameState):

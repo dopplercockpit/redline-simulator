@@ -14,6 +14,7 @@ from datetime import date
 from pydantic import BaseModel, Field
 from backend.services.finance.statements import StatementGenerator
 from backend.services.game_state import GameState, PlayerDecision, GameManager
+from backend.services.finance.statements import StatementGenerator # <--- Add this
 
 router = APIRouter(prefix="/game", tags=["game"])
 
@@ -71,6 +72,35 @@ def advance_time(session_id: str, request: TickRequest):
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+# backend/api/game.py
+
+
+
+@router.get("/{session_id}/state")
+def get_game_state(session_id: str):
+    state = game_manager.get_state(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail=f"Game session not found: {session_id}")
+    
+    # Generate the detailed P&L based on the current state
+    stmt_gen = StatementGenerator()
+    financials = stmt_gen.generate_p_and_l(state)
+
+    return {
+        "session_id": session_id,
+        "current_date": str(state.current_date),
+        "week_number": state.week_number,
+        "cash": state.cash,
+        "revenue_mtd": state.revenue_mtd,
+        "costs_mtd": state.costs_mtd,
+        "capacity_utilization": state.capacity_utilization,
+        "customer_satisfaction": state.customer_satisfaction,
+        "kpis": state.kpis,
+        "financial_statements": {  # <--- Added financial data
+            "income_statement": financials
+        }
+    }
 
 @router.post("/{session_id}/decision")
 def make_decision(session_id: str, request: DecisionRequest):
