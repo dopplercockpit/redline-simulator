@@ -9,17 +9,14 @@ signal commentary_submitted(text)
 @onready var submit_button: Button        = $PanelContainer/ScrollContainer/VBoxContainer/SubmitButton
 @onready var scroll_container: ScrollContainer = $PanelContainer/ScrollContainer
 
-# Name input (robust: with or without NameRow wrapper)
 @onready var student_name: LineEdit = (
 	get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") as LineEdit
 ) if get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") != null else (
 	get_node("PanelContainer/ScrollContainer/VBoxContainer/StudentName") as LineEdit
 )
 
-var close_button: Button  # resolved in _ready
-# res://ui/FinancialPanel.gd
+var close_button: Button
 
-# AIRLINE P&L STRUCTURE
 var income_lines: Array = [
 	["ticket_rev", "Passenger Revenue"],
 	["ancillary_rev", "Ancillary Revenue (Bags/Seats)"],
@@ -29,24 +26,24 @@ var income_lines: Array = [
 	["airport_fees", "Landing & Navigation Fees"],
 	["maintenance", "MRO (Maintenance)"],
 	["leasing_costs", "Aircraft Leases"],
-	["ebitdar", "EBITDAR"], # Important Airline Metric (Earnings Before Interest, Taxes, Depreciation, Amortization, and Restructuring/Rent)
+	["ebitdar", "EBITDAR"],
 	["net_income", "Net Income"]
 ]
 
-# AIRLINE BALANCE SHEET
 var balance_lines: Array = [
 	["cash", "Cash & Equivalents"],
 	["receivables", "Accounts Receivable (OTA/Credit Cards)"],
-	["rotable_parts", "Spare Parts Inventory"], # Replaces "WIP"
+	["rotable_parts", "Spare Parts Inventory"],
 	["flight_equipment", "Flight Equipment (Owned)"],
-	["rou_assets", "Right-of-Use Assets (Leased Planes)"], # IFRS 16 standard for airlines
+	["rou_assets", "Right-of-Use Assets (Leased Planes)"],
 	["total_assets", "Total Assets"],
 	["accounts_payable", "Accounts Payable"],
-	["air_traffic_liab", "Unearned Revenue (Future Flights)"], # Crucial for Airlines (Cash received but flight hasn't happened)
-    ["lease_liabilities", "Lease Liabilities"],
-    ["long_term_debt", "Long Term Debt"],
-    ["equity", "Shareholder Equity"]
+	["air_traffic_liab", "Unearned Revenue (Future Flights)"],
+	["lease_liabilities", "Lease Liabilities"],
+	["long_term_debt", "Long Term Debt"],
+	["equity", "Shareholder Equity"]
 ]
+
 var cash_lines: Array = [
 	["net_income", "Net Income"],
 	["change_in_working_capital", "Change in Working Capital"],
@@ -58,18 +55,15 @@ var cash_lines: Array = [
 ]
 
 func _ready() -> void:
-	# Find Close node whether it's named Close or CloseButton
 	close_button = get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/Close") as Button
 	if close_button == null:
 		close_button = get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/CloseButton") as Button
 
-	# Wire buttons (guarded)
 	if submit_button:
 		submit_button.pressed.connect(_on_submit_pressed)
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
 
-	# Make scrollbar obvious (guard: can be null at ready)
 	var vsb: VScrollBar = scroll_container.get_v_scroll_bar()
 	if vsb:
 		vsb.visible = true
@@ -79,6 +73,9 @@ func _ready() -> void:
 func get_student_name() -> String:
 	return student_name.text.strip_edges() if student_name else ""
 
+func update_display(data: Dictionary) -> void:
+	show_financials(data)
+
 func reset_for_next_scenario() -> void:
 	if commentary_input:
 		commentary_input.text = ""
@@ -87,24 +84,20 @@ func reset_for_next_scenario() -> void:
 		submit_button.text = "Submit Analysis"
 
 func show_financials(data: Dictionary) -> void:
-	# Accept multiple naming schemes and both Array/Dictionary payloads.
 	var isec: Variant = _find_section(data, ["income_statement","incomeStatement","income","is"])
 	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])
 	var csec: Variant = _find_section(data, ["cash_flow","cashflow","cashFlow","cash","cf"])
 
-	# Render even if a section is missing (don’t leave the UI empty)
 	_populate_grid_dynamic(income_grid,  isec if isec != null else {}, income_lines)
 	_populate_grid_dynamic(balance_grid, bsec if bsec != null else {}, balance_lines)
 	_populate_grid_dynamic(cash_grid,    csec if csec != null else {}, cash_lines)
 	commentary_input.grab_focus()
 
 func _find_section(root: Dictionary, keys: Array) -> Variant:
-	# Direct hit on any of the provided key names
 	for k in keys:
 		if root.has(k):
 			return _unwrap_section(root[k])
 
-	# Sometimes data comes as an array of sections with "type" and inner payload
 	if root.has("sections") and typeof(root["sections"]) == TYPE_ARRAY:
 		for s in root["sections"]:
 			if typeof(s) == TYPE_DICTIONARY:
@@ -123,22 +116,13 @@ func _unwrap_section(sec: Variant) -> Variant:
 		if d.has("data"):  return d["data"]
 	return sec
 
-func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
-	if grid == null:
-		return
-	grid.columns = 2
-
-	# Clear children safely
 	while grid.get_child_count() > 0:
 		var n: Node = grid.get_child(0)
 		grid.remove_child(n)
 		n.queue_free()
 
-	# 1) Dictionary path
 	if typeof(src) == TYPE_DICTIONARY:
 		var dict: Dictionary = src
-
-		# Use canonical order if we can match any keys
 		var hits := 0
 		for pair in order:
 			var key: String = pair[0]
@@ -147,49 +131,11 @@ func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> 
 				_add_row(grid, label_text, dict.get(key, 0))
 				hits += 1
 
-		# If we matched nothing, just iterate keys (better than zeros)
 		if hits == 0:
 			for k in dict.keys():
 				_add_row(grid, str(k), dict[k])
 		return
 
-	# 2) Array path: ["Label", value] or {label,value} or first k/v
-	if typeof(src) == TYPE_ARRAY:
-		for item in (src as Array):
-			if typeof(item) == TYPE_ARRAY and item.size() >= 2:
-				_add_row(grid, str(item[0]), item[1])
-			elif typeof(item) == TYPE_DICTIONARY:
-				var dict := item as Dictionary
-				var lbl: String = str(dict.get("label", ""))
-				var val: Variant = dict["value"] if dict.has("value") else null
-				if lbl == "" and dict.size() > 0:
-					var keys: Array = dict.keys()
-					var k: String = str(keys[0])
-					lbl = k
-					val = dict[k]
-				_add_row(grid, lbl, val)
-		return
-
-# func _populate_grid_dynamic(grid: GridContainer, src: Variant, order: Array) -> void:
-#	if grid == null:
-#		return
-#	grid.columns = 2
-
-	# Clear children safely
-	while grid.get_child_count() > 0:
-		var n: Node = grid.get_child(0)
-		grid.remove_child(n)
-		n.queue_free()
-
-	# Dictionary path (use provided order)
-	if typeof(src) == TYPE_DICTIONARY:
-		for pair in order:
-			var key: String = pair[0]
-			var label_text: String = pair[1]
-			_add_row(grid, label_text, (src as Dictionary).get(key, 0))
-		return
-
-	# Array path (either ["Label", value] or {label,value} or first kv)
 	if typeof(src) == TYPE_ARRAY:
 		for item in (src as Array):
 			if typeof(item) == TYPE_ARRAY and item.size() >= 2:
@@ -227,7 +173,6 @@ func _fmt(v) -> String:
 			return "-"
 		_:
 			return str(v)
-
 
 func _on_submit_pressed() -> void:
 	var txt: String = commentary_input.text.strip_edges() if commentary_input else ""

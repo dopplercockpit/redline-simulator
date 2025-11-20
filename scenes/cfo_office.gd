@@ -37,7 +37,7 @@ func _ready() -> void:
 	_connect_financial_panel()
 
 	# Initialize airline state with demo data
-	_init_demo_airline_state()
+	# _init_demo_airline_state()
 
 	# Load scenarios
 	_load_scenarios()
@@ -46,9 +46,12 @@ func _ready() -> void:
 	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
 	$Camera2D.make_current()
 
-	# GameController.game_started.connect(_on_game_started)
-	# GameController.state_updated.connect(_on_state_updated)
-	# GameController.decision_processed.connect(_on_decision_processed)
+	GameController.game_started.connect(_on_game_started)
+	GameController.state_updated.connect(_on_state_updated)
+	GameController.decision_processed.connect(_on_decision_processed)
+
+	API Call -> Backend -> Signal -> UI Update
+	GameController.start_new_game("Player1", "scenario_001")
 
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
@@ -317,15 +320,29 @@ func _on_game_started(session_id: String):
 	$DialogueBox.show_text("Game started! Session: " + session_id)
 
 func _on_state_updated(state: Dictionary):
-	# Update UI with new state
+	# 1. Update local cache
+	cached_financials = state
+	
+	# 2. Extract Financial Statements from Python payload
+	# The backend sends: { "financial_statements": { "income_statement": ... } }
+	var fin_data = {}
+	
+	if state.has("financial_statements"):
+		# Merge them for the panel display
+		var fs = state["financial_statements"]
+		if fs.has("income_statement"):
+			fin_data["income_statement"] = fs["income_statement"]
+		if fs.has("balance_sheet"):
+			fin_data["balance_sheet"] = fs["balance_sheet"]
+		if fs.has("cash_flow"):
+			fin_data["cash_flow"] = fs["cash_flow"]
+	else:
+		# Fallback for simple state
+		fin_data = state
+
+	# 3. Update UI
 	if financial_panel:
-		var financials = {
-			"cash": state.get("cash", 0),
-			"revenue_mtd": state.get("revenue_mtd", 0),
-			"costs_mtd": state.get("costs_mtd", 0),
-			"kpis": state.get("kpis", {})
-		}
-		financial_panel.update_display(financials)
+		financial_panel.update_display(fin_data)
 
 func _on_decision_processed(impacts: Dictionary):
 	$DialogueBox.show_text("Decision applied! Impact: " + str(impacts))

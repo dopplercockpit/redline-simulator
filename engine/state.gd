@@ -1,5 +1,6 @@
 # res://engine/state.gd
 extends Resource
+class_name GameState
 const VERSION := "1.0.0"
 
 # Cash & accruals

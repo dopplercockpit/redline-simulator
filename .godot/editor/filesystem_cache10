@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1763635468
+::res://::1763637651
 Concept Updates.md::TextFile::-1::1763479760::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
 index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1760703503::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
@@ -80,7 +80,7 @@ package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
 ::res://scenes/::1763480207
 camera_2d.gd::GDScript::3031445742709559099::1760091666::0::1::::<>Camera2D<><>0<>0<><>::
 CFOOffice.tscn::PackedScene::1205614886687269308::1761921687::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
-cfo_office.gd::GDScript::5173362101766996939::1763480207::0::1::::<>Node2D<><>0<>0<><>::
+cfo_office.gd::GDScript::5173362101766996939::1763637634::0::1::::<>Node2D<><>0<>0<><>::
 GameController.gd::GDScript::4784532675733434107::1762449498::0::1::::<>RefCounted<><>0<>0<><>::
 ::res://scripts/::1760002414
 ::res://scripts/ui/::1763635391
@@ -93,7 +93,7 @@ CompendiumPanel.gd::GDScript::8484710120507740222::1760634457::0::1::::<>CanvasL
 CompendiumPanel.tscn::PackedScene::7994388626984643988::1760691072::0::1::::<><><>0<>0<><>::uid://ds5b63cvpqklq::::res://ui/CompendiumPanel.gd
 ContractPanel.gd::GDScript::1034626490797560158::1760634393::0::1::::<>CanvasLayer<><>0<>0<><>::
 ContractPanel.tscn::PackedScene::2635893709492222326::1760527380::0::1::::<><><>0<>0<><>::uid://o0gfadj8bqe5::::res://ui/ContractPanel.gd
-FinancialPanel.gd::GDScript::3204900962347884011::1763635411::0::1::::<>CanvasLayer<><>0<>0<><>::
+FinancialPanel.gd::GDScript::3204900962347884011::1763637420::0::1::::<>CanvasLayer<><>0<>0<><>::
 FinancialPanel.tscn::PackedScene::4356049703760427136::1760693586::0::1::::<><><>0<>0<><>::uid://blwqirx5p1v7x::::res://ui/FinancialPanel.gd
 NewsPanel.gd::GDScript::1506635727970094505::1760634284::0::1::::<>CanvasLayer<><>0<>0<><>::
 NewsPanel.tscn::PackedScene::-1::1760633236::0::1::::<><><>0<>0<><>::res://ui/NewsPanel.gd
