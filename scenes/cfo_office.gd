@@ -50,7 +50,7 @@ func _ready() -> void:
 	GameController.state_updated.connect(_on_state_updated)
 	GameController.decision_processed.connect(_on_decision_processed)
 
-	API Call -> Backend -> Signal -> UI Update
+# API Call -> Backend -> Signal -> UI Update
 	GameController.start_new_game("Player1", "scenario_001")
 
 func _connect_financial_panel() -> void:

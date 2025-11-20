@@ -9,11 +9,9 @@ signal commentary_submitted(text)
 @onready var submit_button: Button        = $PanelContainer/ScrollContainer/VBoxContainer/SubmitButton
 @onready var scroll_container: ScrollContainer = $PanelContainer/ScrollContainer
 
-@onready var student_name: LineEdit = (
-	get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") as LineEdit
-) if get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName") != null else (
-	get_node("PanelContainer/ScrollContainer/VBoxContainer/StudentName") as LineEdit
-)
+@onready var student_name: LineEdit = get_node_or_null(
+	"PanelContainer/ScrollContainer/VBoxContainer/NameRow/StudentName"
+) as LineEdit
 
 var close_button: Button
 
@@ -59,6 +57,12 @@ func _ready() -> void:
 	if close_button == null:
 		close_button = get_node_or_null("PanelContainer/ScrollContainer/VBoxContainer/CloseButton") as Button
 
+	# Ensure student_name is found even if there's no NameRow container
+	if student_name == null:
+		student_name = get_node_or_null(
+			"PanelContainer/ScrollContainer/VBoxContainer/StudentName"
+		) as LineEdit
+
 	if submit_button:
 		submit_button.pressed.connect(_on_submit_pressed)
 	if close_button:
@@ -71,7 +75,7 @@ func _ready() -> void:
 		vsb.add_theme_constant_override("thickness", 10)
 
 func get_student_name() -> String:
-	return student_name.text.strip_edges() if student_name else ""
+	return student_name != null ? student_name.text.strip_edges() : ""
 
 func update_display(data: Dictionary) -> void:
 	show_financials(data)
@@ -88,9 +92,9 @@ func show_financials(data: Dictionary) -> void:
 	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])
 	var csec: Variant = _find_section(data, ["cash_flow","cashflow","cashFlow","cash","cf"])
 
-	_populate_grid_dynamic(income_grid,  isec if isec != null else {}, income_lines)
-	_populate_grid_dynamic(balance_grid, bsec if bsec != null else {}, balance_lines)
-	_populate_grid_dynamic(cash_grid,    csec if csec != null else {}, cash_lines)
+	_populate_grid_dynamic(income_grid,  isec != null ? isec : {}, income_lines)
+	_populate_grid_dynamic(balance_grid, bsec != null ? bsec : {}, balance_lines)
+	_populate_grid_dynamic(cash_grid,    csec != null ? csec : {}, cash_lines)
 	commentary_input.grab_focus()
 
 func _find_section(root: Dictionary, keys: Array) -> Variant:
@@ -143,7 +147,7 @@ func _unwrap_section(sec: Variant) -> Variant:
 			elif typeof(item) == TYPE_DICTIONARY:
 				var dict := item as Dictionary
 				var lbl: String = str(dict.get("label", ""))
-				var val: Variant = dict["value"] if dict.has("value") else null
+				var val: Variant = dict.has("value") ? dict["value"] : null
 				if lbl == "" and dict.size() > 0:
 					var keys: Array = dict.keys()
 					var k: String = str(keys[0])
@@ -175,7 +179,7 @@ func _fmt(v) -> String:
 			return str(v)
 
 func _on_submit_pressed() -> void:
-	var txt: String = commentary_input.text.strip_edges() if commentary_input else ""
+	var txt: String = commentary_input != null ? commentary_input.text.strip_edges() : ""
 	if txt.is_empty():
 		txt = "(empty commentary)"
 	emit_signal("commentary_submitted", txt)
