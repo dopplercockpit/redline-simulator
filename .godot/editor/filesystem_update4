@@ -1,4 +1,2 @@
-res://ui/FinancialPanel.gd
 res://scenes/CFOOffice.tscn
-res://scenes/cfo_office.gd
-res://engine/State.gd
+res://engine/GameManager.gd
