@@ -9,7 +9,7 @@ var backend_base := "" # keep empty for web demo (no backend calls)
 # ===========================
 # STATE
 # ===========================
-var game_state: GameState = GameState.new()  # Airline operational state
+var game_state: GameStateData = GameStateData.new()  # Airline operational state
 var cached_financials: Dictionary = {}
 var scenarios: Array = []
 var current_scenario_index: int = 0

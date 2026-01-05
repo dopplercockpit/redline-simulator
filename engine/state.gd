@@ -1,12 +1,14 @@
 # res://engine/state.gd
 extends Resource
-# GameState class is registered globally in Project Settings
+class_name GameStateData
+# GameStateData class is registered globally in Project Settings
 const VERSION := "1.0.0"
 
 # Cash & accruals
 var cash: float = 0.0
 var revenue_ytd: float = 0.0
 var expense_ytd: float = 0.0
+var is_month_end: bool = false
 
 # Domain
 var fleet := {}          # {"A320ceo": {"count":4, "lease_usd_mpm":220000, "hours_avail":10.5, "age_avg":8.2}}

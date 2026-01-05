@@ -8,13 +8,16 @@ var time
 var state
 var rng
 var finance
+var telemetry
 
 func _ready():
 	# instantiate modules
-	time = load("res://engine/Time.gd").new()
+	time = load("res://engine/time.gd").new()
 	state = load("res://engine/State.gd").new()
-	rng = load("res://engine/RNG.gd").new()
-	finance = load("res://engine/Finance.gd").new()
+	rng = load("res://engine/rng.gd").new()
+	finance = load("res://engine/finance.gd").new()
+	telemetry = load("res://engine/telemetry.gd").new()
+	add_child(telemetry)
 
 	# load scenario & seed RNG
 	_load_scenario("res://data/scenarios/flightpath/scenario_001.json")
@@ -27,16 +30,16 @@ func _load_scenario(path: String):
 	state.reset()
 	state.load_config(cfg.get("initial_state", {}))
 	# Keep module inits here if/when added later (market, ops, events...)
-	Telemetry.init_run(cfg.get("meta", {}))
+	telemetry.init_run(cfg.get("meta", {}))
 
 func tick(days: int = 1):
 	# Advance day-by-day for deterministic accounting
-	for i in days:
+	for i in range(days):
 		finance.apply_day(state, time.today())
 		time.advance_day()
 	if time.is_month_end():
 		var report: Dictionary = finance.close_month(state, time.current_month())
-		Telemetry.log_month(report)
+		telemetry.log_month(report)
 		emit_signal("month_closed", report)
 	emit_signal("state_updated")
 

@@ -4,7 +4,7 @@ extends Node
 signal turn_advanced(new_week, new_month)
 signal mission_triggered(mission_id)
 
-var state: Resource = preload("res://engine/State.gd").new()
+var state: GameStateData = preload("res://engine/State.gd").new()
 var current_week: int = 1
 var current_month: int = 1
 var is_month_end: bool = false

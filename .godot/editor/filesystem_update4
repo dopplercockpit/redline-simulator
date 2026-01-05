@@ -1,2 +1,3 @@
-res://scenes/CFOOffice.tscn
 res://engine/GameManager.gd
+res://engine/State.gd
+res://scenes/cfo_office.gd

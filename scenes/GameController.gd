@@ -3,7 +3,6 @@
 # File: scenes/GameController.gd
 # =====================================================
 
-"""
 # scenes/GameController.gd
 extends Node
 
@@ -99,4 +98,3 @@ func _parse_json_response(body: PackedByteArray) -> Dictionary:
         return {}
     
     return json.data
-"""
