@@ -35,8 +35,33 @@ func load_config(cfg: Dictionary) -> void:
 	for k in cfg.keys():
 		self.set(k, cfg[k])
 
+func load_from_statements(income_statement: Dictionary, balance_sheet: Dictionary, cash_flow: Dictionary) -> void:
+	# Temporary bridge: store raw statements and set basic aggregates.
+	meta["financial_statements"] = {
+		"income_statement": income_statement,
+		"balance_sheet": balance_sheet,
+		"cash_flow": cash_flow
+	}
+	if cash_flow.has("ending_cash"):
+		cash = float(cash_flow.get("ending_cash", cash))
+	if income_statement.has("net_sales"):
+		revenue_ytd = float(income_statement.get("net_sales", revenue_ytd))
+	if income_statement.has("cogs") or income_statement.has("opex"):
+		expense_ytd = float(income_statement.get("cogs", 0.0)) + float(income_statement.get("opex", 0.0))
+
 # Calculate financial summary on the fly based on operational state
 func get_financial_summary() -> Dictionary:
+	if meta.has("financial_statements") and typeof(meta["financial_statements"]) == TYPE_DICTIONARY:
+		var fs: Dictionary = meta["financial_statements"] as Dictionary
+		var income: Dictionary = fs.get("income_statement", {}) as Dictionary
+		var balance: Dictionary = fs.get("balance_sheet", {}) as Dictionary
+		var cash_flow: Dictionary = fs.get("cash_flow", {}) as Dictionary
+		if not income.is_empty() or not balance.is_empty() or not cash_flow.is_empty():
+			return {
+			"income_statement": income,
+			"balance_sheet": balance,
+			"cash_flow": cash_flow
+			}
 	var monthly_lease_cost = 0.0
 	for plane_type in fleet:
 		var p = fleet[plane_type]

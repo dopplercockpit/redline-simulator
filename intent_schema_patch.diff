@@ -1,0 +1,102 @@
+diff --git a/engine/DecisionResolver.gd b/engine/DecisionResolver.gd
+index a457ff6..8c56b4d 100644
+--- a/engine/DecisionResolver.gd
++++ b/engine/DecisionResolver.gd
+@@ -6,6 +6,7 @@ signal week_advanced(week_number: int, month_number: int, is_month_end: bool)
+ signal month_end_ready(month_number: int, report: Dictionary)
+ 
+ const LEGACY_WEEKLY_OPEX_USD := 5000.0
++const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+ 
+ var _loop_system: Node = null
+ var _financial_state: GameStateData = preload("res://engine/state.gd").new()
+@@ -64,8 +65,19 @@ func advance_week(use_legacy_burn: bool = true) -> Dictionary:
+ 	}
+ 
+ func resolve_intent(intent: Dictionary) -> Dictionary:
++	var validation: Dictionary = DecisionIntent.validate_intent(intent)
++	var errors: Array[String] = validation.get("errors", []) as Array[String]
++	if not bool(validation.get("ok", false)):
++		return {
++			"ok": false,
++			"impacts": {},
++			"events": [],
++			"errors": errors,
++			"ui": {}
++		}
++
+ 	var impacts: Dictionary = {}
+-	var tag := str(intent.get("tag", "intent"))
++	var tag := str(intent.get("id", "intent"))
+ 
+ 	if intent.has("financial_delta"):
+ 		impacts["financial"] = _apply_financial_delta(intent["financial_delta"])
+@@ -74,7 +86,13 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
+ 		impacts["loop"] = _apply_loop_delta(intent["loop_delta"])
+ 
+ 	emit_signal("decision_applied", tag, impacts)
+-	return impacts
++	return {
++		"ok": true,
++		"impacts": impacts,
++		"events": [],
++		"errors": [],
++		"ui": {}
++	}
+ 
+ func _advance_loop_time() -> Dictionary:
+ 	if _loop_system == null:
+diff --git a/engine/GameManager.gd b/engine/GameManager.gd
+index 2af3ebb..b6ca924 100644
+--- a/engine/GameManager.gd
++++ b/engine/GameManager.gd
+@@ -47,9 +47,10 @@ func advance_week(use_legacy_burn: bool = true) -> Dictionary:
+ func submit_intent(intent: Dictionary) -> Dictionary:
+ 	if _resolver == null:
+ 		return {}
+-	var impacts: Dictionary = _resolver.call("resolve_intent", intent) as Dictionary
+-	emit_signal("state_updated")
+-	return impacts
++	var result: Dictionary = _resolver.call("resolve_intent", intent) as Dictionary
++	if bool(result.get("ok", false)):
++		emit_signal("state_updated")
++	return result
+ 
+ func get_financial_state_ref() -> GameStateData:
+ 	if _resolver:
+diff --git a/scenes/cfo_office.gd b/scenes/cfo_office.gd
+index 09bfcda..f237c2e 100644
+--- a/scenes/cfo_office.gd
++++ b/scenes/cfo_office.gd
+@@ -5,6 +5,7 @@ extends Node2D
+ # ===========================
+ const SUBMIT_WEBHOOK_URL := "https://script.google.com/macros/s/AKfycbw2XJuAMKD5Po9sEW3oAvQH251lIAsoWh3Ant-r8ZAK1iOI8OimUKouJy5esIn93pEz/exec"
+ var backend_base := "" # keep empty for web demo (no backend calls)
++const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+ 
+ # ===========================
+ # STATE
+@@ -155,6 +156,23 @@ func _load_financials_from(path: String) -> void:
+ # ===========================
+ func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+ 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
++		var resolver: Node = _get_resolver()
++		if resolver:
++			var scene_path := ""
++			if get_tree() and get_tree().current_scene:
++				scene_path = str(get_tree().current_scene.scene_file_path)
++			var intent: Dictionary = DecisionIntent.build_intent(
++				"cfo_laptop_open",
++				DecisionIntent.VERB_LOOK,
++				"financial_panel",
++				scene_path,
++				str(get_path())
++			)
++			var response: Dictionary = resolver.call("resolve_intent", intent) as Dictionary
++			if not bool(response.get("ok", false)):
++				push_warning("Intent rejected: " + str(response.get("errors", [])))
++				return
++
+ 		# Hide scenario so UIs don't overlap
+ 		if has_node("ScenarioPanel") and $ScenarioPanel.visible:
+ 			$ScenarioPanel.visible = false

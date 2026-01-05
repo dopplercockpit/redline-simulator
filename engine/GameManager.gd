@@ -47,9 +47,10 @@ func advance_week(use_legacy_burn: bool = true) -> Dictionary:
 func submit_intent(intent: Dictionary) -> Dictionary:
 	if _resolver == null:
 		return {}
-	var impacts: Dictionary = _resolver.call("resolve_intent", intent) as Dictionary
-	emit_signal("state_updated")
-	return impacts
+	var result: Dictionary = _resolver.call("resolve_intent", intent) as Dictionary
+	if bool(result.get("ok", false)):
+		emit_signal("state_updated")
+	return result
 
 func get_financial_state_ref() -> GameStateData:
 	if _resolver:

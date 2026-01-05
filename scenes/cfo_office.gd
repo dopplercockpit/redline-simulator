@@ -5,6 +5,7 @@ extends Node2D
 # ===========================
 const SUBMIT_WEBHOOK_URL := "https://script.google.com/macros/s/AKfycbw2XJuAMKD5Po9sEW3oAvQH251lIAsoWh3Ant-r8ZAK1iOI8OimUKouJy5esIn93pEz/exec"
 var backend_base := "" # keep empty for web demo (no backend calls)
+const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 
 # ===========================
 # STATE
@@ -155,6 +156,23 @@ func _load_financials_from(path: String) -> void:
 # ===========================
 func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var resolver: Node = _get_resolver()
+		if resolver:
+			var scene_path := ""
+			if get_tree() and get_tree().current_scene:
+				scene_path = str(get_tree().current_scene.scene_file_path)
+			var intent: Dictionary = DecisionIntent.build_intent(
+				"cfo_laptop_open",
+				DecisionIntent.VERB_LOOK,
+				"financial_panel",
+				scene_path,
+				str(get_path())
+			)
+			var response: Dictionary = resolver.call("resolve_intent", intent) as Dictionary
+			if not bool(response.get("ok", false)):
+				push_warning("Intent rejected: " + str(response.get("errors", [])))
+				return
+
 		# Hide scenario so UIs don't overlap
 		if has_node("ScenarioPanel") and $ScenarioPanel.visible:
 			$ScenarioPanel.visible = false
@@ -247,7 +265,7 @@ func _advance_scenario() -> void:
 
 	# 🔄 Force-refresh all panels that use scenario data
 	if has_node("FinancialPanel") and is_instance_valid($FinancialPanel):
-		var live_financials = game_state.get_financial_summary()
+		var live_financials: Dictionary = _get_financial_state().get_financial_summary()
 		$FinancialPanel.show_financials(live_financials)
 		$FinancialPanel.reset_for_next_scenario()
 		$FinancialPanel.submit_button.disabled = false

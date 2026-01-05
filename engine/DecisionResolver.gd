@@ -6,6 +6,7 @@ signal week_advanced(week_number: int, month_number: int, is_month_end: bool)
 signal month_end_ready(month_number: int, report: Dictionary)
 
 const LEGACY_WEEKLY_OPEX_USD := 5000.0
+const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 
 var _loop_system: Node = null
 var _financial_state: GameStateData = preload("res://engine/state.gd").new()
@@ -26,7 +27,21 @@ func load_scenario(cfg: Dictionary) -> void:
 func seed_financial_state(cfg: Dictionary, reset: bool = true) -> void:
 	if reset:
 		_financial_state.reset()
-	_financial_state.load_config(cfg)
+
+	var source: Dictionary = cfg
+	if cfg.has("financial_statements") and typeof(cfg["financial_statements"]) == TYPE_DICTIONARY:
+		source = cfg["financial_statements"] as Dictionary
+
+	var is_structured := source.has("income_statement") or source.has("balance_sheet") or source.has("cash_flow")
+	if is_structured:
+		# Temporary adapter for statement-style JSON inputs.
+		var income_statement: Dictionary = source.get("income_statement", {}) as Dictionary
+		var balance_sheet: Dictionary = source.get("balance_sheet", {}) as Dictionary
+		var cash_flow: Dictionary = source.get("cash_flow", {}) as Dictionary
+		_financial_state.load_from_statements(income_statement, balance_sheet, cash_flow)
+		return
+
+	_financial_state.load_config(source)
 
 func get_financial_state_ref() -> GameStateData:
 	# Exposed read-only by convention.
@@ -64,8 +79,21 @@ func advance_week(use_legacy_burn: bool = true) -> Dictionary:
 	}
 
 func resolve_intent(intent: Dictionary) -> Dictionary:
+	var validation: Dictionary = DecisionIntent.validate_intent(intent)
+	var errors: Array[String] = validation.get("errors", []) as Array[String]
+	if not bool(validation.get("ok", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": errors,
+			"ui": {}
+		}
+
 	var impacts: Dictionary = {}
-	var tag := str(intent.get("tag", "intent"))
+	var verb := str(intent.get("verb", "intent"))
+	var target := str(intent.get("target", "target"))
+	var tag := verb + "." + target
 
 	if intent.has("financial_delta"):
 		impacts["financial"] = _apply_financial_delta(intent["financial_delta"])
@@ -74,7 +102,13 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 		impacts["loop"] = _apply_loop_delta(intent["loop_delta"])
 
 	emit_signal("decision_applied", tag, impacts)
-	return impacts
+	return {
+		"ok": true,
+		"impacts": impacts,
+		"events": [],
+		"errors": [],
+		"ui": {}
+	}
 
 func _advance_loop_time() -> Dictionary:
 	if _loop_system == null:
