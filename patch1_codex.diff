@@ -1,0 +1,611 @@
+diff --git a/.godot/editor/editor_script_doc_cache.res b/.godot/editor/editor_script_doc_cache.res
+deleted file mode 100644
+index cddda40..0000000
+Binary files a/.godot/editor/editor_script_doc_cache.res and /dev/null differ
+diff --git a/.godot/editor/filesystem_cache10 b/.godot/editor/filesystem_cache10
+index 285f0df..9a7d230 100644
+--- a/.godot/editor/filesystem_cache10
++++ b/.godot/editor/filesystem_cache10
+@@ -1,5 +1,5 @@
+ 63f7b34db8d8cdea90c76aacccf841ec
+-::res://::1767608230
++::res://::1767613821
+ Concept Updates.md::TextFile::-1::1763479760::0::1::::<><><>0<>0<><>::
+ export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
+ index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1760703503::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
+@@ -62,14 +62,17 @@ contract_supplier_excerpt.txt::TextFile::-1::1760526322::0::1::::<><><>0<>0<><>:
+ game_rules.md::TextFile::-1::1755531092::0::1::::<><><>0<>0<><>::
+ system_design.md::TextFile::-1::1755531084::0::1::::<><><>0<>0<><>::
+ ::res://docs/coach_kb/::1755530956
+-::res://engine/::1766943433
+-engine.gd::GDScript::8842936917998472018::1767607741::0::1::::<>Node<><>0<>0<><>::
+-finance.gd::GDScript::3177558775738690176::1761920642::0::1::::<>Resource<><>0<>0<><>::
+-GameManager.gd::GDScript::6435820085430194186::1767607716::0::1::::<>Node<><>0<>0<><>::
++::res://engine/::1767612856
++DecisionResolver.gd::GDScript::8458386234791149742::1767613020::0::1::::DecisionResolver<>Node<><>0<>0<><>::
++engine.gd::GDScript::8842936917998472018::1767613184::0::1::::<>Node<><>0<>0<><>::
++finance.gd::GDScript::3177558775738690176::1767612663::0::1::::<>Resource<><>0<>0<><>::
++GameManager.gd::GDScript::6435820085430194186::1767613116::0::1::::<>Node<><>0<>0<><>::
++LoopState.gd::GDScript::857758716385477389::1767612444::0::1::::LoopState<>Resource<><>0<>0<><>::
++LoopSystem.gd::GDScript::7180269583507168396::1767612457::0::1::::LoopSystem<>Node<><>0<>0<><>::
+ rng.gd::GDScript::359332569275712734::1761919080::0::1::::<>Resource<><>0<>0<><>::
+-State.gd::GDScript::223786706798230507::1767607706::0::1::::GameState<>Resource<><>0<>0<><>::
++State.gd::GDScript::223786706798230507::1767612918::0::1::::GameStateData<>Resource<><>0<>0<><>::
+ telemetry.gd::GDScript::6110654627821693772::1761919223::0::1::::<>Node<><>0<>0<><>::
+-time.gd::GDScript::7820865823895857360::1761916692::0::1::::<>Resource<><>0<>0<><>::
++time.gd::GDScript::7820865823895857360::1767612682::0::1::::<>Resource<><>0<>0<><>::
+ ::res://frontend/::1759774312
+ package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
+ ::res://frontend/src/::1755530912
+@@ -80,7 +83,7 @@ package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
+ ::res://scenes/::1766943198
+ camera_2d.gd::GDScript::3031445742709559099::1760091666::0::1::::<>Camera2D<><>0<>0<><>::
+ CFOOffice.tscn::PackedScene::1205614886687269308::1766943198::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
+-cfo_office.gd::GDScript::5173362101766996939::1763645834::0::1::::<>Node2D<><>0<>0<><>::
++cfo_office.gd::GDScript::5173362101766996939::1767612912::0::1::::<>Node2D<><>0<>0<><>::
+ GameController.gd::GDScript::4784532675733434107::1767607761::0::1::::<>Node<><>0<>0<><>::
+ ::res://scripts/::1760002414
+ ::res://scripts/ui/::1763635391
+diff --git a/.godot/editor/filesystem_update4 b/.godot/editor/filesystem_update4
+deleted file mode 100644
+index 453d241..0000000
+--- a/.godot/editor/filesystem_update4
++++ /dev/null
+@@ -1,3 +0,0 @@
+-res://engine/GameManager.gd
+-res://engine/State.gd
+-res://scenes/cfo_office.gd
+diff --git a/.godot/global_script_class_cache.cfg b/.godot/global_script_class_cache.cfg
+index f247b40..6a01287 100644
+--- a/.godot/global_script_class_cache.cfg
++++ b/.godot/global_script_class_cache.cfg
+@@ -1,4 +1,12 @@
+ list=[{
++"base": &"Node",
++"class": &"DecisionResolver",
++"icon": "",
++"is_abstract": false,
++"is_tool": false,
++"language": &"GDScript",
++"path": "res://engine/DecisionResolver.gd"
++}, {
+ "base": &"Resource",
+ "class": &"GameStateData",
+ "icon": "",
+@@ -6,4 +14,20 @@ list=[{
+ "is_tool": false,
+ "language": &"GDScript",
+ "path": "res://engine/State.gd"
++}, {
++"base": &"Resource",
++"class": &"LoopState",
++"icon": "",
++"is_abstract": false,
++"is_tool": false,
++"language": &"GDScript",
++"path": "res://engine/LoopState.gd"
++}, {
++"base": &"Node",
++"class": &"LoopSystem",
++"icon": "",
++"is_abstract": false,
++"is_tool": false,
++"language": &"GDScript",
++"path": "res://engine/LoopSystem.gd"
+ }]
+diff --git a/.godot/uid_cache.bin b/.godot/uid_cache.bin
+index 2c8a67b..3d974f5 100644
+Binary files a/.godot/uid_cache.bin and b/.godot/uid_cache.bin differ
+diff --git a/engine/GameManager.gd b/engine/GameManager.gd
+index 99473b0..3c1e821 100644
+--- a/engine/GameManager.gd
++++ b/engine/GameManager.gd
+@@ -1,38 +1,75 @@
+ # res://engine/GameManager.gd
+ extends Node
+ 
+-signal turn_advanced(new_week, new_month)
+-signal mission_triggered(mission_id)
+-
+-var state: GameStateData = preload("res://engine/State.gd").new()
+-var current_week: int = 1
+-var current_month: int = 1
+-var is_month_end: bool = false
+-
+-# 1 Turn = 1 Week
+-func advance_week():
+-	current_week += 1
+-
+-	# Check for Month End (Every 4th week)
+-	if current_week % 4 == 0:
+-		trigger_month_end_close()
+-	else:
+-		# Process standard weekly operational costs (burn rate)
+-		process_weekly_burn()
+-		emit_signal("turn_advanced", current_week, current_month)
+-
+-func trigger_month_end_close():
+-	state.is_month_end = true
+-	current_month += 1
+-	emit_signal("mission_triggered", "month_end_close_" + str(current_month))
+-	print("Month End Close! Time to report.")
+-
+-func process_weekly_burn():
+-	# Simple simulation logic (later move this to Python backend)
+-	var weekly_opex = 5000.0
+-	state.cash -= weekly_opex
+-	state.expense_ytd += weekly_opex
+-
+-	# Additional airline-specific weekly operations
+-	# This would include fuel costs, crew salaries, etc.
+-	# For MVP, keeping it simple
++signal turn_advanced(new_week: int, new_month: int)
++signal month_end_ready(month_number: int, report: Dictionary)
++signal mission_triggered(mission_id: String)
++signal state_updated()
++
++const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.json"
++
++var _resolver: DecisionResolver = null
++
++func _ready() -> void:
++	_resolver = get_node_or_null("/root/DecisionResolver")
++	if _resolver == null:
++		push_warning("DecisionResolver autoload missing; GameManager is inactive.")
++
++func load_scenario(path: String = DEFAULT_SCENARIO_PATH) -> void:
++	var cfg := _read_json(path)
++	if cfg.is_empty():
++		return
++	load_scenario_config(cfg)
++
++func load_scenario_config(cfg: Dictionary) -> void:
++	if _resolver:
++		_resolver.load_scenario(cfg)
++	emit_signal("state_updated")
++
++func advance_week(use_legacy_burn: bool = true) -> Dictionary:
++	if _resolver == null:
++		return {}
++
++	var result := _resolver.advance_week(use_legacy_burn)
++	var turn := result.get("turn", {})
++
++	emit_signal("turn_advanced", int(turn.get("week_number", 0)), int(turn.get("month_number", 0)))
++
++	if bool(turn.get("is_month_end", false)):
++		var closed_month := int(turn.get("closed_month", 0))
++		var report := result.get("month_report", {})
++		emit_signal("month_end_ready", closed_month, report)
++		emit_signal("mission_triggered", "month_end_close_" + str(closed_month))
++
++	emit_signal("state_updated")
++	return result
++
++func submit_intent(intent: Dictionary) -> Dictionary:
++	if _resolver == null:
++		return {}
++	var impacts := _resolver.resolve_intent(intent)
++	emit_signal("state_updated")
++	return impacts
++
++func get_financial_state_ref() -> GameStateData:
++	if _resolver:
++		return _resolver.get_financial_state_ref()
++	return null
++
++func get_financial_snapshot() -> Dictionary:
++	if _resolver:
++		return _resolver.get_financial_snapshot()
++	return {}
++
++func get_loop_snapshot() -> Dictionary:
++	if _resolver:
++		return _resolver.get_loop_snapshot()
++	return {}
++
++func _read_json(p: String) -> Dictionary:
++	var txt: String = FileAccess.get_file_as_string(p)
++	var parsed: Variant = JSON.parse_string(txt)   # parse returns Variant in 4.x
++	if parsed is Dictionary:
++		return parsed as Dictionary
++	push_error("Invalid JSON at " + p)
++	return {}
+diff --git a/engine/engine.gd b/engine/engine.gd
+index 6e45283..72465b0 100644
+--- a/engine/engine.gd
++++ b/engine/engine.gd
+@@ -4,43 +4,41 @@ extends Node
+ signal state_updated()
+ signal month_closed(report: Dictionary)
+ 
+-var time
+-var state
+ var rng
+-var finance
+ var telemetry
++var _manager: Node = null
++const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.json"
+ 
+-func _ready():
+-	# instantiate modules
+-	time = load("res://engine/time.gd").new()
+-	state = load("res://engine/State.gd").new()
++func _ready() -> void:
+ 	rng = load("res://engine/rng.gd").new()
+-	finance = load("res://engine/finance.gd").new()
+ 	telemetry = load("res://engine/telemetry.gd").new()
+ 	add_child(telemetry)
+ 
+-	# load scenario & seed RNG
+-	_load_scenario("res://data/scenarios/flightpath/scenario_001.json")
++	_manager = get_node_or_null("/root/GameManager")
++	if _manager == null:
++		push_warning("GameManager autoload missing; RSE is idle.")
++		return
++
++	# Back-compat: load default scenario on boot and seed RNG.
++	var cfg := _read_json(DEFAULT_SCENARIO_PATH)
++	if not cfg.is_empty():
++		rng.set_seed(int(cfg.get("meta", {}).get("seed", 123456)))
++		telemetry.init_run(cfg.get("meta", {}))
++		_manager.load_scenario_config(cfg)
+ 	emit_signal("state_updated")
+ 
+-func _load_scenario(path: String):
+-	var cfg := _read_json(path)
+-	rng.set_seed(int(cfg.get("meta", {}).get("seed", 123456)))
+-	time.init(cfg.get("time", {}))
+-	state.reset()
+-	state.load_config(cfg.get("initial_state", {}))
+-	# Keep module inits here if/when added later (market, ops, events...)
+-	telemetry.init_run(cfg.get("meta", {}))
+-
+-func tick(days: int = 1):
+-	# Advance day-by-day for deterministic accounting
+-	for i in range(days):
+-		finance.apply_day(state, time.today())
+-		time.advance_day()
+-	if time.is_month_end():
+-		var report: Dictionary = finance.close_month(state, time.current_month())
+-		telemetry.log_month(report)
+-		emit_signal("month_closed", report)
++func tick(weeks: int = 1) -> void:
++	# Weekly-only progression (no daily simulation).
++	if _manager == null:
++		return
++
++	for _i in range(weeks):
++		var result := _manager.advance_week()
++		var report: Dictionary = result.get("month_report", {})
++		if not report.is_empty():
++			telemetry.log_month(report)
++			emit_signal("month_closed", report)
++
+ 	emit_signal("state_updated")
+ 
+ func _read_json(p: String) -> Dictionary:
+diff --git a/engine/finance.gd b/engine/finance.gd
+index fa2dd87..c4df190 100644
+--- a/engine/finance.gd
++++ b/engine/finance.gd
+@@ -7,19 +7,23 @@ const AIRPORT_COST_PER_FLIGHT_USD := 1200.0
+ const AVG_STAGE_LENGTH_KM := 900.0   # simplification until routes.json
+ const KG_FUEL_PER_FLIGHT := 4500.0   # crude baseline; refine later
+ 
+-func apply_day(state: Resource, date: Dictionary) -> void:
+-	var day_ask: float = 0.0
+-	var day_rpk: float = 0.0
+-	var day_revenue: float = 0.0
+-	var day_cost: float = 0.0
++func apply_day(_state: Resource, _date: Dictionary) -> void:
++	# Deprecated: daily simulation is disabled by design. Use calculate_week_delta().
++	push_warning("Finance.apply_day is deprecated. Use DecisionResolver + calculate_week_delta().")
+ 
+-	# Distribute weekly frequencies evenly across 7 days
++func calculate_week_delta(state: Resource) -> Dictionary:
++	var week_ask: float = 0.0
++	var week_rpk: float = 0.0
++	var week_revenue: float = 0.0
++	var week_cost: float = 0.0
++
++	# Weekly frequencies are already expressed per week.
+ 	for route_name in state.routes.keys():
+ 		var r: Dictionary = state.routes[route_name]
+ 
+ 		var weekly_freq: float = float(r.get("weekly_freq", 0))
+-		var flights_today: float = weekly_freq / 7.0
+-		if flights_today <= 0.0:
++		var flights_week: float = weekly_freq
++		if flights_week <= 0.0:
+ 			continue
+ 
+ 		var seats: float = float(r.get("capacity_seats", 0))
+@@ -27,12 +31,12 @@ func apply_day(state: Resource, date: Dictionary) -> void:
+ 		var demand_idx: float = clamp(float(r.get("demand_idx", 0.7)), 0.0, 1.2)
+ 
+ 		# Offered seat-km (ASK) and sold seat-km (RPK proxy)
+-		var ask_route: float = flights_today * seats * AVG_STAGE_LENGTH_KM
+-		var load_factor: float = clamp(demand_idx, 0.05, 0.98)  # MVP LF from demand index
++		var ask_route: float = flights_week * seats * AVG_STAGE_LENGTH_KM
++		var load_factor: float = clamp(demand_idx, 0.05, 0.98)
+ 		var rpk_route: float = ask_route * load_factor
+ 
+-		# Revenue (ultra-simple: pax ≈ seats * LF)
+-		var pax: float = flights_today * seats * load_factor
++		# Revenue (ultra-simple: pax * seats * LF)
++		var pax: float = flights_week * seats * load_factor
+ 		var revenue_route: float = pax * price
+ 
+ 		# Costs
+@@ -40,27 +44,26 @@ func apply_day(state: Resource, date: Dictionary) -> void:
+ 		var hedge_pct: float = float(state.fuel.get("hedge_pct", 0.0))
+ 		var hedge_price: float = float(state.fuel.get("hedge_price", fuel_price))
+ 		var effective_fuel_price: float = (hedge_pct * hedge_price) + ((1.0 - hedge_pct) * fuel_price)
+-		var fuel_tons: float = (KG_FUEL_PER_FLIGHT / 1000.0) * flights_today
++		var fuel_tons: float = (KG_FUEL_PER_FLIGHT / 1000.0) * flights_week
+ 		var fuel_cost: float = effective_fuel_price * fuel_tons
+ 
+-		var crew_cost: float = CREW_COST_PER_FLIGHT_USD * flights_today
+-		var airport_cost: float = AIRPORT_COST_PER_FLIGHT_USD * flights_today
+-		var lease_cost: float = _lease_cost_daily(state)  # monthly lease spread across 28 days
++		var crew_cost: float = CREW_COST_PER_FLIGHT_USD * flights_week
++		var airport_cost: float = AIRPORT_COST_PER_FLIGHT_USD * flights_week
++		var lease_cost: float = _lease_cost_weekly(state)  # monthly lease spread across 4 weeks
+ 
+ 		# Aggregate
+-		day_ask += ask_route
+-		day_rpk += rpk_route
+-		day_revenue += revenue_route
+-		day_cost += (fuel_cost + crew_cost + airport_cost + lease_cost)
+-
+-	# Accrue into YTD
+-	state.kpis["ask"] = float(state.kpis.get("ask", 0.0)) + day_ask
+-	state.kpis["rpk"] = float(state.kpis.get("rpk", 0.0)) + day_rpk
+-	state.revenue_ytd = float(state.revenue_ytd) + day_revenue
+-	state.expense_ytd = float(state.expense_ytd) + day_cost
+-
+-	# Cash timing (MVP): ticket cash ~= revenue; costs hit same day
+-	state.cash = float(state.cash) + (day_revenue - day_cost)
++		week_ask += ask_route
++		week_rpk += rpk_route
++		week_revenue += revenue_route
++		week_cost += (fuel_cost + crew_cost + airport_cost + lease_cost)
++
++	return {
++		"ask_delta": week_ask,
++		"rpk_delta": week_rpk,
++		"revenue_delta": week_revenue,
++		"expense_delta": week_cost,
++		"cash_delta": (week_revenue - week_cost)
++	}
+ 
+ func close_month(state: Resource, month_id: int) -> Dictionary:
+ 	var ask: float = max(float(state.kpis.get("ask", 0.0)), 1.0)
+@@ -86,10 +89,10 @@ func close_month(state: Resource, month_id: int) -> Dictionary:
+ 
+ 	return report
+ 
+-func _lease_cost_daily(state: Resource) -> float:
+-	# Sum monthly lease by aircraft type, spread over 28 days
++func _lease_cost_weekly(state: Resource) -> float:
++	# Sum monthly lease by aircraft type, spread over 4 weeks
+ 	var monthly: float = 0.0
+ 	for t in state.fleet.keys():
+ 		var a: Dictionary = state.fleet[t]
+ 		monthly += float(a.get("lease_usd_mpm", 0.0)) * float(a.get("count", 0))
+-	return monthly / 28.0
++	return monthly / 4.0
+diff --git a/engine/state.gd b/engine/state.gd
+index 9bba096..779280c 100644
+--- a/engine/state.gd
++++ b/engine/state.gd
+@@ -4,6 +4,8 @@ class_name GameStateData
+ # GameStateData class is registered globally in Project Settings
+ const VERSION := "1.0.0"
+ 
++# NOTE: Business state must be mutated only via DecisionResolver.
++
+ # Cash & accruals
+ var cash: float = 0.0
+ var revenue_ytd: float = 0.0
+diff --git a/engine/time.gd b/engine/time.gd
+index 0a1a5c3..9481076 100644
+--- a/engine/time.gd
++++ b/engine/time.gd
+@@ -1,36 +1,24 @@
+ # res://engine/time.gd
+ extends Resource
+ 
+-var _start_date: Dictionary = {"year": 2026, "month": 1, "day": 3}
+-var _day_index: int = 0             # days since start
+-var _month_length_days: int = 28    # 4 weeks per month
+-var _week_length_days: int = 7
++var _week_index: int = 0           # weeks since start
++var _weeks_per_month: int = 4
+ 
+ func init(cfg: Dictionary) -> void:
+-	if cfg.has("start"):
+-		_start_date = _parse_iso(cfg["start"])
+-	_month_length_days = int(cfg.get("month_length_days", 28))
+-	_day_index = 0
++	_weeks_per_month = int(cfg.get("weeks_per_month", 4))
++	_week_index = 0
+ 
+-func today() -> Dictionary:
+-	# We keep simple counters; UI can render fancier later
+-	return {"day_index": _day_index}
+-
+-func advance_day() -> void:
+-	_day_index += 1
++func advance_week() -> void:
++	_week_index += 1
+ 
+ func is_month_end() -> bool:
+-	return (_day_index % _month_length_days) == 0
++	return _week_index > 0 and (_week_index % _weeks_per_month) == 0
++
++func current_week() -> int:
++	return _week_index
+ 
+ func current_month() -> int:
+-	return int(_day_index / _month_length_days) + 1
++	return int(_week_index / _weeks_per_month) + 1
+ 
+ func week_in_month() -> int:
+-	return int((_day_index % _month_length_days) / _week_length_days) + 1
+-
+-func _parse_iso(s: String) -> Dictionary:
+-	# "YYYY-MM-DD" -> {year, month, day}; minimalist
+-	var parts := s.split("-")
+-	if parts.size() == 3:
+-		return {"year": int(parts[0]), "month": int(parts[1]), "day": int(parts[2])}
+-	return _start_date
++	return int((_week_index % _weeks_per_month)) + 1
+diff --git a/project.godot b/project.godot
+index 24bc734..931d5eb 100644
+--- a/project.godot
++++ b/project.godot
+@@ -19,6 +19,8 @@ config/icon="res://assets/icons/icon.png"
+ 
+ Telemetry="*res://engine/telemetry.gd"
+ RSE="*res://engine/engine.gd"
++LoopSystem="*res://engine/LoopSystem.gd"
++DecisionResolver="*res://engine/DecisionResolver.gd"
+ GameManager="*res://engine/GameManager.gd"
+ 
+ [display]
+diff --git a/scenes/cfo_office.gd b/scenes/cfo_office.gd
+index e5b4e96..63af0c3 100644
+--- a/scenes/cfo_office.gd
++++ b/scenes/cfo_office.gd
+@@ -9,7 +9,7 @@ var backend_base := "" # keep empty for web demo (no backend calls)
+ # ===========================
+ # STATE
+ # ===========================
+-var game_state: GameStateData = GameStateData.new()  # Airline operational state
++var game_state: GameStateData = null  # Airline operational state (read via DecisionResolver)
+ var cached_financials: Dictionary = {}
+ var scenarios: Array = []
+ var current_scenario_index: int = 0
+@@ -67,6 +67,17 @@ func _connect_financial_panel() -> void:
+ 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
+ 		financial_panel.commentary_submitted.connect(_on_commentary_submitted)
+ 
++func _get_resolver() -> DecisionResolver:
++	return get_node_or_null("/root/DecisionResolver")
++
++func _get_financial_state() -> GameStateData:
++	var resolver := _get_resolver()
++	if resolver:
++		return resolver.get_financial_state_ref()
++	if game_state == null:
++		game_state = GameStateData.new()
++	return game_state
++
+ # ===========================
+ # PANELS (lazy spawn helpers)
+ # ===========================
+@@ -84,43 +95,45 @@ func _ensure_compendium_panel() -> void:
+ # DEMO AIRLINE STATE
+ # ===========================
+ func _init_demo_airline_state() -> void:
+-	# Initialize with demo airline data
+-	game_state.cash = 5000000.0
+-	game_state.revenue_ytd = 0.0
+-	game_state.expense_ytd = 0.0
+-
+-	# Demo fleet: A320ceo aircraft
+-	game_state.fleet = {
+-		"A320ceo": {
+-			"count": 4,
+-			"lease_usd_mpm": 220000.0,
+-			"hours_avail": 10.5,
+-			"age_avg": 8.2
+-		}
+-	}
++	# UI scripts must not mutate business state directly.
++	var resolver := _get_resolver()
++	if resolver == null:
++		push_warning("DecisionResolver missing; demo seed skipped.")
++		return
+ 
+-	# Demo routes
+-	game_state.routes = {
+-		"LYS-BCN": {
+-			"weekly_freq": 10,
+-			"price_usd": 99,
+-			"capacity_seats": 180,
+-			"demand_idx": 0.76
++	var demo_seed := {
++		"cash": 5000000.0,
++		"revenue_ytd": 0.0,
++		"expense_ytd": 0.0,
++		"fleet": {
++			"A320ceo": {
++				"count": 4,
++				"lease_usd_mpm": 220000.0,
++				"hours_avail": 10.5,
++				"age_avg": 8.2
++			}
+ 		},
+-		"LYS-MAD": {
+-			"weekly_freq": 7,
+-			"price_usd": 120,
+-			"capacity_seats": 180,
+-			"demand_idx": 0.68
++		"routes": {
++			"LYS-BCN": {
++				"weekly_freq": 10,
++				"price_usd": 99,
++				"capacity_seats": 180,
++				"demand_idx": 0.76
++			},
++			"LYS-MAD": {
++				"weekly_freq": 7,
++				"price_usd": 120,
++				"capacity_seats": 180,
++				"demand_idx": 0.68
++			}
++		},
++		"fuel": {
++			"price_usd_per_ton": 830.0,
++			"hedge_pct": 0.2,
++			"hedge_price": 700.0
+ 		}
+ 	}
+-
+-	# Fuel pricing
+-	game_state.fuel = {
+-		"price_usd_per_ton": 830.0,
+-		"hedge_pct": 0.2,
+-		"hedge_price": 700.0
+-	}
++	resolver.seed_financial_state(demo_seed)
+ 
+ func _load_financials_from(path: String) -> void:
+ 	if path == "" or not FileAccess.file_exists(path):
+@@ -130,8 +143,12 @@ func _load_financials_from(path: String) -> void:
+ 	if f:
+ 		var parsed: Variant = JSON.parse_string(f.get_as_text())
+ 		if typeof(parsed) == TYPE_DICTIONARY:
+-			# Load into game state instead of cached_financials
+-			game_state.load_config(parsed)
++			# Route all state changes through the resolver.
++			var resolver := _get_resolver()
++			if resolver == null:
++				push_warning("DecisionResolver missing; financials not loaded.")
++				return
++			resolver.seed_financial_state(parsed)
+ 
+ # ===========================
+ # HOTSPOTS
+@@ -148,7 +165,7 @@ func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: in
+ 			return
+ 
+ 		# Get live financials from game state and show
+-		var live_financials = game_state.get_financial_summary()
++		var live_financials = _get_financial_state().get_financial_summary()
+ 		financial_panel.show_financials(live_financials)
+ 		financial_panel.visible = true
+ 

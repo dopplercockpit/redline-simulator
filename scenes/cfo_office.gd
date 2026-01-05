@@ -9,7 +9,7 @@ var backend_base := "" # keep empty for web demo (no backend calls)
 # ===========================
 # STATE
 # ===========================
-var game_state: GameStateData = GameStateData.new()  # Airline operational state
+var game_state: GameStateData = null  # Airline operational state (read via DecisionResolver)
 var cached_financials: Dictionary = {}
 var scenarios: Array = []
 var current_scenario_index: int = 0
@@ -67,6 +67,17 @@ func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
 		financial_panel.commentary_submitted.connect(_on_commentary_submitted)
 
+func _get_resolver() -> Node:
+	return get_node_or_null("/root/DecisionResolver")
+
+func _get_financial_state() -> GameStateData:
+	var resolver: Node = _get_resolver()
+	if resolver:
+		return resolver.call("get_financial_state_ref") as GameStateData
+	if game_state == null:
+		game_state = GameStateData.new()
+	return game_state
+
 # ===========================
 # PANELS (lazy spawn helpers)
 # ===========================
@@ -84,43 +95,45 @@ func _ensure_compendium_panel() -> void:
 # DEMO AIRLINE STATE
 # ===========================
 func _init_demo_airline_state() -> void:
-	# Initialize with demo airline data
-	game_state.cash = 5000000.0
-	game_state.revenue_ytd = 0.0
-	game_state.expense_ytd = 0.0
+	# UI scripts must not mutate business state directly.
+	var resolver: Node = _get_resolver()
+	if resolver == null:
+		push_warning("DecisionResolver missing; demo seed skipped.")
+		return
 
-	# Demo fleet: A320ceo aircraft
-	game_state.fleet = {
-		"A320ceo": {
-			"count": 4,
-			"lease_usd_mpm": 220000.0,
-			"hours_avail": 10.5,
-			"age_avg": 8.2
-		}
-	}
-
-	# Demo routes
-	game_state.routes = {
-		"LYS-BCN": {
-			"weekly_freq": 10,
-			"price_usd": 99,
-			"capacity_seats": 180,
-			"demand_idx": 0.76
+	var demo_seed := {
+		"cash": 5000000.0,
+		"revenue_ytd": 0.0,
+		"expense_ytd": 0.0,
+		"fleet": {
+			"A320ceo": {
+				"count": 4,
+				"lease_usd_mpm": 220000.0,
+				"hours_avail": 10.5,
+				"age_avg": 8.2
+			}
 		},
-		"LYS-MAD": {
-			"weekly_freq": 7,
-			"price_usd": 120,
-			"capacity_seats": 180,
-			"demand_idx": 0.68
+		"routes": {
+			"LYS-BCN": {
+				"weekly_freq": 10,
+				"price_usd": 99,
+				"capacity_seats": 180,
+				"demand_idx": 0.76
+			},
+			"LYS-MAD": {
+				"weekly_freq": 7,
+				"price_usd": 120,
+				"capacity_seats": 180,
+				"demand_idx": 0.68
+			}
+		},
+		"fuel": {
+			"price_usd_per_ton": 830.0,
+			"hedge_pct": 0.2,
+			"hedge_price": 700.0
 		}
 	}
-
-	# Fuel pricing
-	game_state.fuel = {
-		"price_usd_per_ton": 830.0,
-		"hedge_pct": 0.2,
-		"hedge_price": 700.0
-	}
+	resolver.call("seed_financial_state", demo_seed)
 
 func _load_financials_from(path: String) -> void:
 	if path == "" or not FileAccess.file_exists(path):
@@ -130,8 +143,12 @@ func _load_financials_from(path: String) -> void:
 	if f:
 		var parsed: Variant = JSON.parse_string(f.get_as_text())
 		if typeof(parsed) == TYPE_DICTIONARY:
-			# Load into game state instead of cached_financials
-			game_state.load_config(parsed)
+			# Route all state changes through the resolver.
+			var resolver: Node = _get_resolver()
+			if resolver == null:
+				push_warning("DecisionResolver missing; financials not loaded.")
+				return
+			resolver.call("seed_financial_state", parsed)
 
 # ===========================
 # HOTSPOTS
@@ -148,7 +165,7 @@ func _on_hotspot_laptop_input_event(_vp: Node, event: InputEvent, _shape_idx: in
 			return
 
 		# Get live financials from game state and show
-		var live_financials = game_state.get_financial_summary()
+		var live_financials = _get_financial_state().get_financial_summary()
 		financial_panel.show_financials(live_financials)
 		financial_panel.visible = true
 

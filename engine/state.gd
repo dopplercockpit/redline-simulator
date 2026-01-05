@@ -4,6 +4,8 @@ class_name GameStateData
 # GameStateData class is registered globally in Project Settings
 const VERSION := "1.0.0"
 
+# NOTE: Business state must be mutated only via DecisionResolver.
+
 # Cash & accruals
 var cash: float = 0.0
 var revenue_ytd: float = 0.0
@@ -12,14 +14,14 @@ var is_month_end: bool = false
 
 # Domain
 var fleet := {}          # {"A320ceo": {"count":4, "lease_usd_mpm":220000, "hours_avail":10.5, "age_avg":8.2}}
-var routes := {}         # {"LYS–BCN": {"weekly_freq":10, "price_usd":99, "capacity_seats":180, "demand_idx":0.76}}
+var routes := {}         # {"LYS-BCN": {"weekly_freq":10, "price_usd":99, "capacity_seats":180, "demand_idx":0.76}}
 var fuel := {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
 
 # KPIs / rolling counters (reset on month close where noted)
 var kpis := {}           # "ask", "rpk" rolling; plus derived CASK/RASK/LF
 var meta := {}           # scenario metadata
 
-func reset():
+func reset() -> void:
 	cash = 0.0
 	revenue_ytd = 0.0
 	expense_ytd = 0.0
@@ -29,7 +31,7 @@ func reset():
 	kpis = {}
 	meta = {}
 
-func load_config(cfg: Dictionary):
+func load_config(cfg: Dictionary) -> void:
 	for k in cfg.keys():
 		self.set(k, cfg[k])
 
