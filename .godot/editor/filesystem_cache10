@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1767711357
+::res://::1767716598
 Concept Updates.md::TextFile::-1::1763479760::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
 index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1767615480::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
@@ -83,11 +83,15 @@ package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
 ::res://frontend/src/pages/::1755530901
 ::res://frontend/src/services/::1755530907
 ::res://frontend/src/styles/::1755530912
-::res://scenes/::1766943198
+::res://scenes/::1767715910
 camera_2d.gd::GDScript::3031445742709559099::1760091666::0::1::::<>Camera2D<><>0<>0<><>::
-CFOOffice.tscn::PackedScene::1205614886687269308::1767710510::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
-cfo_office.gd::GDScript::5173362101766996939::1767710436::0::1::::<>Node2D<><>0<>0<><>::
+CFOOffice.tscn::PackedScene::1205614886687269308::1767715638::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
+cfo_office.gd::GDScript::5173362101766996939::1767715601::0::1::::<>Node2D<><>0<>0<><>::
 GameController.gd::GDScript::4784532675733434107::1767607761::0::1::::<>Node<><>0<>0<><>::
+hallway.gd::GDScript::4314965965511550972::1767716380::0::1::::<>Node2D<><>0<>0<><>::
+Hallway.tscn::PackedScene::-1::1767715533::0::1::::<><><>0<>0<><>::res://scenes/hallway.gd
+WorldMap.tscn::PackedScene::-1::1767715515::0::1::::<><><>0<>0<><>::res://scenes/world_map.gd
+world_map.gd::GDScript::2384962088171697957::1767716341::0::1::::<>Node2D<><>0<>0<><>::
 ::res://scripts/::1760002414
 ::res://scripts/ui/::1763635391
 DialogueBox.gd::GDScript::4613900190666211338::1760344472::0::1::::<>CanvasLayer<><>0<>0<><>::

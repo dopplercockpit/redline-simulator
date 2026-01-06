@@ -265,6 +265,13 @@ func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx:
 		$ContractPanel.load_contract_template("res://data/contracts/supplier_framework_v1.txt", vars)
 		$ContractPanel.visible = true
 
+func _on_hotspot_door_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var dialogue_box := get_node_or_null("DialogueBox")
+		if dialogue_box:
+			dialogue_box.call("show_text", "Leaving the office...")
+		get_tree().call_deferred("change_scene_to_file", "res://scenes/Hallway.tscn")
+
 func _on_hotspot_mouse_entered() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
 
