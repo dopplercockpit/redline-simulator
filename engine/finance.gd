@@ -69,12 +69,14 @@ func close_month(state: Resource, month_id: int) -> Dictionary:
 	var ask: float = max(float(state.kpis.get("ask", 0.0)), 1.0)
 	var rpk: float = float(state.kpis.get("rpk", 0.0))
 
-	var cask: float = float(state.expense_ytd) / ask
-	var rask: float = float(state.revenue_ytd) / ask
+	var cask: float = float(state.expense_mtd) / ask
+	var rask: float = float(state.revenue_mtd) / ask
 	var lf: float = rpk / ask
 
 	var report: Dictionary = {
 		"month": month_id,
+		"rev_mtd": state.revenue_mtd,
+		"exp_mtd": state.expense_mtd,
 		"rev_ytd": state.revenue_ytd,
 		"exp_ytd": state.expense_ytd,
 		"cash": state.cash,
@@ -86,6 +88,8 @@ func close_month(state: Resource, month_id: int) -> Dictionary:
 	# Reset rolling counters for next month aggregation
 	state.kpis.erase("ask")
 	state.kpis.erase("rpk")
+	state.revenue_mtd = 0.0
+	state.expense_mtd = 0.0
 
 	return report
 

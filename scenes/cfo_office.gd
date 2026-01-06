@@ -15,6 +15,7 @@ var cached_financials: Dictionary = {}
 var scenarios: Array = []
 var current_scenario_index: int = 0
 var current_scenario: Dictionary = {}
+var month_end_ready: bool = false
 
 # ===========================
 # NODES
@@ -41,6 +42,9 @@ func _ready() -> void:
 
 	# Connect commentary submit
 	_connect_financial_panel()
+	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
+		financial_panel.set_submission_enabled(false)
+		month_end_ready = false
 
 	# Initialize airline state with demo data
 	# _init_demo_airline_state()
@@ -52,17 +56,23 @@ func _ready() -> void:
 	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
 	$Camera2D.make_current()
 
-	# Connect to GameController if it exists as an autoload
-	# If GameController doesn't exist yet, comment out these lines
-	if Engine.has_singleton("GameController"):
-		game_controller = Engine.get_singleton("GameController")
-		game_controller.game_started.connect(_on_game_started)
-		game_controller.state_updated.connect(_on_state_updated)
-		game_controller.decision_processed.connect(_on_decision_processed)
-		# API Call -> Backend -> Signal -> UI Update
-		game_controller.start_new_game("Player1", "scenario_001")
-	else:
-		print("GameController not found - running in standalone mode")
+	# Deprecated backend GameController path; use /root/GameManager + /root/DecisionResolver loop.
+	# if Engine.has_singleton("GameController"):
+	# 	game_controller = Engine.get_singleton("GameController")
+	# 	game_controller.game_started.connect(_on_game_started)
+	# 	game_controller.state_updated.connect(_on_state_updated)
+	# 	game_controller.decision_processed.connect(_on_decision_processed)
+	# 	# API Call -> Backend -> Signal -> UI Update
+	# 	game_controller.start_new_game("Player1", "scenario_001")
+	# else:
+	# 	print("GameController not found - running in standalone mode")
+
+	var manager: Node = get_node_or_null("/root/GameManager")
+	if manager:
+		if not manager.turn_advanced.is_connected(_on_turn_advanced):
+			manager.turn_advanced.connect(_on_turn_advanced)
+		if not manager.month_end_ready.is_connected(_on_month_end_ready):
+			manager.month_end_ready.connect(_on_month_end_ready)
 
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
@@ -90,6 +100,11 @@ func _ensure_news_panel() -> void:
 func _ensure_compendium_panel() -> void:
 	if not has_node("CompendiumPanel"):
 		var p := preload("res://ui/CompendiumPanel.tscn").instantiate()
+		add_child(p)
+
+func _ensure_contract_panel() -> void:
+	if not has_node("ContractPanel"):
+		var p := preload("res://ui/ContractPanel.tscn").instantiate()
 		add_child(p)
 
 # ===========================
@@ -197,10 +212,58 @@ func _on_hotspot_news_input_event(_vp: Node, event: InputEvent, _shape_idx: int)
 
 func _on_hotspot_bookcase_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		print("DEBUG: Compendium hotspot clicked.")
 		_ensure_compendium_panel()
 		$DialogueBox.show_text("Opening compendium…")
 		$CompendiumPanel.load_compendium("res://data/compendium.json")
 		$CompendiumPanel.visible = true
+
+func _on_hotspot_phone_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var turn_info: Dictionary = {}
+		var manager: Node = get_node_or_null("/root/GameManager")
+		if manager:
+			manager.call("advance_week", false)
+			return
+		else:
+			var rse: Node = get_node_or_null("/root/RSE")
+			if rse:
+				rse.call("tick", 1)
+			var loop: Node = get_node_or_null("/root/LoopSystem")
+			if loop:
+				turn_info = loop.call("get_snapshot") as Dictionary
+
+		var week_num: int = int(turn_info.get("week_number", 0))
+		var month_num: int = int(turn_info.get("month_number", 0))
+		var is_month_end := bool(turn_info.get("is_month_end", false))
+		if not turn_info.has("is_month_end") and week_num > 0:
+			is_month_end = (week_num % 4) == 0
+		if is_month_end:
+			var closed_month: int = int(turn_info.get("closed_month", month_num - 1))
+			$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % closed_month)
+			return
+
+		var week_in_month: int = int(turn_info.get("week_in_month", ((week_num - 1) % 4) + 1 if week_num > 0 else 0))
+		$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_num, month_num, week_in_month])
+
+func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		print("DEBUG: Contracts hotspot clicked.")
+		_ensure_contract_panel()
+		var vars: Dictionary = {}
+		if current_scenario.has("contract_vars") and typeof(current_scenario.get("contract_vars")) == TYPE_DICTIONARY:
+			vars = current_scenario.get("contract_vars", {}) as Dictionary
+		else:
+			# TODO: pull scenario-specific contract vars once the schema is finalized.
+			vars = {
+				"SUPPLIER_NAME": "AeroParts Intl",
+				"MAX_LEAD_DAYS": 21,
+				"BASE_PRICE_USD": 125000,
+				"MOQ_UNITS": 3,
+				"PAYMENT_TERMS": "Net 45"
+			}
+		$ContractPanel.load_contract_template("res://data/contracts/supplier_framework_v1.txt", vars)
+		$ContractPanel.visible = true
 
 func _on_hotspot_mouse_entered() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
@@ -231,6 +294,9 @@ func _show_current_scenario() -> void:
 	if scenarios.is_empty():
 		return
 	current_scenario = scenarios[current_scenario_index]
+	month_end_ready = false
+	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
+		financial_panel.set_submission_enabled(false)
 	if not has_node("ScenarioPanel"):
 		var p := preload("res://ui/ScenarioPanel.tscn").instantiate()
 		add_child(p)
@@ -268,7 +334,9 @@ func _advance_scenario() -> void:
 		var live_financials: Dictionary = _get_financial_state().get_financial_summary()
 		$FinancialPanel.show_financials(live_financials)
 		$FinancialPanel.reset_for_next_scenario()
-		$FinancialPanel.submit_button.disabled = false
+		if $FinancialPanel.has_method("set_submission_enabled"):
+			$FinancialPanel.set_submission_enabled(false)
+		month_end_ready = false
 
 
 	if has_node("NewsPanel") and is_instance_valid($NewsPanel):
@@ -293,6 +361,9 @@ func _on_commentary_submitted(text: String) -> void:
 		student = financial_panel.get_student_name()
 	if student.strip_edges() == "":
 		$DialogueBox.show_text("Please enter your name before submitting.")
+		return
+	if not month_end_ready:
+		$DialogueBox.show_text("Submission is only available at month end.")
 		return
 
 	# B) Local log to user:// (desktop + HTML5 sandbox)
@@ -330,11 +401,13 @@ func _on_commentary_submitted(text: String) -> void:
 	# Close & reset the panel for the next scenario
 	if is_instance_valid(financial_panel):
 		financial_panel.reset_for_next_scenario()
+		if financial_panel.has_method("set_submission_enabled"):
+			financial_panel.set_submission_enabled(false)
 		financial_panel.visible = false
 
 	# Advance to the next scenario (keep your existing method if you already have it)
-	if has_method("_advance_scenario"):
-		_advance_scenario()
+	# if has_method("_advance_scenario"):
+	# 	_advance_scenario() # Duplicate advance removed (was double-advancing).
 
 
 func _on_submit_http_completed(_result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
@@ -391,3 +464,13 @@ func _on_state_updated(state: Dictionary):
 
 func _on_decision_processed(impacts: Dictionary):
 	$DialogueBox.show_text("Decision applied! Impact: " + str(impacts))
+
+func _on_turn_advanced(week_number: int, month_number: int) -> void:
+	var week_in_month := ((week_number - 1) % 4) + 1 if week_number > 0 else 0
+	$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_number, month_number, week_in_month])
+
+func _on_month_end_ready(month_number: int, _report: Dictionary) -> void:
+	month_end_ready = true
+	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
+		financial_panel.set_submission_enabled(true)
+	$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % month_number)

@@ -1,0 +1,11 @@
+SUPPLIER FRAMEWORK AGREEMENT (V1)
+
+Supplier: [SUPPLIER_NAME]
+Max Lead Time: [MAX_LEAD_DAYS] days
+Base Unit Price: $[BASE_PRICE_USD] USD
+Minimum Order Quantity: [MOQ_UNITS] units
+Payment Terms: [PAYMENT_TERMS]
+
+Notes:
+- This is a non-exclusive supplier framework.
+- Pricing subject to quarterly review.

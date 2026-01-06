@@ -84,8 +84,13 @@ func reset_for_next_scenario() -> void:
 	if commentary_input:
 		commentary_input.text = ""
 	if submit_button:
-		submit_button.disabled = false
 		submit_button.text = "Submit Analysis"
+
+func set_submission_enabled(enabled: bool) -> void:
+	if submit_button == null:
+		return
+	submit_button.disabled = not enabled
+	submit_button.text = "Submit Analysis" if enabled else "Submit (Month End Only)"
 
 func show_financials(data: Dictionary) -> void:
 	var isec: Variant = _find_section(data, ["income_statement","incomeStatement","income","is"])

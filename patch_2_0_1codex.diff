@@ -1,0 +1,445 @@
+diff --git a/.gitignore b/.gitignore
+index 6ed5624..40dfcb5 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,4 +1,5 @@
+ __pycache__/
++*.pyc
+ node_modules/
+ .env
+ .godot/
+diff --git a/backend/app/__init__.cpython-313.pyc b/backend/app/__init__.cpython-313.pyc
+deleted file mode 100644
+index 58ecfc1..0000000
+Binary files a/backend/app/__init__.cpython-313.pyc and /dev/null differ
+diff --git a/backend/app/ap.cpython-313.pyc b/backend/app/ap.cpython-313.pyc
+deleted file mode 100644
+index 682c2ca..0000000
+Binary files a/backend/app/ap.cpython-313.pyc and /dev/null differ
+diff --git a/backend/app/ar.cpython-313.pyc b/backend/app/ar.cpython-313.pyc
+deleted file mode 100644
+index 8fcc367..0000000
+Binary files a/backend/app/ar.cpython-313.pyc and /dev/null differ
+diff --git a/backend/app/main.cpython-313.pyc b/backend/app/main.cpython-313.pyc
+deleted file mode 100644
+index a565e85..0000000
+Binary files a/backend/app/main.cpython-313.pyc and /dev/null differ
+diff --git a/engine/DecisionResolver.gd b/engine/DecisionResolver.gd
+index b322979..b0a149a 100644
+--- a/engine/DecisionResolver.gd
++++ b/engine/DecisionResolver.gd
+@@ -142,6 +142,7 @@ func _advance_loop_time() -> Dictionary:
+ func _apply_weekly_burn(weekly_opex: float) -> Dictionary:
+ 	_financial_state.cash -= weekly_opex
+ 	_financial_state.expense_ytd += weekly_opex
++	_financial_state.expense_mtd += weekly_opex
+ 	return {
+ 		"cash_delta": -weekly_opex,
+ 		"expense_delta": weekly_opex
+@@ -161,6 +162,8 @@ func _apply_financial_delta(delta: Dictionary) -> Dictionary:
+ 	_financial_state.cash = float(_financial_state.cash) + cash_delta
+ 	_financial_state.revenue_ytd = float(_financial_state.revenue_ytd) + revenue_delta
+ 	_financial_state.expense_ytd = float(_financial_state.expense_ytd) + expense_delta
++	_financial_state.revenue_mtd = float(_financial_state.revenue_mtd) + revenue_delta
++	_financial_state.expense_mtd = float(_financial_state.expense_mtd) + expense_delta
+ 	_financial_state.kpis["ask"] = float(_financial_state.kpis.get("ask", 0.0)) + ask_delta
+ 	_financial_state.kpis["rpk"] = float(_financial_state.kpis.get("rpk", 0.0)) + rpk_delta
+ 
+diff --git a/engine/engine.gd b/engine/engine.gd
+index c8795a8..8dfc674 100644
+--- a/engine/engine.gd
++++ b/engine/engine.gd
+@@ -11,8 +11,9 @@ const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.jso
+ 
+ func _ready() -> void:
+ 	rng = load("res://engine/rng.gd").new()
+-	telemetry = load("res://engine/telemetry.gd").new()
+-	add_child(telemetry)
++	telemetry = get_node_or_null("/root/Telemetry")
++	if telemetry == null:
++		push_warning("Telemetry autoload missing; telemetry logging disabled.")
+ 
+ 	_manager = get_node_or_null("/root/GameManager")
+ 	if _manager == null:
+@@ -23,7 +24,8 @@ func _ready() -> void:
+ 	var cfg := _read_json(DEFAULT_SCENARIO_PATH)
+ 	if not cfg.is_empty():
+ 		rng.set_seed(int(cfg.get("meta", {}).get("seed", 123456)))
+-		telemetry.init_run(cfg.get("meta", {}))
++		if telemetry:
++			telemetry.init_run(cfg.get("meta", {}))
+ 		_manager.call("load_scenario_config", cfg)
+ 	emit_signal("state_updated")
+ 
+@@ -33,10 +35,11 @@ func tick(weeks: int = 1) -> void:
+ 		return
+ 
+ 	for _i in range(weeks):
+-		var result: Dictionary = _manager.call("advance_week") as Dictionary
++		var result: Dictionary = _manager.call("advance_week", false) as Dictionary
+ 		var report: Dictionary = result.get("month_report", {}) as Dictionary
+ 		if not report.is_empty():
+-			telemetry.log_month(report)
++			if telemetry:
++				telemetry.log_month(report)
+ 			emit_signal("month_closed", report)
+ 
+ 	emit_signal("state_updated")
+diff --git a/engine/finance.gd b/engine/finance.gd
+index c4df190..dc3fb7d 100644
+--- a/engine/finance.gd
++++ b/engine/finance.gd
+@@ -69,12 +69,14 @@ func close_month(state: Resource, month_id: int) -> Dictionary:
+ 	var ask: float = max(float(state.kpis.get("ask", 0.0)), 1.0)
+ 	var rpk: float = float(state.kpis.get("rpk", 0.0))
+ 
+-	var cask: float = float(state.expense_ytd) / ask
+-	var rask: float = float(state.revenue_ytd) / ask
++	var cask: float = float(state.expense_mtd) / ask
++	var rask: float = float(state.revenue_mtd) / ask
+ 	var lf: float = rpk / ask
+ 
+ 	var report: Dictionary = {
+ 		"month": month_id,
++		"rev_mtd": state.revenue_mtd,
++		"exp_mtd": state.expense_mtd,
+ 		"rev_ytd": state.revenue_ytd,
+ 		"exp_ytd": state.expense_ytd,
+ 		"cash": state.cash,
+@@ -86,6 +88,8 @@ func close_month(state: Resource, month_id: int) -> Dictionary:
+ 	# Reset rolling counters for next month aggregation
+ 	state.kpis.erase("ask")
+ 	state.kpis.erase("rpk")
++	state.revenue_mtd = 0.0
++	state.expense_mtd = 0.0
+ 
+ 	return report
+ 
+diff --git a/engine/state.gd b/engine/state.gd
+index 0ad4693..7c90085 100644
+--- a/engine/state.gd
++++ b/engine/state.gd
+@@ -10,6 +10,8 @@ const VERSION := "1.0.0"
+ var cash: float = 0.0
+ var revenue_ytd: float = 0.0
+ var expense_ytd: float = 0.0
++var revenue_mtd: float = 0.0
++var expense_mtd: float = 0.0
+ var is_month_end: bool = false
+ 
+ # Domain
+@@ -25,6 +27,8 @@ func reset() -> void:
+ 	cash = 0.0
+ 	revenue_ytd = 0.0
+ 	expense_ytd = 0.0
++	revenue_mtd = 0.0
++	expense_mtd = 0.0
+ 	fleet = {}
+ 	routes = {}
+ 	fuel = {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
+diff --git a/scenes/CFOOffice.tscn b/scenes/CFOOffice.tscn
+index d34be3b..d7d0199 100644
+--- a/scenes/CFOOffice.tscn
++++ b/scenes/CFOOffice.tscn
+@@ -164,10 +164,16 @@ script = ExtResource("3_qpouq")
+ [connection signal="input_event" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_input_event"]
+ [connection signal="mouse_entered" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_mouse_entered"]
+ [connection signal="mouse_exited" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_mouse_exited"]
++[connection signal="input_event" from="Hotspots/Hotspot_Phone" to="." method="_on_hotspot_phone_input_event"]
++[connection signal="mouse_entered" from="Hotspots/Hotspot_Phone" to="." method="_on_hotspot_mouse_entered"]
++[connection signal="mouse_exited" from="Hotspots/Hotspot_Phone" to="." method="_on_hotspot_mouse_exited"]
+ [connection signal="input_event" from="Hotspots/Hotspot_Newspaper" to="." method="_on_hotspot_news_input_event"]
+ [connection signal="mouse_entered" from="Hotspots/Hotspot_Newspaper" to="." method="_on_hotspot_mouse_entered"]
+ [connection signal="mouse_exited" from="Hotspots/Hotspot_Newspaper" to="." method="_on_hotspot_mouse_exited"]
+ [connection signal="input_event" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_bookcase_input_event"]
+ [connection signal="mouse_entered" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_mouse_entered"]
+ [connection signal="mouse_exited" from="Hotspots/Hotspot_Bookcase" to="." method="_on_hotspot_mouse_exited"]
++[connection signal="input_event" from="Hotspots/Hotspot_Cabinet" to="." method="_on_hotspot_contracts_input_event"]
++[connection signal="mouse_entered" from="Hotspots/Hotspot_Cabinet" to="." method="_on_hotspot_mouse_entered"]
++[connection signal="mouse_exited" from="Hotspots/Hotspot_Cabinet" to="." method="_on_hotspot_mouse_exited"]
+ [connection signal="request_completed" from="SubmitHTTP" to="." method="_on_submit_http_completed"]
+diff --git a/scenes/cfo_office.gd b/scenes/cfo_office.gd
+index 59138b2..a8df63c 100644
+--- a/scenes/cfo_office.gd
++++ b/scenes/cfo_office.gd
+@@ -15,6 +15,7 @@ var cached_financials: Dictionary = {}
+ var scenarios: Array = []
+ var current_scenario_index: int = 0
+ var current_scenario: Dictionary = {}
++var month_end_ready: bool = false
+ 
+ # ===========================
+ # NODES
+@@ -41,6 +42,9 @@ func _ready() -> void:
+ 
+ 	# Connect commentary submit
+ 	_connect_financial_panel()
++	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
++		financial_panel.set_submission_enabled(false)
++		month_end_ready = false
+ 
+ 	# Initialize airline state with demo data
+ 	# _init_demo_airline_state()
+@@ -52,17 +56,23 @@ func _ready() -> void:
+ 	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
+ 	$Camera2D.make_current()
+ 
+-	# Connect to GameController if it exists as an autoload
+-	# If GameController doesn't exist yet, comment out these lines
+-	if Engine.has_singleton("GameController"):
+-		game_controller = Engine.get_singleton("GameController")
+-		game_controller.game_started.connect(_on_game_started)
+-		game_controller.state_updated.connect(_on_state_updated)
+-		game_controller.decision_processed.connect(_on_decision_processed)
+-		# API Call -> Backend -> Signal -> UI Update
+-		game_controller.start_new_game("Player1", "scenario_001")
+-	else:
+-		print("GameController not found - running in standalone mode")
++	# Deprecated backend GameController path; use /root/GameManager + /root/DecisionResolver loop.
++	# if Engine.has_singleton("GameController"):
++	# 	game_controller = Engine.get_singleton("GameController")
++	# 	game_controller.game_started.connect(_on_game_started)
++	# 	game_controller.state_updated.connect(_on_state_updated)
++	# 	game_controller.decision_processed.connect(_on_decision_processed)
++	# 	# API Call -> Backend -> Signal -> UI Update
++	# 	game_controller.start_new_game("Player1", "scenario_001")
++	# else:
++	# 	print("GameController not found - running in standalone mode")
++
++	var manager: Node = get_node_or_null("/root/GameManager")
++	if manager:
++		if not manager.turn_advanced.is_connected(_on_turn_advanced):
++			manager.turn_advanced.connect(_on_turn_advanced)
++		if not manager.month_end_ready.is_connected(_on_month_end_ready):
++			manager.month_end_ready.connect(_on_month_end_ready)
+ 
+ func _connect_financial_panel() -> void:
+ 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
+@@ -92,6 +102,11 @@ func _ensure_compendium_panel() -> void:
+ 		var p := preload("res://ui/CompendiumPanel.tscn").instantiate()
+ 		add_child(p)
+ 
++func _ensure_contract_panel() -> void:
++	if not has_node("ContractPanel"):
++		var p := preload("res://ui/ContractPanel.tscn").instantiate()
++		add_child(p)
++
+ # ===========================
+ # DEMO AIRLINE STATE
+ # ===========================
+@@ -202,6 +217,52 @@ func _on_hotspot_bookcase_input_event(_vp: Node, event: InputEvent, _shape_idx:
+ 		$CompendiumPanel.load_compendium("res://data/compendium.json")
+ 		$CompendiumPanel.visible = true
+ 
++func _on_hotspot_phone_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
++	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
++		var turn_info: Dictionary = {}
++		var manager: Node = get_node_or_null("/root/GameManager")
++		if manager:
++			manager.call("advance_week", false)
++			return
++		else:
++			var rse: Node = get_node_or_null("/root/RSE")
++			if rse:
++				rse.call("tick", 1)
++			var loop: Node = get_node_or_null("/root/LoopSystem")
++			if loop:
++				turn_info = loop.call("get_snapshot") as Dictionary
++
++		var week_num: int = int(turn_info.get("week_number", 0))
++		var month_num: int = int(turn_info.get("month_number", 0))
++		var is_month_end := bool(turn_info.get("is_month_end", false))
++		if not turn_info.has("is_month_end") and week_num > 0:
++			is_month_end = (week_num % 4) == 0
++		if is_month_end:
++			var closed_month: int = int(turn_info.get("closed_month", month_num - 1))
++			$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % closed_month)
++			return
++
++		var week_in_month: int = int(turn_info.get("week_in_month", ((week_num - 1) % 4) + 1 if week_num > 0 else 0))
++		$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_num, month_num, week_in_month])
++
++func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
++	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
++		_ensure_contract_panel()
++		var vars: Dictionary = {}
++		if current_scenario.has("contract_vars") and typeof(current_scenario.get("contract_vars")) == TYPE_DICTIONARY:
++			vars = current_scenario.get("contract_vars", {}) as Dictionary
++		else:
++			# TODO: pull scenario-specific contract vars once the schema is finalized.
++			vars = {
++				"SUPPLIER_NAME": "AeroParts Intl",
++				"MAX_LEAD_DAYS": 21,
++				"BASE_PRICE_USD": 125000,
++				"MOQ_UNITS": 3,
++				"PAYMENT_TERMS": "Net 45"
++			}
++		$ContractPanel.load_contract_template("res://data/contracts/supplier_framework_v1.txt", vars)
++		$ContractPanel.visible = true
++
+ func _on_hotspot_mouse_entered() -> void:
+ 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
+ 
+@@ -231,6 +292,9 @@ func _show_current_scenario() -> void:
+ 	if scenarios.is_empty():
+ 		return
+ 	current_scenario = scenarios[current_scenario_index]
++	month_end_ready = false
++	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
++		financial_panel.set_submission_enabled(false)
+ 	if not has_node("ScenarioPanel"):
+ 		var p := preload("res://ui/ScenarioPanel.tscn").instantiate()
+ 		add_child(p)
+@@ -268,7 +332,9 @@ func _advance_scenario() -> void:
+ 		var live_financials: Dictionary = _get_financial_state().get_financial_summary()
+ 		$FinancialPanel.show_financials(live_financials)
+ 		$FinancialPanel.reset_for_next_scenario()
+-		$FinancialPanel.submit_button.disabled = false
++		if $FinancialPanel.has_method("set_submission_enabled"):
++			$FinancialPanel.set_submission_enabled(false)
++		month_end_ready = false
+ 
+ 
+ 	if has_node("NewsPanel") and is_instance_valid($NewsPanel):
+@@ -294,6 +360,9 @@ func _on_commentary_submitted(text: String) -> void:
+ 	if student.strip_edges() == "":
+ 		$DialogueBox.show_text("Please enter your name before submitting.")
+ 		return
++	if not month_end_ready:
++		$DialogueBox.show_text("Submission is only available at month end.")
++		return
+ 
+ 	# B) Local log to user:// (desktop + HTML5 sandbox)
+ 	var path := "user://submissions.json"
+@@ -330,11 +399,13 @@ func _on_commentary_submitted(text: String) -> void:
+ 	# Close & reset the panel for the next scenario
+ 	if is_instance_valid(financial_panel):
+ 		financial_panel.reset_for_next_scenario()
++		if financial_panel.has_method("set_submission_enabled"):
++			financial_panel.set_submission_enabled(false)
+ 		financial_panel.visible = false
+ 
+ 	# Advance to the next scenario (keep your existing method if you already have it)
+-	if has_method("_advance_scenario"):
+-		_advance_scenario()
++	# if has_method("_advance_scenario"):
++	# 	_advance_scenario() # Duplicate advance removed (was double-advancing).
+ 
+ 
+ func _on_submit_http_completed(_result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+@@ -391,3 +462,13 @@ func _on_state_updated(state: Dictionary):
+ 
+ func _on_decision_processed(impacts: Dictionary):
+ 	$DialogueBox.show_text("Decision applied! Impact: " + str(impacts))
++
++func _on_turn_advanced(week_number: int, month_number: int) -> void:
++	var week_in_month := ((week_number - 1) % 4) + 1 if week_number > 0 else 0
++	$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_number, month_number, week_in_month])
++
++func _on_month_end_ready(month_number: int, _report: Dictionary) -> void:
++	month_end_ready = true
++	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
++		financial_panel.set_submission_enabled(true)
++	$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % month_number)
+diff --git a/ui/ContractPanel.gd b/ui/ContractPanel.gd
+index 4435723..3a7a991 100644
+--- a/ui/ContractPanel.gd
++++ b/ui/ContractPanel.gd
+@@ -1,24 +1,21 @@
+ extends CanvasLayer
+ @onready var body: RichTextLabel = $PanelContainer/ScrollContainer/VBoxContainer/Body
+ 
+-func load_compendium(path: String) -> void:
++func load_contract_template(path: String, vars: Dictionary) -> void:
+ 	var f: FileAccess = FileAccess.open(path, FileAccess.READ)
+ 	if f == null:
+-		body.text = "[b]Missing compendium[/b]"
+-		return
+-	var data: Variant = JSON.parse_string(f.get_as_text())   # Explicit type kills the warning
+-	if typeof(data) != TYPE_DICTIONARY:
+-		body.text = "[b]Malformed compendium[/b]"
++		body.bbcode_text = "[b]Missing contract template[/b]\n" + path
+ 		return
+ 
+-	var sections: Array = ["pricing","cogs","working_capital","risk","cash_flow","margin","inventory"]
+-	var t: String = ""
+-	for s in sections:
+-		if data.has(s):
+-			t += "[b]%s[/b]\n%s\n\n" % [s.capitalize(), str(data[s])]
+-	if t == "":
+-		t = "Compendium is empty. (Add FP&A bullets.)"
+-	body.text = t
++	var text: String = f.get_as_text()
++	for key in vars.keys():
++		var placeholder := "[" + str(key) + "]"
++		text = text.replace(placeholder, str(vars.get(key, "[MISSING]")))
++
++	var missing_re := RegEx.new()
++	missing_re.compile("\\[[A-Z0-9_]+\\]")
++	text = missing_re.sub(text, "[MISSING]", true)
++	body.bbcode_text = "[code]" + text + "[/code]"
+ 
+ func _ready() -> void:
+ 	var btn: Button = $PanelContainer/ScrollContainer/VBoxContainer/Close
+diff --git a/ui/ContractPanel.tscn b/ui/ContractPanel.tscn
+index 46950fb..eed84e7 100644
+--- a/ui/ContractPanel.tscn
++++ b/ui/ContractPanel.tscn
+@@ -3,4 +3,37 @@
+ [ext_resource type="Script" uid="uid://o0gfadj8bqe5" path="res://ui/ContractPanel.gd" id="1_7pw8j"]
+ 
+ [node name="ContractPanel" type="CanvasLayer"]
++visible = false
+ script = ExtResource("1_7pw8j")
++
++[node name="PanelContainer" type="PanelContainer" parent="."]
++anchors_preset = -1
++anchor_left = 0.1
++anchor_top = 0.1
++anchor_right = 0.9
++anchor_bottom = 0.9
++size_flags_horizontal = 3
++size_flags_vertical = 3
++
++[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer"]
++layout_mode = 2
++size_flags_horizontal = 3
++size_flags_vertical = 3
++follow_focus = true
++
++[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/ScrollContainer"]
++layout_mode = 2
++size_flags_horizontal = 3
++size_flags_vertical = 3
++theme_override_constants/separation = 16
++
++[node name="Body" type="RichTextLabel" parent="PanelContainer/ScrollContainer/VBoxContainer"]
++layout_mode = 2
++bbcode_enabled = true
++fit_content = true
++autowrap_mode = 1
++
++[node name="Close" type="Button" parent="PanelContainer/ScrollContainer/VBoxContainer"]
++layout_mode = 2
++size_flags_horizontal = 4
++text = "Close"
+diff --git a/ui/FinancialPanel.gd b/ui/FinancialPanel.gd
+index 4c223d4..5d0c19c 100644
+--- a/ui/FinancialPanel.gd
++++ b/ui/FinancialPanel.gd
+@@ -84,9 +84,14 @@ func reset_for_next_scenario() -> void:
+ 	if commentary_input:
+ 		commentary_input.text = ""
+ 	if submit_button:
+-		submit_button.disabled = false
+ 		submit_button.text = "Submit Analysis"
+ 
++func set_submission_enabled(enabled: bool) -> void:
++	if submit_button == null:
++		return
++	submit_button.disabled = not enabled
++	submit_button.text = "Submit Analysis" if enabled else "Submit (Month End Only)"
++
+ func show_financials(data: Dictionary) -> void:
+ 	var isec: Variant = _find_section(data, ["income_statement","incomeStatement","income","is"])
+ 	var bsec: Variant = _find_section(data, ["balance_sheet","balanceSheet","balance","bs"])

@@ -11,8 +11,9 @@ const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.jso
 
 func _ready() -> void:
 	rng = load("res://engine/rng.gd").new()
-	telemetry = load("res://engine/telemetry.gd").new()
-	add_child(telemetry)
+	telemetry = get_node_or_null("/root/Telemetry")
+	if telemetry == null:
+		push_warning("Telemetry autoload missing; telemetry logging disabled.")
 
 	_manager = get_node_or_null("/root/GameManager")
 	if _manager == null:
@@ -23,7 +24,8 @@ func _ready() -> void:
 	var cfg := _read_json(DEFAULT_SCENARIO_PATH)
 	if not cfg.is_empty():
 		rng.set_seed(int(cfg.get("meta", {}).get("seed", 123456)))
-		telemetry.init_run(cfg.get("meta", {}))
+		if telemetry:
+			telemetry.init_run(cfg.get("meta", {}))
 		_manager.call("load_scenario_config", cfg)
 	emit_signal("state_updated")
 
@@ -33,10 +35,11 @@ func tick(weeks: int = 1) -> void:
 		return
 
 	for _i in range(weeks):
-		var result: Dictionary = _manager.call("advance_week") as Dictionary
+		var result: Dictionary = _manager.call("advance_week", false) as Dictionary
 		var report: Dictionary = result.get("month_report", {}) as Dictionary
 		if not report.is_empty():
-			telemetry.log_month(report)
+			if telemetry:
+				telemetry.log_month(report)
 			emit_signal("month_closed", report)
 
 	emit_signal("state_updated")

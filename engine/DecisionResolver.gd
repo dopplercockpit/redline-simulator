@@ -142,6 +142,7 @@ func _advance_loop_time() -> Dictionary:
 func _apply_weekly_burn(weekly_opex: float) -> Dictionary:
 	_financial_state.cash -= weekly_opex
 	_financial_state.expense_ytd += weekly_opex
+	_financial_state.expense_mtd += weekly_opex
 	return {
 		"cash_delta": -weekly_opex,
 		"expense_delta": weekly_opex
@@ -161,6 +162,8 @@ func _apply_financial_delta(delta: Dictionary) -> Dictionary:
 	_financial_state.cash = float(_financial_state.cash) + cash_delta
 	_financial_state.revenue_ytd = float(_financial_state.revenue_ytd) + revenue_delta
 	_financial_state.expense_ytd = float(_financial_state.expense_ytd) + expense_delta
+	_financial_state.revenue_mtd = float(_financial_state.revenue_mtd) + revenue_delta
+	_financial_state.expense_mtd = float(_financial_state.expense_mtd) + expense_delta
 	_financial_state.kpis["ask"] = float(_financial_state.kpis.get("ask", 0.0)) + ask_delta
 	_financial_state.kpis["rpk"] = float(_financial_state.kpis.get("rpk", 0.0)) + rpk_delta
 

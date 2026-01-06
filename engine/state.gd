@@ -10,6 +10,8 @@ const VERSION := "1.0.0"
 var cash: float = 0.0
 var revenue_ytd: float = 0.0
 var expense_ytd: float = 0.0
+var revenue_mtd: float = 0.0
+var expense_mtd: float = 0.0
 var is_month_end: bool = false
 
 # Domain
@@ -25,6 +27,8 @@ func reset() -> void:
 	cash = 0.0
 	revenue_ytd = 0.0
 	expense_ytd = 0.0
+	revenue_mtd = 0.0
+	expense_mtd = 0.0
 	fleet = {}
 	routes = {}
 	fuel = {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
