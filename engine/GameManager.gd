@@ -63,9 +63,18 @@ func get_financial_snapshot() -> Dictionary:
 	return {}
 
 func get_loop_snapshot() -> Dictionary:
+	var snap: Dictionary = {}
 	if _resolver:
-		return _resolver.call("get_loop_snapshot") as Dictionary
-	return {}
+		snap = _resolver.call("get_loop_snapshot") as Dictionary
+	else:
+		var loop_system := get_node_or_null("/root/LoopSystem")
+		if loop_system and loop_system.has_method("get_snapshot"):
+			snap = loop_system.call("get_snapshot") as Dictionary
+	if snap.has("week_number") and not snap.has("week"):
+		snap["week"] = snap.get("week_number")
+	if snap.has("month_number") and not snap.has("month"):
+		snap["month"] = snap.get("month_number")
+	return snap
 
 func _read_json(p: String) -> Dictionary:
 	var txt: String = FileAccess.get_file_as_string(p)
