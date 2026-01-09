@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1767716598
+::res://::1767976244
 Concept Updates.md::TextFile::-1::1763479760::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
 index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1767615480::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
@@ -69,7 +69,7 @@ DecisionIntent.gd::GDScript::5603487164962663014::1767632369::0::1::::<>RefCount
 DecisionResolver.gd::GDScript::8458386234791149742::1767700083::0::1::::<>Node<><>0<>0<><>::
 engine.gd::GDScript::8842936917998472018::1767702328::0::1::::<>Node<><>0<>0<><>::
 finance.gd::GDScript::3177558775738690176::1767700092::0::1::::<>Resource<><>0<>0<><>::
-GameManager.gd::GDScript::6435820085430194186::1767632432::0::1::::<>Node<><>0<>0<><>::
+GameManager.gd::GDScript::6435820085430194186::1767972239::0::1::::<>Node<><>0<>0<><>::
 LoopState.gd::GDScript::857758716385477389::1767612444::0::1::::LoopState<>Resource<><>0<>0<><>::
 LoopSystem.gd::GDScript::7180269583507168396::1767614880::0::1::::<>Node<><>0<>0<><>::
 rng.gd::GDScript::359332569275712734::1761919080::0::1::::<>Resource<><>0<>0<><>::
@@ -88,10 +88,10 @@ camera_2d.gd::GDScript::3031445742709559099::1760091666::0::1::::<>Camera2D<><>0
 CFOOffice.tscn::PackedScene::1205614886687269308::1767715638::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
 cfo_office.gd::GDScript::5173362101766996939::1767715601::0::1::::<>Node2D<><>0<>0<><>::
 GameController.gd::GDScript::4784532675733434107::1767607761::0::1::::<>Node<><>0<>0<><>::
-hallway.gd::GDScript::4314965965511550972::1767716380::0::1::::<>Node2D<><>0<>0<><>::
+hallway.gd::GDScript::4314965965511550972::1767972226::0::1::::<>Node2D<><>0<>0<><>::
 Hallway.tscn::PackedScene::-1::1767715533::0::1::::<><><>0<>0<><>::res://scenes/hallway.gd
 WorldMap.tscn::PackedScene::-1::1767715515::0::1::::<><><>0<>0<><>::res://scenes/world_map.gd
-world_map.gd::GDScript::2384962088171697957::1767716341::0::1::::<>Node2D<><>0<>0<><>::
+world_map.gd::GDScript::2384962088171697957::1767972167::0::1::::<>Node2D<><>0<>0<><>::
 ::res://scripts/::1760002414
 ::res://scripts/ui/::1763635391
 DialogueBox.gd::GDScript::4613900190666211338::1760344472::0::1::::<>CanvasLayer<><>0<>0<><>::
