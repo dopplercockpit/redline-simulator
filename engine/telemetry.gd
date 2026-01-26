@@ -12,3 +12,6 @@ func log_month(report: Dictionary) -> void:
 		round(report.get("cash", 0.0)), " cask=", "%.4f" % report.get("cask", 0.0),
 		" rask=", "%.4f" % report.get("rask", 0.0),
 		" lf=", "%.2f" % (report.get("lf", 0.0) * 100.0), "%")
+
+func log_event(event_name: String, payload: Dictionary) -> void:
+	print("[Telemetry][Event] ", event_name, " ", payload)

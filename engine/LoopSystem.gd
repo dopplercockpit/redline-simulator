@@ -21,6 +21,11 @@ func get_snapshot() -> Dictionary:
 		"audit_pressure": _state.audit_pressure,
 		"flags": _state.flags.duplicate(true),
 		"memory": _state.memory.duplicate(true),
+		"points": _state.points,
+		"audit_score": _state.audit_score,
+		"completed_missions": _state.completed_missions.duplicate(true),
+		"mission_log": _state.mission_log.duplicate(true),
+		"inbox": _state.inbox.duplicate(true),
 		"week_number": _state.week_number,
 		"month_number": _state.month_number
 	}

@@ -1,0 +1,45 @@
+﻿{
+  "id": "MISSION_MONTH_CLOSE_V1",
+  "type": "month_close",
+  "title": "Month-End Close: Explain the Numbers",
+  "description": "Present to the board. Answer questions based on this month's performance.",
+  "questions": [
+    {
+      "id": "Q1_CASK",
+      "prompt": "CASK increased this month. Which is the best first explanation to investigate?",
+      "choices": [
+        "Operating costs rose faster than available seat-km (ASK).",
+        "Revenue rose faster than RPK.",
+        "Load factor automatically sets CASK.",
+        "CASK only changes when you change ticket prices."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q2_RASK",
+      "prompt": "RASK decreased while ASK was stable. Which is the most plausible driver?",
+      "choices": [
+        "Lower yield / pricing reduced revenue per ASK.",
+        "Higher maintenance costs reduced RASK.",
+        "Lease payments always reduce RASK.",
+        "RASK is unrelated to revenue."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q3_LF",
+      "prompt": "Load Factor fell month-over-month. What metric relationship defines Load Factor?",
+      "choices": [
+        "RPK / ASK",
+        "ASK / RPK",
+        "Revenue / Cost",
+        "Cost / Revenue"
+      ],
+      "correct_index": 0
+    }
+  ],
+  "scoring": {
+    "points_per_correct": 10,
+    "audit_per_wrong": 5
+  }
+}

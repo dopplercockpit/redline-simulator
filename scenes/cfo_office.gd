@@ -22,11 +22,17 @@ var month_end_ready: bool = false
 # ===========================
 @onready var financial_panel: CanvasLayer = $FinancialPanel
 @onready var submit_http: HTTPRequest = $SubmitHTTP
+@onready var inbox_panel: CanvasLayer = $InboxPanel
+@onready var inbox_list: VBoxContainer = $InboxPanel/PanelContainer/VBox/List
+@onready var inbox_empty_label: Label = $InboxPanel/PanelContainer/VBox/EmptyLabel
+@onready var inbox_close_button: Button = $InboxPanel/PanelContainer/VBox/Buttons/Close
+@onready var inbox_advance_button: Button = $InboxPanel/PanelContainer/VBox/Buttons/AdvanceWeek
 
 # Reference to GameController (if it exists as an autoload)
 # If GameController is registered as an autoload in Project Settings, it's accessible globally
 # If not, you can comment out the lines that reference it (lines 49-54 in _ready)
 var game_controller = null  # Will be set if GameController autoload exists
+var _mission_manager: Node = null
 
 # ===========================
 # LIFECYCLE
@@ -74,9 +80,68 @@ func _ready() -> void:
 		if not manager.month_end_ready.is_connected(_on_month_end_ready):
 			manager.month_end_ready.connect(_on_month_end_ready)
 
+	_connect_inbox()
+
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
 		financial_panel.commentary_submitted.connect(_on_commentary_submitted)
+
+func _connect_inbox() -> void:
+	if inbox_close_button and not inbox_close_button.pressed.is_connected(_on_inbox_close_pressed):
+		inbox_close_button.pressed.connect(_on_inbox_close_pressed)
+	if inbox_advance_button and not inbox_advance_button.pressed.is_connected(_on_inbox_advance_week):
+		inbox_advance_button.pressed.connect(_on_inbox_advance_week)
+
+	_mission_manager = get_node_or_null("/root/MissionManager")
+	if _mission_manager and _mission_manager.has_signal("inbox_updated"):
+		if not _mission_manager.inbox_updated.is_connected(_on_inbox_updated):
+			_mission_manager.inbox_updated.connect(_on_inbox_updated)
+		_on_inbox_updated(_mission_manager.call("get_inbox") as Array)
+
+func _on_inbox_close_pressed() -> void:
+	_set_inbox_visible(false)
+
+func _on_inbox_advance_week() -> void:
+	_advance_week()
+
+func _on_inbox_updated(inbox: Array) -> void:
+	_refresh_inbox(inbox)
+
+func _refresh_inbox(inbox: Array) -> void:
+	if inbox_list == null:
+		return
+	for child in inbox_list.get_children():
+		child.queue_free()
+
+	var has_items := inbox.size() > 0
+	if inbox_empty_label:
+		inbox_empty_label.visible = not has_items
+	if not has_items:
+		return
+
+	for item in inbox:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var mission_id := str(item.get("mission_id", ""))
+		var title := str(item.get("title", "Mission"))
+		var status := str(item.get("status", "queued"))
+		var btn := Button.new()
+		btn.text = "%s [%s]" % [title, status]
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.pressed.connect(func() -> void:
+			if _mission_manager:
+				_mission_manager.call("start_mission", mission_id)
+		)
+		inbox_list.add_child(btn)
+
+func _set_inbox_visible(show: bool) -> void:
+	if inbox_panel == null:
+		return
+	inbox_panel.visible = show
+	if show and _mission_manager:
+		var inbox: Variant = _mission_manager.call("get_inbox")
+		if typeof(inbox) == TYPE_ARRAY:
+			_refresh_inbox(inbox as Array)
 
 func _get_resolver() -> Node:
 	return get_node_or_null("/root/DecisionResolver")
@@ -166,6 +231,33 @@ func _load_financials_from(path: String) -> void:
 				return
 			resolver.call("seed_financial_state", parsed)
 
+func _advance_week() -> void:
+	var turn_info: Dictionary = {}
+	var manager: Node = get_node_or_null("/root/GameManager")
+	if manager:
+		manager.call("advance_week", false)
+		return
+
+	var rse: Node = get_node_or_null("/root/RSE")
+	if rse:
+		rse.call("tick", 1)
+	var loop: Node = get_node_or_null("/root/LoopSystem")
+	if loop:
+		turn_info = loop.call("get_snapshot") as Dictionary
+
+	var week_num: int = int(turn_info.get("week_number", 0))
+	var month_num: int = int(turn_info.get("month_number", 0))
+	var is_month_end := bool(turn_info.get("is_month_end", false))
+	if not turn_info.has("is_month_end") and week_num > 0:
+		is_month_end = (week_num % 4) == 0
+	if is_month_end:
+		var closed_month: int = int(turn_info.get("closed_month", month_num - 1))
+		$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % closed_month)
+		return
+
+	var week_in_month: int = int(turn_info.get("week_in_month", ((week_num - 1) % 4) + 1 if week_num > 0 else 0))
+	$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_num, month_num, week_in_month])
+
 # ===========================
 # HOTSPOTS
 # ===========================
@@ -220,31 +312,10 @@ func _on_hotspot_bookcase_input_event(_vp: Node, event: InputEvent, _shape_idx: 
 
 func _on_hotspot_phone_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var turn_info: Dictionary = {}
-		var manager: Node = get_node_or_null("/root/GameManager")
-		if manager:
-			manager.call("advance_week", false)
-			return
+		if inbox_panel:
+			_set_inbox_visible(not inbox_panel.visible)
 		else:
-			var rse: Node = get_node_or_null("/root/RSE")
-			if rse:
-				rse.call("tick", 1)
-			var loop: Node = get_node_or_null("/root/LoopSystem")
-			if loop:
-				turn_info = loop.call("get_snapshot") as Dictionary
-
-		var week_num: int = int(turn_info.get("week_number", 0))
-		var month_num: int = int(turn_info.get("month_number", 0))
-		var is_month_end := bool(turn_info.get("is_month_end", false))
-		if not turn_info.has("is_month_end") and week_num > 0:
-			is_month_end = (week_num % 4) == 0
-		if is_month_end:
-			var closed_month: int = int(turn_info.get("closed_month", month_num - 1))
-			$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % closed_month)
-			return
-
-		var week_in_month: int = int(turn_info.get("week_in_month", ((week_num - 1) % 4) + 1 if week_num > 0 else 0))
-		$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_num, month_num, week_in_month])
+			_advance_week()
 
 func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -434,6 +505,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			$NewsPanel.visible = false
 		if has_node("CompendiumPanel") and $CompendiumPanel.visible:
 			$CompendiumPanel.visible = false
+		if inbox_panel and inbox_panel.visible:
+			inbox_panel.visible = false
 
 # =====================================================
 # SECTION 8: CFO OFFICE SCENE UPDATE

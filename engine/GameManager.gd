@@ -15,6 +15,14 @@ func _ready() -> void:
 	if _resolver == null:
 		push_warning("DecisionResolver autoload missing; GameManager is inactive.")
 
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager:
+		var loop_system := get_node_or_null("/root/LoopSystem")
+		if loop_system and loop_system.has_method("get_state_ref"):
+			mission_manager.call("init_from_state", loop_system.call("get_state_ref"))
+		if not month_end_ready.is_connected(_on_month_end_ready):
+			month_end_ready.connect(_on_month_end_ready)
+
 func load_scenario(path: String = DEFAULT_SCENARIO_PATH) -> void:
 	var cfg := _read_json(path)
 	if cfg.is_empty():
@@ -75,6 +83,14 @@ func get_loop_snapshot() -> Dictionary:
 	if snap.has("month_number") and not snap.has("month"):
 		snap["month"] = snap.get("month_number")
 	return snap
+
+func _on_month_end_ready(month_number: int, report: Dictionary) -> void:
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager == null:
+		return
+	var loop_snapshot := get_loop_snapshot()
+	loop_snapshot["closed_month"] = month_number
+	mission_manager.call("enqueue_month_close", report, loop_snapshot)
 
 func _read_json(p: String) -> Dictionary:
 	var txt: String = FileAccess.get_file_as_string(p)

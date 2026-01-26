@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1767976244
+::res://::1769422737
 Concept Updates.md::TextFile::-1::1763479760::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1760703484::0::1::::<><><>0<>0<><>::
 index.apple-touch-icon.png::CompressedTexture2D::5723481065366164509::1760703484::1767615480::1::::<><><>0<>0<>ae7be617284789cf8c7340ffc7ca5406<>res://.godot/imported/index.apple-touch-icon.png-8085a11cc297d91deb55511843765958.ctex::
@@ -42,7 +42,7 @@ textbook_outline.md::TextFile::-1::1760218428::0::1::::<><><>0<>0<><>::
 ::res://backend/services/__pycache__/::1756931953
 ::res://backend/services/finance/::1757000578
 ::res://backend/services/finance/__pycache__/::1757000624
-::res://data/::1767700343
+::res://data/::1769418244
 compendium.json::JSON::-1::1760633624::0::1::::<><><>0<>0<><>::
 fin_S1.json::JSON::-1::1760699651::0::1::::<><><>0<>0<><>::
 fin_s2.json::JSON::-1::1760699710::0::1::::<><><>0<>0<><>::
@@ -55,6 +55,8 @@ redline_financials.json::JSON::-1::1760470379::0::1::::<><><>0<>0<><>::
 redline_scenarios_v3.json::JSON::-1::1760699883::0::1::::<><><>0<>0<><>::
 ::res://data/contracts/::1767700343
 supplier_framework_v1.txt::TextFile::-1::1767700343::0::1::::<><><>0<>0<><>::
+::res://data/missions/::1769418256
+month_close_v1.json::JSON::-1::1769418273::0::1::::<><><>0<>0<><>::
 ::res://data/scenarios/::1761919276
 ::res://data/scenarios/flightpath/::1761919335
 scenario_001.json::JSON::-1::1761919335::0::1::::<><><>0<>0<><>::
@@ -64,17 +66,18 @@ contract_supplier_excerpt.txt::TextFile::-1::1760526322::0::1::::<><><>0<>0<><>:
 game_rules.md::TextFile::-1::1755531092::0::1::::<><><>0<>0<><>::
 system_design.md::TextFile::-1::1755531084::0::1::::<><><>0<>0<><>::
 ::res://docs/coach_kb/::1755530956
-::res://engine/::1767633131
+::res://engine/::1769422537
 DecisionIntent.gd::GDScript::5603487164962663014::1767632369::0::1::::<>RefCounted<><>0<>0<><>::
 DecisionResolver.gd::GDScript::8458386234791149742::1767700083::0::1::::<>Node<><>0<>0<><>::
 engine.gd::GDScript::8842936917998472018::1767702328::0::1::::<>Node<><>0<>0<><>::
 finance.gd::GDScript::3177558775738690176::1767700092::0::1::::<>Resource<><>0<>0<><>::
-GameManager.gd::GDScript::6435820085430194186::1767972239::0::1::::<>Node<><>0<>0<><>::
-LoopState.gd::GDScript::857758716385477389::1767612444::0::1::::LoopState<>Resource<><>0<>0<><>::
-LoopSystem.gd::GDScript::7180269583507168396::1767614880::0::1::::<>Node<><>0<>0<><>::
+GameManager.gd::GDScript::6435820085430194186::1769418403::0::1::::<>Node<><>0<>0<><>::
+LoopState.gd::GDScript::857758716385477389::1769418369::0::1::::LoopState<>Resource<><>0<>0<><>::
+LoopSystem.gd::GDScript::7180269583507168396::1769418377::0::1::::<>Node<><>0<>0<><>::
+MissionManager.gd::GDScript::3150327885377378278::1769418365::0::1::::<>Node<><>0<>0<><>::
 rng.gd::GDScript::359332569275712734::1761919080::0::1::::<>Resource<><>0<>0<><>::
 state.gd::GDScript::2419208545357043326::1767700074::0::1::::GameStateData<>Resource<><>0<>0<><>::
-telemetry.gd::GDScript::6110654627821693772::1761919223::0::1::::<>Node<><>0<>0<><>::
+telemetry.gd::GDScript::6110654627821693772::1769418387::0::1::::<>Node<><>0<>0<><>::
 time.gd::GDScript::7820865823895857360::1767612682::0::1::::<>Resource<><>0<>0<><>::
 ::res://frontend/::1759774312
 package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
@@ -83,11 +86,11 @@ package.json::JSON::-1::1755531071::0::1::::<><><>0<>0<><>::
 ::res://frontend/src/pages/::1755530901
 ::res://frontend/src/services/::1755530907
 ::res://frontend/src/styles/::1755530912
-::res://scenes/::1767715910
+::res://scenes/::1767976549
 camera_2d.gd::GDScript::3031445742709559099::1760091666::0::1::::<>Camera2D<><>0<>0<><>::
-CFOOffice.tscn::PackedScene::1205614886687269308::1767715638::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
-cfo_office.gd::GDScript::5173362101766996939::1767715601::0::1::::<>Node2D<><>0<>0<><>::
-GameController.gd::GDScript::4784532675733434107::1767607761::0::1::::<>Node<><>0<>0<><>::
+CFOOffice.tscn::PackedScene::1205614886687269308::1769418489::0::1::::<><><>0<>0<><>::uid://dnkbn27iitlan::::res://assets/backgrounds/CFOOffice.png<>uid://cfyaru1vibuj8::::res://scenes/cfo_office.gd<>uid://b60ai56i31hxq::::res://scripts/ui/DialogueBox.gd<>uid://bjgpp6tiik2yp::::res://scenes/camera_2d.gd<>uid://b3cdrcsichfl5::::res://ui/FinancialPanel.tscn
+cfo_office.gd::GDScript::5173362101766996939::1769418574::0::1::::<>Node2D<><>0<>0<><>::
+GameController.gd::GDScript::4784532675733434107::1767976549::0::1::::<>Node<><>0<>0<><>::
 hallway.gd::GDScript::4314965965511550972::1767972226::0::1::::<>Node2D<><>0<>0<><>::
 Hallway.tscn::PackedScene::-1::1767715533::0::1::::<><><>0<>0<><>::res://scenes/hallway.gd
 WorldMap.tscn::PackedScene::-1::1767715515::0::1::::<><><>0<>0<><>::res://scenes/world_map.gd
@@ -98,7 +101,9 @@ DialogueBox.gd::GDScript::4613900190666211338::1760344472::0::1::::<>CanvasLayer
 KPIDashboard.gd::GDScript::480572702205520604::1767607837::0::1::::<>Control<><>0<>0<><>::
 ::res://Student_Starter/::1760526392
 ::res://tests/::1757000703
-::res://ui/::1763644815
+::res://ui/::1769422538
+BoardroomQuiz.gd::GDScript::2807707589283934927::1769418451::0::1::::<>CanvasLayer<><>0<>0<><>::
+BoardroomQuiz.tscn::PackedScene::-1::1769418468::0::1::::<><><>0<>0<><>::
 CompendiumPanel.gd::GDScript::8484710120507740222::1760634457::0::1::::<>CanvasLayer<><>0<>0<><>::
 CompendiumPanel.tscn::PackedScene::7994388626984643988::1760691072::0::1::::<><><>0<>0<><>::uid://ds5b63cvpqklq::::res://ui/CompendiumPanel.gd
 ContractPanel.gd::GDScript::1034626490797560158::1767702318::0::1::::<>CanvasLayer<><>0<>0<><>::

@@ -11,6 +11,11 @@ var unlocks := {}         # system_id -> data
 var audit_pressure: float = 0.0
 var flags := {}           # persistent story flags
 var memory := {}          # long-term memory payloads
+var points: int = 0
+var audit_score: int = 0
+var completed_missions := {}
+var mission_log: Array = []
+var inbox: Array = []
 
 # Turn tracking (1 turn = 1 week; 4 turns = month end)
 var week_number: int = 0
@@ -25,3 +30,8 @@ func reset() -> void:
 	memory = {}
 	week_number = 0
 	month_number = 1
+	points = 0
+	audit_score = 0
+	completed_missions = {}
+	mission_log = []
+	inbox = []
