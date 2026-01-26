@@ -1,4 +1,4 @@
-﻿# res://engine/MissionManager.gd
+# res://engine/MissionManager.gd
 extends Node
 
 signal mission_added(mission: Dictionary)
@@ -99,7 +99,10 @@ func start_mission(mission_id: String) -> void:
 		push_warning("Mission definition missing: " + def_id)
 		return
 
-	var quiz_scene: PackedScene = preload("res://ui/BoardroomQuiz.tscn")
+	var quiz_scene := load("res://ui/BoardroomQuiz.tscn") as PackedScene
+	if quiz_scene == null:
+		push_error("MissionManager: Failed to load BoardroomQuiz.tscn")
+		return
 	var quiz := quiz_scene.instantiate()
 	var loop_snapshot: Dictionary = {}
 	var context: Variant = _mission_context.get(mission_id, {})

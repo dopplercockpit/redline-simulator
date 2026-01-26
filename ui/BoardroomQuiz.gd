@@ -1,4 +1,4 @@
-﻿# res://ui/BoardroomQuiz.gd
+# res://ui/BoardroomQuiz.gd
 extends CanvasLayer
 
 @onready var title_label: Label = $PanelContainer/VBox/Title
