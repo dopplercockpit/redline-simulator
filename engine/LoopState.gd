@@ -13,6 +13,8 @@ var flags := {}           # persistent story flags
 var memory := {}          # long-term memory payloads
 var points: int = 0
 var audit_score: int = 0
+var reputation: float = 0.0
+var ops_risk: float = 0.0
 var completed_missions := {}
 var mission_log: Array = []
 var inbox: Array = []
@@ -32,6 +34,8 @@ func reset() -> void:
 	month_number = 1
 	points = 0
 	audit_score = 0
+	reputation = 0.0
+	ops_risk = 0.0
 	completed_missions = {}
 	mission_log = []
 	inbox = []

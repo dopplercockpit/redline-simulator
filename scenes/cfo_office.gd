@@ -6,6 +6,7 @@ extends Node2D
 const SUBMIT_WEBHOOK_URL := "https://script.google.com/macros/s/AKfycbw2XJuAMKD5Po9sEW3oAvQH251lIAsoWh3Ant-r8ZAK1iOI8OimUKouJy5esIn93pEz/exec"
 var backend_base := "" # keep empty for web demo (no backend calls)
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+const INBOX_UNLOCKED := true
 
 # ===========================
 # STATE
@@ -23,16 +24,11 @@ var month_end_ready: bool = false
 @onready var financial_panel: CanvasLayer = $FinancialPanel
 @onready var submit_http: HTTPRequest = $SubmitHTTP
 @onready var inbox_panel: CanvasLayer = $InboxPanel
-@onready var inbox_list: VBoxContainer = $InboxPanel/PanelContainer/VBox/List
-@onready var inbox_empty_label: Label = $InboxPanel/PanelContainer/VBox/EmptyLabel
-@onready var inbox_close_button: Button = $InboxPanel/PanelContainer/VBox/Buttons/Close
-@onready var inbox_advance_button: Button = $InboxPanel/PanelContainer/VBox/Buttons/AdvanceWeek
 
 # Reference to GameController (if it exists as an autoload)
 # If GameController is registered as an autoload in Project Settings, it's accessible globally
 # If not, you can comment out the lines that reference it (lines 49-54 in _ready)
 var game_controller = null  # Will be set if GameController autoload exists
-var _mission_manager: Node = null
 
 # ===========================
 # LIFECYCLE
@@ -87,61 +83,11 @@ func _connect_financial_panel() -> void:
 		financial_panel.commentary_submitted.connect(_on_commentary_submitted)
 
 func _connect_inbox() -> void:
-	if inbox_close_button and not inbox_close_button.pressed.is_connected(_on_inbox_close_pressed):
-		inbox_close_button.pressed.connect(_on_inbox_close_pressed)
-	if inbox_advance_button and not inbox_advance_button.pressed.is_connected(_on_inbox_advance_week):
-		inbox_advance_button.pressed.connect(_on_inbox_advance_week)
-
-	_mission_manager = get_node_or_null("/root/MissionManager")
-	if _mission_manager and _mission_manager.has_signal("inbox_updated"):
-		if not _mission_manager.inbox_updated.is_connected(_on_inbox_updated):
-			_mission_manager.inbox_updated.connect(_on_inbox_updated)
-		_on_inbox_updated(_mission_manager.call("get_inbox") as Array)
-
-func _on_inbox_close_pressed() -> void:
-	_set_inbox_visible(false)
-
-func _on_inbox_advance_week() -> void:
-	_advance_week()
-
-func _on_inbox_updated(inbox: Array) -> void:
-	_refresh_inbox(inbox)
-
-func _refresh_inbox(inbox: Array) -> void:
-	if inbox_list == null:
-		return
-	for child in inbox_list.get_children():
-		child.queue_free()
-
-	var has_items := inbox.size() > 0
-	if inbox_empty_label:
-		inbox_empty_label.visible = not has_items
-	if not has_items:
-		return
-
-	for item in inbox:
-		if typeof(item) != TYPE_DICTIONARY:
-			continue
-		var mission_id := str(item.get("mission_id", ""))
-		var title := str(item.get("title", "Mission"))
-		var status := str(item.get("status", "queued"))
-		var btn := Button.new()
-		btn.text = "%s [%s]" % [title, status]
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.pressed.connect(func() -> void:
-			if _mission_manager:
-				_mission_manager.call("start_mission", mission_id)
-		)
-		inbox_list.add_child(btn)
-
-func _set_inbox_visible(show: bool) -> void:
-	if inbox_panel == null:
-		return
-	inbox_panel.visible = show
-	if show and _mission_manager:
-		var inbox: Variant = _mission_manager.call("get_inbox")
-		if typeof(inbox) == TYPE_ARRAY:
-			_refresh_inbox(inbox as Array)
+	var loop_system: Node = get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("get_state_ref"):
+		var state = loop_system.call("get_state_ref")
+		if state and INBOX_UNLOCKED:
+			state.flags["cap.inbox"] = true
 
 func _get_resolver() -> Node:
 	return get_node_or_null("/root/DecisionResolver")
@@ -313,7 +259,10 @@ func _on_hotspot_bookcase_input_event(_vp: Node, event: InputEvent, _shape_idx: 
 func _on_hotspot_phone_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if inbox_panel:
-			_set_inbox_visible(not inbox_panel.visible)
+			if inbox_panel.visible:
+				inbox_panel.visible = false
+			else:
+				inbox_panel.call("try_open")
 		else:
 			_advance_week()
 

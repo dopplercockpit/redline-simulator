@@ -11,6 +11,7 @@ const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 var _loop_system: Node = null
 var _financial_state: GameStateData = preload("res://engine/state.gd").new()
 var _finance := preload("res://engine/finance.gd").new()
+var _ledger := preload("res://engine/ledger.gd").new()
 var _last_month_report: Dictionary = {}
 
 func _ready() -> void:
@@ -21,6 +22,16 @@ func _ready() -> void:
 func load_scenario(cfg: Dictionary) -> void:
 	_financial_state.reset()
 	_financial_state.load_config(cfg.get("initial_state", {}))
+	# PATCH 1: LEDGER
+	# Capture scenario meta (e.g., finance_mode) while preserving any meta set during initial_state load (e.g., coa_ref).
+	var _pre_meta: Dictionary = _financial_state.meta.duplicate(true)
+	var scenario_meta: Dictionary = {}
+	if cfg.has("meta") and typeof(cfg["meta"]) == TYPE_DICTIONARY:
+		scenario_meta = (cfg["meta"] as Dictionary).duplicate(true)
+	_financial_state.meta = scenario_meta
+	for key in _pre_meta.keys():
+		if not _financial_state.meta.has(key):
+			_financial_state.meta[key] = _pre_meta[key]
 	if _loop_system:
 		_loop_system.call("reset")
 
@@ -97,6 +108,36 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 
 	if intent.has("financial_delta"):
 		impacts["financial"] = _apply_financial_delta(intent["financial_delta"])
+
+	# PATCH 1: LEDGER
+	# Manual test intent example (submit_intent/resolve_intent):
+	# "ledger_tx": [{
+	#   "memo": "Manual cash funding",
+	#   "journal": [
+	#     {"gl":"1000","dc":"D","amount":100.0},
+	#     {"gl":"3000","dc":"C","amount":100.0}
+	#   ]
+	# }]
+	if intent.has("ledger_tx"):
+		var txs = intent["ledger_tx"]
+		if typeof(txs) == TYPE_ARRAY:
+			var posted := 0
+			var errs: Array[String] = []
+			for tx in txs:
+				if typeof(tx) != TYPE_DICTIONARY:
+					continue
+				var tx_dict: Dictionary = tx as Dictionary
+				var result: Dictionary = _ledger.post_transaction(_financial_state.ledger, tx_dict)
+				if bool(result.get("ok", false)):
+					posted += 1
+				else:
+					var e = result.get("errors", [])
+					if typeof(e) == TYPE_ARRAY:
+						for msg in e:
+							errs.append(str(msg))
+			impacts["ledger"] = {"posted": posted, "errors": errs}
+		else:
+			impacts["ledger"] = {"posted": 0, "errors": ["ledger_tx must be an Array"]}
 
 	if intent.has("loop_delta"):
 		impacts["loop"] = _apply_loop_delta(intent["loop_delta"])
@@ -185,6 +226,12 @@ func _apply_loop_delta(delta: Dictionary) -> Dictionary:
 		state.hq_strength += float(delta["hq_strength_delta"])
 	if delta.has("audit_pressure_delta"):
 		state.audit_pressure += float(delta["audit_pressure_delta"])
+	if delta.has("audit_score_delta"):
+		state.audit_score += int(delta["audit_score_delta"])
+	if delta.has("reputation_delta"):
+		state.reputation += float(delta["reputation_delta"])
+	if delta.has("ops_risk_delta"):
+		state.ops_risk += float(delta["ops_risk_delta"])
 
 	if delta.has("recruits_add"):
 		for key in delta["recruits_add"].keys():
@@ -207,6 +254,9 @@ func _apply_loop_delta(delta: Dictionary) -> Dictionary:
 	return {
 		"hq_strength": state.hq_strength,
 		"audit_pressure": state.audit_pressure,
+		"audit_score": state.audit_score,
+		"reputation": state.reputation,
+		"ops_risk": state.ops_risk,
 		"recruits": state.recruits,
 		"unlocks": state.unlocks,
 		"flags": state.flags,

@@ -23,6 +23,8 @@ func get_snapshot() -> Dictionary:
 		"memory": _state.memory.duplicate(true),
 		"points": _state.points,
 		"audit_score": _state.audit_score,
+		"reputation": _state.reputation,
+		"ops_risk": _state.ops_risk,
 		"completed_missions": _state.completed_missions.duplicate(true),
 		"mission_log": _state.mission_log.duplicate(true),
 		"inbox": _state.inbox.duplicate(true),

@@ -1,15 +1,110 @@
 {
-  "meta": { "name": "Flightpath 001 – SkyLine Launch", "seed": 99321, "version": "1.0.0" },
-  "time": { "start": "2026-01-03", "month_length_days": 28 },
+  "meta": {
+    "id": "scenario_001",
+    "title": "The Regional Trap",
+    "module": "flightpath_airport",
+    "seed": 123456,
+    "finance_mode": "ledger",
+    "starting_week": 0,
+    "version": "1.0"
+  },
+
+  "narrative": {
+    "logline": "Stabilize cash and fix leaky revenue recognition before the board loses its mind.",
+    "characters": [
+      { "id": "ceo", "name": "CEO", "role": "Exec", "tone": "impatient" },
+      { "id": "ops", "name": "Head of Ops", "role": "Ops", "tone": "defensive" }
+    ],
+    "beats": [
+      { "beat_id": "b1", "week": 1, "text": "Traffic is volatile. Concessions complain about footfall." },
+      { "beat_id": "b2", "week": 4, "text": "Month close. The board wants variance explanations." }
+    ]
+  },
+
   "initial_state": {
-    "cash": 12000000,
-    "fleet": {
-      "A320ceo": { "count": 4, "lease_usd_mpm": 220000, "hours_avail": 10.5, "age_avg": 8.2 }
+    "airport": {
+      "name": "St-Whatever Regional",
+      "tier": 1,
+      "gate_capacity_tier": 1,
+      "terminal_capacity_tier": 1,
+      "service_quality_tier": 1,
+      "resilience_tier": 1,
+      "reputation": 50
     },
-    "routes": {
-      "ORY–LIS": { "weekly_freq": 14, "price_usd": 109, "capacity_seats": 180, "demand_idx": 0.82 },
-      "LYS–BCN": { "weekly_freq": 10, "price_usd": 99,  "capacity_seats": 180, "demand_idx": 0.76 }
+
+    "commercial": {
+      "carriers": [
+        { "carrier_id": "CARR_A", "name": "BudgetAir", "share": 0.55 },
+        { "carrier_id": "CARR_B", "name": "LegacyAir", "share": 0.30 },
+        { "carrier_id": "CARR_C", "name": "CargoCo", "share": 0.15 }
+      ],
+      "revenue_streams": {
+        "landing_fees": { "price_per_turnaround_usd": 850 },
+        "passenger_fees": { "pax_facility_charge_usd": 8.0 },
+        "parking": { "avg_ticket_usd": 12.0 },
+        "concessions": { "baseline_sales_usd_week": 180000 }
+      }
     },
-    "fuel": { "price_usd_per_ton": 830, "hedge_pct": 0.2, "hedge_price": 700 }
-  }
+
+    "finance": {
+      "coa_ref": "res://data/finance/coa_airport_v1.json",
+      "opening_balances": {
+        "1000": 1200000,
+        "1200": 350000,
+        "2000": -280000,
+        "2100": -420000,
+        "3000": -850000
+      },
+      "debt_stack": [
+        {
+          "debt_id": "TERMLOAN_1",
+          "principal": 2500000,
+          "rate_apr": 0.065,
+          "amort_type": "interest_only",
+          "covenants": {
+            "min_dscr": 1.15,
+            "max_net_debt_to_ebitda": 4.5
+          }
+        }
+      ]
+    },
+
+    "contracts": {
+      "active": [],
+      "history": []
+    },
+
+    "economy": {
+      "macro_state": "stable",
+      "tourism_index": 55,
+      "rate_regime": "normal",
+      "fuel_shock": 0
+    }
+  },
+
+  "objectives": [
+    {
+      "id": "obj_cash",
+      "type": "threshold",
+      "metric": "cash",
+      "operator": ">=",
+      "value": 900000,
+      "by_week": 4,
+      "reward": { "points": 150, "unlocks_add": { "DEBT_DESK": true } }
+    }
+  ],
+
+  "actions": [
+    {
+      "action_id": "offer_route_incentive",
+      "label": "Offer Route Incentive",
+      "cooldown_weeks": 4,
+      "requires": { "unlocks": [] },
+      "params_schema": {
+        "carrier_id": "string",
+        "incentive_usd": "number",
+        "duration_weeks": "number"
+      }
+    }
+  ]
 }

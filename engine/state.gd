@@ -3,8 +3,10 @@ extends Resource
 class_name GameStateData
 # GameStateData class is registered globally in Project Settings
 const VERSION := "1.0.0"
+const LedgerUtil = preload("res://engine/ledger.gd")
 
 # NOTE: Business state must be mutated only via DecisionResolver.
+var _ledger_util := LedgerUtil.new()
 
 # Cash & accruals
 var cash: float = 0.0
@@ -13,6 +15,8 @@ var expense_ytd: float = 0.0
 var revenue_mtd: float = 0.0
 var expense_mtd: float = 0.0
 var is_month_end: bool = false
+var ledger: Dictionary = {}
+var coa: Dictionary = {}   # placeholder for later, keep empty for now
 
 # Domain
 var fleet := {}          # {"A320ceo": {"count":4, "lease_usd_mpm":220000, "hours_avail":10.5, "age_avg":8.2}}
@@ -29,6 +33,9 @@ func reset() -> void:
 	expense_ytd = 0.0
 	revenue_mtd = 0.0
 	expense_mtd = 0.0
+	# PATCH 1: LEDGER
+	ledger = _ledger_util.new_ledger_state()
+	coa = {}
 	fleet = {}
 	routes = {}
 	fuel = {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
@@ -36,8 +43,40 @@ func reset() -> void:
 	meta = {}
 
 func load_config(cfg: Dictionary) -> void:
+	# PATCH 1: LEDGER
+	# Accept optional finance payload without changing legacy delta simulation behavior.
+	if cfg.has("finance") and typeof(cfg["finance"]) == TYPE_DICTIONARY:
+		var finance: Dictionary = cfg["finance"] as Dictionary
+
+		if finance.has("opening_balances") and typeof(finance["opening_balances"]) == TYPE_DICTIONARY:
+			_ensure_ledger_initialized()
+			var opening_balances: Dictionary = finance["opening_balances"] as Dictionary
+			_ledger_util.seed_opening_balances(ledger, opening_balances)
+			if opening_balances.has("1000"):
+				cash = float(opening_balances.get("1000", cash))
+
+		if finance.has("coa") and typeof(finance["coa"]) == TYPE_DICTIONARY:
+			coa = (finance["coa"] as Dictionary).duplicate(true)
+
+		if finance.has("coa_ref") and typeof(finance["coa_ref"]) == TYPE_STRING:
+			if typeof(meta) != TYPE_DICTIONARY:
+				meta = {}
+			meta["coa_ref"] = str(finance["coa_ref"])
+
 	for k in cfg.keys():
 		self.set(k, cfg[k])
+
+func get_ledger_snapshot() -> Dictionary:
+	return {
+		"transactions": ledger.get("transactions", []),
+		"trial_balance": ledger.get("trial_balance", {})
+	}
+
+func _ensure_ledger_initialized() -> void:
+	if typeof(ledger) != TYPE_DICTIONARY or ledger.is_empty():
+		ledger = _ledger_util.new_ledger_state()
+	if typeof(coa) != TYPE_DICTIONARY:
+		coa = {}
 
 func load_from_statements(income_statement: Dictionary, balance_sheet: Dictionary, cash_flow: Dictionary) -> void:
 	# Temporary bridge: store raw statements and set basic aggregates.

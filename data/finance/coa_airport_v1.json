@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "accounts": [
+    { "code": "1000", "name": "Cash", "type": "asset", "statement": "BS", "rollup": "cash" },
+    { "code": "1200", "name": "Accounts Receivable", "type": "asset", "statement": "BS", "rollup": "ar" },
+    { "code": "1300", "name": "Deferred Revenue", "type": "liability", "statement": "BS", "rollup": "deferred_rev" },
+    { "code": "2000", "name": "Accounts Payable", "type": "liability", "statement": "BS", "rollup": "ap" },
+    { "code": "2100", "name": "Accrued Expenses", "type": "liability", "statement": "BS", "rollup": "accruals" },
+    { "code": "2400", "name": "Debt - Term Loan", "type": "liability", "statement": "BS", "rollup": "debt" },
+    { "code": "3000", "name": "Retained Earnings", "type": "equity", "statement": "BS", "rollup": "equity" },
+
+    { "code": "4000", "name": "Landing Fees Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_landing" },
+    { "code": "4100", "name": "Passenger Facility Charges Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_pfc" },
+    { "code": "4200", "name": "Concessions Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_concessions" },
+
+    { "code": "5000", "name": "Payroll Expense", "type": "expense", "statement": "IS", "rollup": "opex_payroll" },
+    { "code": "5100", "name": "Utilities Expense", "type": "expense", "statement": "IS", "rollup": "opex_utilities" },
+    { "code": "5600", "name": "Interest Expense", "type": "expense", "statement": "IS", "rollup": "fin_interest" }
+  ],
+
+  "rollups": {
+    "IS": {
+      "revenue": ["4000", "4100", "4200"],
+      "opex": ["5000", "5100"],
+      "interest": ["5600"]
+    },
+    "BS": {
+      "cash": ["1000"],
+      "ar": ["1200"],
+      "deferred_rev": ["1300"],
+      "ap": ["2000"],
+      "accruals": ["2100"],
+      "debt": ["2400"],
+      "equity": ["3000"]
+    }
+  }
+}

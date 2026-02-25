@@ -1,10 +1,11 @@
-[gd_scene load_steps=18 format=3 uid="uid://rgakiaegtdbw"]
+[gd_scene load_steps=19 format=3 uid="uid://rgakiaegtdbw"]
 
 [ext_resource type="Texture2D" uid="uid://dnkbn27iitlan" path="res://assets/backgrounds/CFOOffice.png" id="1_6penh"]
 [ext_resource type="Script" uid="uid://cfyaru1vibuj8" path="res://scenes/cfo_office.gd" id="1_cjgwl"]
 [ext_resource type="Script" uid="uid://b60ai56i31hxq" path="res://scripts/ui/DialogueBox.gd" id="2_xfd65"]
 [ext_resource type="Script" uid="uid://bjgpp6tiik2yp" path="res://scenes/camera_2d.gd" id="3_qpouq"]
 [ext_resource type="PackedScene" uid="uid://b3cdrcsichfl5" path="res://ui/FinancialPanel.tscn" id="5_gw8bu"]
+[ext_resource type="PackedScene" uid="uid://c7k3x5h1n8h2p" path="res://scenes/panels/InboxPanel.tscn" id="6_6y6a3"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_6penh"]
 size = Vector2(1379, 221)
@@ -161,56 +162,7 @@ script = ExtResource("3_qpouq")
 
 [node name="SubmitHTTP" type="HTTPRequest" parent="."]
 
-[node name="InboxPanel" type="CanvasLayer" parent="."]
-visible = false
-
-[node name="PanelContainer" type="PanelContainer" parent="InboxPanel"]
-anchor_left = 0.18
-anchor_top = 0.12
-anchor_right = 0.82
-anchor_bottom = 0.88
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBox" type="VBoxContainer" parent="InboxPanel/PanelContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 8
-
-[node name="Title" type="Label" parent="InboxPanel/PanelContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 22
-text = "Inbox"
-
-[node name="EmptyLabel" type="Label" parent="InboxPanel/PanelContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "No messages yet."
-
-[node name="List" type="VBoxContainer" parent="InboxPanel/PanelContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 6
-
-[node name="Buttons" type="HBoxContainer" parent="InboxPanel/PanelContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="AdvanceWeek" type="Button" parent="InboxPanel/PanelContainer/VBox/Buttons"]
-layout_mode = 2
-text = "Advance Week"
-
-[node name="Close" type="Button" parent="InboxPanel/PanelContainer/VBox/Buttons"]
-layout_mode = 2
-text = "Close"
+[node name="InboxPanel" parent="." instance=ExtResource("6_6y6a3")]
 
 [connection signal="input_event" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_laptop_input_event"]
 [connection signal="mouse_entered" from="Hotspots/Hotspot_Laptop" to="." method="_on_hotspot_mouse_entered"]
