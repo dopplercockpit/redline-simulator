@@ -14,6 +14,7 @@ config/name="Redline Simulator"
 run/main_scene="res://scenes/WorldMap.tscn"
 config/features=PackedStringArray("4.5")
 config/icon="res://assets/icons/icon.png"
+config/backend_base_url="http://127.0.0.1:8000"
 
 [autoload]
 

@@ -190,6 +190,16 @@ func _apply_weekly_burn(weekly_opex: float) -> Dictionary:
 	}
 
 func _apply_weekly_finance() -> Dictionary:
+	var finance_mode := str(_financial_state.meta.get("finance_mode", "delta"))
+	if finance_mode == "ledger":
+		# PATCH 2: LEDGER WEEK POST
+		var loop_week := 0
+		if _loop_system:
+			var ls: LoopState = _loop_system.call("get_state_ref") as LoopState
+			loop_week = int(ls.week_number) + 1
+		var result: Dictionary = _finance.post_week(_financial_state, {"week_number": loop_week})
+		return result
+	# legacy
 	var delta := _finance.calculate_week_delta(_financial_state)
 	return _apply_financial_delta(delta)
 

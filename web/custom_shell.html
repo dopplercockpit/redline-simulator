@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+	<title>Redline Simulator</title>
+	<style>
+		html, body, #canvas {
+			margin: 0;
+			padding: 0;
+			border: 0;
+			width: 100%;
+			height: 100%;
+		}
+		body {
+			background: #111;
+			color: #f1f1f1;
+			font-family: Arial, sans-serif;
+			overflow: hidden;
+			touch-action: none;
+		}
+		#canvas {
+			display: block;
+		}
+		#shell-status {
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 16px;
+			text-align: center;
+			font-size: 14px;
+			opacity: 0.85;
+			pointer-events: none;
+		}
+		#shell-error {
+			position: fixed;
+			left: 16px;
+			right: 16px;
+			top: 16px;
+			padding: 10px 12px;
+			background: #3a1f1f;
+			border: 1px solid #914040;
+			border-radius: 6px;
+			font-size: 14px;
+			display: none;
+		}
+	</style>
+	$GODOT_HEAD_INCLUDE
+	<script>
+		// Deployment config injection point for public frontend settings.
+		// Override in hosting runtime before the Godot script runs:
+		// window.REDLINE_CONFIG = { API_BASE_URL: "https://api.your-domain.com" };
+		window.REDLINE_CONFIG = window.REDLINE_CONFIG || {};
+		(function () {
+			const host = window.location.hostname || "";
+			const isLocal = host === "localhost" || host === "127.0.0.1";
+			const injectedBase = String(window.REDLINE_CONFIG.API_BASE_URL || "").trim();
+			if (injectedBase.length > 0) {
+				window.REDLINE_CONFIG.API_BASE_URL = injectedBase;
+				return;
+			}
+
+			if (isLocal) {
+				window.REDLINE_CONFIG.API_BASE_URL = "http://127.0.0.1:8000";
+				return;
+			}
+
+			// Hosted fallback: assume same-origin API only when no explicit staging/prod override exists.
+			window.REDLINE_CONFIG.API_BASE_URL = window.location.origin;
+			console.warn(
+				"[Redline] REDLINE_CONFIG.API_BASE_URL missing; defaulting to same-origin:",
+				window.REDLINE_CONFIG.API_BASE_URL
+			);
+		}());
+	</script>
+</head>
+<body>
+	<canvas id="canvas">Your browser does not support the canvas tag.</canvas>
+	<noscript>Your browser does not support JavaScript.</noscript>
+	<div id="shell-status">Loading Redline Simulator...</div>
+	<div id="shell-error">Unable to start Redline Simulator. Please refresh or try again later.</div>
+
+	<script src="$GODOT_URL"></script>
+	<script>
+		const GODOT_CONFIG = $GODOT_CONFIG;
+		const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+		const engine = new Engine(GODOT_CONFIG);
+		const status = document.getElementById("shell-status");
+		const errorBox = document.getElementById("shell-error");
+
+		function showError(err) {
+			console.error(err);
+			const message = err instanceof Error ? err.message : String(err || "Unknown startup error");
+			errorBox.textContent = "Unable to start Redline Simulator: " + message;
+			errorBox.style.display = "block";
+			status.textContent = "Startup failed.";
+		}
+
+		const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+		if (missing.length > 0) {
+			showError("Missing browser features: " + missing.join(", "));
+		} else {
+			engine.startGame({
+				onProgress: function (current, total) {
+					if (current > 0 && total > 0) {
+						status.textContent = "Loading " + Math.floor((current / total) * 100) + "%";
+					}
+				},
+			}).then(function () {
+				status.textContent = "";
+			}).catch(showError);
+		}
+	</script>
+</body>
+</html>
