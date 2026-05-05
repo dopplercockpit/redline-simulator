@@ -39,6 +39,10 @@ The MVP now supports a continuous multi-month scenario arc. Month 2 introduces r
 
 Contract Review turns unlocked tools into governance mechanics. Contract choices can post review costs, modify contract risk state, affect audit/reputation/ops risk, and must remain ledger-first.
 
+## Patch 7 Compliance and Contract Consequence Rule
+
+Contract terms must affect later gameplay. Month 3 converts the BudgetAir agreement into clawback, compliance, audit, covenant, and board-pressure decisions. The resolver enforces contract-dependent choices.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

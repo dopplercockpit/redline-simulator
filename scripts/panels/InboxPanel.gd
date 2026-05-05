@@ -410,6 +410,11 @@ func _on_choice_pressed(card: Dictionary, choice: Dictionary) -> void:
 	var choice_id := str(choice.get("id", ""))
 	var result: Dictionary = manager.call("submit_action_card_choice", card_id, choice_id, choice) as Dictionary
 	if not bool(result.get("ok", false)):
+		var ui: Dictionary = result.get("ui", {}) as Dictionary
+		var feedback := str(ui.get("feedback", ""))
+		if feedback.strip_edges() != "":
+			feedback_label.text = feedback
+			return
 		var error_texts := PackedStringArray()
 		for err in result.get("errors", []):
 			error_texts.append(str(err))

@@ -118,6 +118,42 @@
       "reward": {
         "points": 100
       }
+    },
+    {
+      "id": "obj_audit_month3",
+      "type": "threshold",
+      "metric": "audit_score",
+      "operator": "<=",
+      "value": 18,
+      "by_week": 12,
+      "reward": {
+        "points": 150,
+        "unlocks_add": {
+          "AUDIT_ROOM": true
+        }
+      }
+    },
+    {
+      "id": "obj_ops_risk_month3",
+      "type": "threshold",
+      "metric": "ops_risk",
+      "operator": "<=",
+      "value": 8,
+      "by_week": 12,
+      "reward": {
+        "points": 100
+      }
+    },
+    {
+      "id": "obj_cash_month3",
+      "type": "threshold",
+      "metric": "cash",
+      "operator": ">=",
+      "value": 650000,
+      "by_week": 12,
+      "reward": {
+        "points": 100
+      }
     }
   ],
 

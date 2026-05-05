@@ -1,0 +1,60 @@
+{
+  "id": "MISSION_MONTH_CLOSE_COMPLIANCE_V1",
+  "type": "month_close",
+  "title": "Month-End Close: Compliance and Contract Fallout",
+  "description": "The board wants to understand whether the BudgetAir agreement protected the airport, whether the audit trail is defensible, and whether debt-funded growth is still under control.",
+  "questions": [
+    {
+      "id": "Q1",
+      "prompt": "Why does a clawback clause only help if the contract terms are enforceable and tracked?",
+      "choices": [
+        "Because recovery depends on documented performance obligations, measurable triggers, and evidence that the carrier missed the agreed terms.",
+        "Because all clawbacks happen automatically when revenue falls.",
+        "Because contracts replace the ledger.",
+        "Because the board can simply declare cash recovered."
+      ],
+      "correct_index": 0,
+      "explanation": "Clawback recovery needs enforceable terms, measurement, and evidence. A vague right is not cash."
+    },
+    {
+      "id": "Q2",
+      "prompt": "Why can accepting a weak incentive contract create later audit and operational risk?",
+      "choices": [
+        "Because unclear terms make it harder to support accounting treatment, enforce performance obligations, and explain cash outflows.",
+        "Because weak contracts always improve reputation.",
+        "Because audit risk only comes from payroll.",
+        "Because operational risk disappears after the contract is signed."
+      ],
+      "correct_index": 0,
+      "explanation": "Contract clarity is part of the control environment around incentive spending."
+    },
+    {
+      "id": "Q3",
+      "prompt": "Why does compliance preparation reduce audit pressure even though it costs cash?",
+      "choices": [
+        "Because documentation, reconciliations, and approval evidence reduce uncertainty and control risk.",
+        "Because spending cash always creates revenue.",
+        "Because auditors ignore expensive projects.",
+        "Because compliance work removes debt from the balance sheet."
+      ],
+      "correct_index": 0,
+      "explanation": "Good evidence lowers control uncertainty even when the work has a cash cost."
+    },
+    {
+      "id": "Q4",
+      "prompt": "Why does debt-funded growth require a covenant narrative?",
+      "choices": [
+        "Because added debt and interest can pressure DSCR, liquidity, and lender confidence even if cash temporarily improves.",
+        "Because covenants are only marketing slogans.",
+        "Because DSCR improves whenever debt increases.",
+        "Because banks do not read financial statements."
+      ],
+      "correct_index": 0,
+      "explanation": "Debt can buy runway, but it adds repayment and interest pressure that must be explained."
+    }
+  ],
+  "scoring": {
+    "points_per_correct": 10,
+    "audit_per_wrong": 5
+  }
+}

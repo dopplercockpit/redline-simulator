@@ -206,4 +206,4 @@ func _escape_bbcode(value: String) -> String:
 	return value.replace("[", "[lb]")
 
 func _on_close_pressed() -> void:
-		visible = false
+	visible = false

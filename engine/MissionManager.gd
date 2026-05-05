@@ -9,6 +9,7 @@ const SAVE_PATH := "user://save.cfg"
 const SAVE_SECTION := "progress"
 const MONTH_CLOSE_DEF_ID := "MISSION_MONTH_CLOSE_V1"
 const ROUTE_INCENTIVE_CLOSE_DEF_ID := "MISSION_MONTH_CLOSE_ROUTE_INCENTIVE_V1"
+const COMPLIANCE_CLOSE_DEF_ID := "MISSION_MONTH_CLOSE_COMPLIANCE_V1"
 const AUDIT_STUB_ID := "MISSION_AUDIT_STUB_V1"
 const AUDIT_THRESHOLD := 100
 
@@ -189,6 +190,7 @@ func _ensure_state_defaults() -> void:
 func _load_mission_defs() -> void:
 	_load_mission_file("res://data/missions/month_close_v1.json")
 	_load_mission_file("res://data/missions/month_close_route_incentive_v1.json")
+	_load_mission_file("res://data/missions/month_close_compliance_v1.json")
 
 func _load_mission_file(path: String) -> void:
 	if not FileAccess.file_exists(path):
@@ -270,11 +272,15 @@ func _resolve_definition_id(mission_id: String) -> String:
 		return MONTH_CLOSE_DEF_ID
 	if mission_id.begins_with(ROUTE_INCENTIVE_CLOSE_DEF_ID):
 		return ROUTE_INCENTIVE_CLOSE_DEF_ID
+	if mission_id.begins_with(COMPLIANCE_CLOSE_DEF_ID):
+		return COMPLIANCE_CLOSE_DEF_ID
 	return mission_id
 
 func _month_close_definition_id(month_number: int) -> String:
 	if month_number == 2:
 		return ROUTE_INCENTIVE_CLOSE_DEF_ID
+	if month_number == 3:
+		return COMPLIANCE_CLOSE_DEF_ID
 	return MONTH_CLOSE_DEF_ID
 
 func _get_loop_snapshot() -> Dictionary:

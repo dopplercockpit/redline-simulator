@@ -360,6 +360,16 @@ func _get_objective_metric(
 			return float(loop_state.audit_score)
 		"points":
 			return float(loop_state.points)
+		"ops_risk":
+			return float(loop_state.ops_risk)
+		"reputation":
+			return float(loop_state.reputation)
+		"total_debt":
+			var debt_balance_sheet: Dictionary = financial_snapshot.get("balance_sheet", {}) as Dictionary
+			return float(debt_balance_sheet.get(
+				"total_debt",
+				float(debt_balance_sheet.get("short_term_debt", 0.0)) + float(debt_balance_sheet.get("debt_term_loan", 0.0))
+			))
 		"operating_margin":
 			var report_kpis: Dictionary = last_month_report.get("kpis", {}) as Dictionary
 			var financial_kpis: Dictionary = financial_snapshot.get("kpis", {}) as Dictionary
@@ -393,6 +403,12 @@ func _objective_success_message(objective_id: String, unlocks: Array[String]) ->
 		return "Route incentive economics held above the operating margin threshold. Contract Review unlocked."
 	if objective_id == "obj_cash_month2":
 		return "Month 2 cash floor held. Liquidity survived the growth experiment."
+	if objective_id == "obj_audit_month3":
+		return "Audit posture held within tolerance. Audit Room unlocked."
+	if objective_id == "obj_ops_risk_month3":
+		return "Operational risk stayed controlled through the compliance cycle."
+	if objective_id == "obj_cash_month3":
+		return "Month 3 cash floor held despite governance and compliance costs."
 	if unlocks.is_empty():
 		return "Objective met."
 	return "Objective met. Unlocked: %s." % ", ".join(PackedStringArray(unlocks))
@@ -404,6 +420,12 @@ func _objective_failure_message(objective_id: String) -> String:
 		return "Route incentive economics missed the margin target. The board sees growth, but the ledger sees indigestion."
 	if objective_id == "obj_cash_month2":
 		return "Month 2 cash floor missed. Growth ate the runway."
+	if objective_id == "obj_audit_month3":
+		return "Audit score breached tolerance. The control story is leaking."
+	if objective_id == "obj_ops_risk_month3":
+		return "Operational risk exceeded tolerance. Growth, contract friction, and weak controls are now feeding each other."
+	if objective_id == "obj_cash_month3":
+		return "Month 3 cash floor missed. Compliance and route pressure drained the runway."
 	return "Objective missed."
 
 func _read_json(p: String) -> Dictionary:

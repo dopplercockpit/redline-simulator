@@ -236,3 +236,46 @@ Patch 6 turns the `CONTRACT_REVIEW` unlock into a local governance tool. After M
 ### Patch 7 Recommendation
 
 Patch 7 should make `CONTRACT_REVIEW` consequences matter in Month 3: service commitment compliance, clawback recovery, route underperformance, board confidence, and covenant pressure tied to the selected agreement terms.
+
+## Patch 7 — Month 3: Compliance, Clawback, and Audit Pressure
+
+### Goal
+
+Patch 7 extends Flightpath CFO into Month 3 and makes the BudgetAir contract review matter. BudgetAir underperforms, the player handles clawback or fallout, compliance pressure rises, covenant communication becomes explicit, and the Month 3 boardroom evaluates governance discipline.
+
+### Files Changed
+
+- `res://data/actions/flightpath/action_cards_v1.json`
+- `res://data/scenarios/flightpath/scenario_001.json`
+- `res://data/finance/coa_airport_v1.json`
+- `res://data/missions/month_close_compliance_v1.json`
+- `res://engine/DecisionResolver.gd`
+- `res://engine/GameManager.gd`
+- `res://engine/MissionManager.gd`
+- `res://engine/ledger.gd`
+- `res://scripts/panels/InboxPanel.gd`
+- `res://ui/ContractPanel.gd`
+- `res://ui/FinancialPanel.gd`
+- `res://docs/PATCH_7_COMPLIANCE_AUDIT.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- `ContractPanel.gd` parses cleanly after the indentation preflight fix.
+- Week 1-8 flow still works and Month 2 can unlock `CONTRACT_REVIEW`.
+- Contract Review still stores the selected BudgetAir review result.
+- Week 9 shows `CARD_W9_BUDGETAIR_MISSES_TARGET`.
+- If contract review selected a moderate or strong clawback, `ENFORCE_CLAWBACK` posts Dr `1000` / Cr `4300` for `$35,000`.
+- If contract review accepted weak terms, `ENFORCE_CLAWBACK` is rejected by `DecisionResolver` with unavailable feedback.
+- FinancialPanel shows Route Incentive Clawback Recovery.
+- Weeks 10-12 show compliance, covenant, and board governance cards.
+- Week 12 close queues `MISSION_MONTH_CLOSE_COMPLIANCE_V1_M3`.
+- Completing Month 3 boardroom evaluates `obj_audit_month3`, `obj_ops_risk_month3`, and `obj_cash_month3`.
+- If `obj_audit_month3` passes, `AUDIT_ROOM` unlocks.
+- Objective rewards cannot duplicate.
+- No backend or LLM call is required.
+
+### Patch 8 Recommendation
+
+Patch 8 should turn `AUDIT_ROOM` into a playable audit response tool with finding remediation, control evidence spending, management representation choices, and consequences tied to accumulated audit score.

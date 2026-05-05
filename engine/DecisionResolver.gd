@@ -426,6 +426,16 @@ func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dicti
 			"ui": {"feedback": duplicate_error}
 		}
 
+	var requirements := _validate_choice_requirements(choice)
+	if not bool(requirements.get("ok", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": requirements.get("errors", []),
+			"ui": {"feedback": str(requirements.get("feedback", "Choice requirements not met."))}
+		}
+
 	var posted := 0
 	var ledger_errors: Array[String] = []
 	var ledger_value: Variant = choice.get("ledger_tx", [])
@@ -494,6 +504,71 @@ func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dicti
 			"feedback": feedback
 		}
 	}
+
+func _validate_choice_requirements(choice: Dictionary) -> Dictionary:
+	if not choice.has("requires") or typeof(choice["requires"]) != TYPE_DICTIONARY:
+		return {"ok": true, "feedback": "", "errors": []}
+	if _loop_system == null:
+		return {
+			"ok": false,
+			"feedback": "Choice requirements cannot be checked.",
+			"errors": ["LoopSystem unavailable"]
+		}
+
+	var requires: Dictionary = choice["requires"] as Dictionary
+	var unavailable_feedback := str(requires.get("unavailable_feedback", "Choice requirements not met."))
+	if requires.has("contract_review") and typeof(requires["contract_review"]) == TYPE_DICTIONARY:
+		var contract_req: Dictionary = requires["contract_review"] as Dictionary
+		var review_id := str(contract_req.get("review_id", ""))
+		var field := str(contract_req.get("field", ""))
+		if review_id.strip_edges() == "" or field.strip_edges() == "":
+			return {
+				"ok": false,
+				"feedback": unavailable_feedback,
+				"errors": ["Contract review requirement missing review_id or field"]
+			}
+
+		var loop_state: LoopState = _loop_system.call("get_state_ref") as LoopState
+		var reviews_value: Variant = loop_state.memory.get("contract_reviews", {})
+		if typeof(reviews_value) != TYPE_DICTIONARY:
+			return {
+				"ok": false,
+				"feedback": unavailable_feedback,
+				"errors": ["Required contract review not found: %s" % review_id]
+			}
+		var reviews: Dictionary = reviews_value as Dictionary
+		var review_value: Variant = reviews.get(review_id, {})
+		if typeof(review_value) != TYPE_DICTIONARY:
+			return {
+				"ok": false,
+				"feedback": unavailable_feedback,
+				"errors": ["Required contract review not found: %s" % review_id]
+			}
+		var review: Dictionary = review_value as Dictionary
+		var actual: Variant = review.get(field, null)
+
+		if contract_req.has("in") and typeof(contract_req["in"]) == TYPE_ARRAY:
+			var allowed: Array = contract_req["in"] as Array
+			var matched := false
+			for allowed_value in allowed:
+				if str(allowed_value) == str(actual):
+					matched = true
+					break
+			if not matched:
+				return {
+					"ok": false,
+					"feedback": unavailable_feedback,
+					"errors": ["Contract review requirement failed: %s.%s" % [review_id, field]]
+				}
+		elif contract_req.has("equals"):
+			if str(actual) != str(contract_req.get("equals")):
+				return {
+					"ok": false,
+					"feedback": unavailable_feedback,
+					"errors": ["Contract review requirement failed: %s.%s" % [review_id, field]]
+				}
+
+	return {"ok": true, "feedback": "", "errors": []}
 
 func _upsert_contract_review_state(review_id: String, choice_id: String, contract_delta: Dictionary) -> Dictionary:
 	if typeof(_financial_state.contracts) != TYPE_DICTIONARY:

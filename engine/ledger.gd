@@ -151,6 +151,7 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		"landing_fees_revenue": 0.0,
 		"passenger_facility_charges_revenue": 0.0,
 		"concessions_revenue": 0.0,
+		"route_incentive_clawback_recovery": 0.0,
 		"total_operating_revenue": 0.0,
 		"payroll_expense": 0.0,
 		"utilities_expense": 0.0,
@@ -210,6 +211,8 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 					income_statement["passenger_facility_charges_revenue"] = amount
 				"4200":
 					income_statement["concessions_revenue"] = amount
+				"4300":
+					income_statement["route_incentive_clawback_recovery"] = amount
 				"5000":
 					income_statement["payroll_expense"] = amount
 				"5100":
@@ -225,6 +228,7 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		float(income_statement["landing_fees_revenue"])
 		+ float(income_statement["passenger_facility_charges_revenue"])
 		+ float(income_statement["concessions_revenue"])
+		+ float(income_statement["route_incentive_clawback_recovery"])
 	)
 	var total_operating_expense := (
 		float(income_statement["payroll_expense"])

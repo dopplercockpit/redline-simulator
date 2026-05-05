@@ -13,6 +13,7 @@
     { "code": "4000", "name": "Landing Fees Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_landing" },
     { "code": "4100", "name": "Passenger Facility Charges Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_pfc" },
     { "code": "4200", "name": "Concessions Revenue", "type": "revenue", "statement": "IS", "rollup": "rev_concessions" },
+    { "code": "4300", "name": "Route Incentive Clawback Recovery", "type": "revenue", "statement": "IS", "rollup": "rev_clawback_recovery" },
 
     { "code": "5000", "name": "Payroll Expense", "type": "expense", "statement": "IS", "rollup": "opex_payroll" },
     { "code": "5100", "name": "Utilities Expense", "type": "expense", "statement": "IS", "rollup": "opex_utilities" },
@@ -23,7 +24,7 @@
 
   "rollups": {
     "IS": {
-      "revenue": ["4000", "4100", "4200"],
+      "revenue": ["4000", "4100", "4200", "4300"],
       "opex": ["5000", "5100", "5200", "5300"],
       "interest": ["5600"]
     },

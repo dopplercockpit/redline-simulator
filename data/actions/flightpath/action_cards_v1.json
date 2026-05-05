@@ -453,6 +453,234 @@
           "feedback": "Avoiding the obvious: the oldest executive tradition after blaming timing."
         }
       ]
+    },
+    {
+      "id": "CARD_W9_BUDGETAIR_MISSES_TARGET",
+      "week": 9,
+      "title": "BudgetAir Misses the Service Commitment",
+      "sender": "Controller",
+      "body": "BudgetAir missed the agreed weekly activity target. Whether this is recoverable depends on the contract protections you approved. Finance now gets to discover whether the agreement has teeth or just decorative gums.",
+      "choices": [
+        {
+          "id": "ENFORCE_CLAWBACK",
+          "label": "Enforce clawback recovery",
+          "description": "Invoke the clawback clause and recover part of the incentive.",
+          "requires": {
+            "contract_review": {
+              "review_id": "BUDGETAIR_INCENTIVE_REVIEW",
+              "field": "clawback_strength",
+              "in": ["moderate", "strong"]
+            },
+            "unavailable_feedback": "You cannot enforce a real clawback because the signed contract does not give you enough teeth. Governance theater is not a recovery mechanism."
+          },
+          "ledger_tx": [
+            {
+              "memo": "BudgetAir route incentive clawback recovery",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "1000", "dc": "D", "amount": 35000 },
+                { "gl": "4300", "dc": "C", "amount": 35000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -2,
+            "ops_risk_delta": -2,
+            "reputation_delta": -1
+          },
+          "feedback": "Clawback recovered. Nobody enjoys enforcement, but cash enjoys being cash."
+        },
+        {
+          "id": "NEGOTIATE_MAKE_GOOD",
+          "label": "Negotiate commercial make-good",
+          "description": "Push for added commercial activity instead of immediate cash recovery.",
+          "ledger_tx": [],
+          "commercial_delta": {
+            "revenue_streams.concessions.baseline_sales_usd_week": 10000
+          },
+          "loop_delta": {
+            "reputation_delta": 1,
+            "ops_risk_delta": -1,
+            "audit_score_delta": 1
+          },
+          "feedback": "You negotiated a commercial make-good. Softer than cash recovery, but better than pretending the miss never happened."
+        },
+        {
+          "id": "EAT_THE_MISS",
+          "label": "Eat the miss",
+          "description": "Absorb BudgetAir's miss and move on without recovery.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 4,
+            "ops_risk_delta": 3
+          },
+          "feedback": "You absorbed the miss. The contract is now a very expensive souvenir."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W10_COMPLIANCE_REVIEW",
+      "week": 10,
+      "title": "Compliance Review: The Clipboard Has Arrived",
+      "sender": "Internal Audit",
+      "body": "Internal Audit wants documentation on the route incentive, contract approval, Debt Desk decision, and month-close controls. You can fund cleanup, rely on the team, or hope the audit universe has poor eyesight.",
+      "choices": [
+        {
+          "id": "FUND_COMPLIANCE_CLEANUP",
+          "label": "Fund compliance cleanup",
+          "description": "Pay for documentation cleanup and reduce audit/control pressure.",
+          "ledger_tx": [
+            {
+              "memo": "Compliance cleanup support",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 40000 },
+                { "gl": "1000", "dc": "C", "amount": 40000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -7,
+            "ops_risk_delta": -2
+          },
+          "feedback": "Cash goes out. Control evidence comes in. The dull machinery of civilization continues."
+        },
+        {
+          "id": "INTERNAL_REVIEW_ONLY",
+          "label": "Internal review only",
+          "description": "Use the internal team and accept execution risk.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": -2,
+            "ops_risk_delta": 1
+          },
+          "feedback": "Cheap, plausible, and dependent on people who already look tired."
+        },
+        {
+          "id": "IGNORE_AUDIT_REQUEST",
+          "label": "Ignore audit request",
+          "description": "Do nothing and let the request sit.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 8,
+            "ops_risk_delta": 4
+          },
+          "feedback": "You ignored the audit request. Bold. Also stupid. A rare and durable pairing."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W11_COVENANT_PRESSURE",
+      "week": 11,
+      "title": "Covenant Pressure: The Bank Can Count Too",
+      "sender": "Bank Relationship Manager",
+      "body": "Debt, incentive spending, and softer-than-promised route performance are putting pressure on the bank narrative. The bank wants an update before it decides how nervous to become.",
+      "choices": [
+        {
+          "id": "PROVIDE_COVENANT_PACKAGE",
+          "label": "Provide covenant package",
+          "description": "Pay for a clean bank update and supporting covenant package.",
+          "ledger_tx": [
+            {
+              "memo": "Covenant package preparation",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 20000 },
+                { "gl": "1000", "dc": "C", "amount": 20000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -3,
+            "ops_risk_delta": -1,
+            "reputation_delta": 1
+          },
+          "feedback": "You sent the bank a clean covenant package. Not glamorous, but banks prefer boring people with numbers."
+        },
+        {
+          "id": "REQUEST_WAIVER_DISCUSSION",
+          "label": "Request waiver discussion",
+          "description": "Open a lender discussion early and pay advisory support.",
+          "ledger_tx": [
+            {
+              "memo": "Covenant waiver discussion support",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 30000 },
+                { "gl": "1000", "dc": "C", "amount": 30000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -1,
+            "ops_risk_delta": -2,
+            "reputation_delta": -1
+          },
+          "feedback": "You opened the waiver conversation early. Expensive, awkward, and better than waiting for the room to catch fire."
+        },
+        {
+          "id": "DELAY_BANK_UPDATE",
+          "label": "Delay bank update",
+          "description": "Preserve cash and avoid the bank conversation for now.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 3,
+            "ops_risk_delta": 3,
+            "reputation_delta": -2
+          },
+          "feedback": "Delaying bad news is a classic executive move. It works right until arithmetic gets invited."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W12_BOARD_AUDIT_PACKAGE",
+      "week": 12,
+      "title": "Board Prep: Governance Has a Memory",
+      "sender": "CFO Office",
+      "body": "The board wants a clean Month 3 story: route performance, contract enforcement, audit posture, debt pressure, and cash. They are not asking because life is beautiful.",
+      "choices": [
+        {
+          "id": "BUILD_GOVERNANCE_BRIDGE",
+          "label": "Build governance bridge",
+          "description": "Pay for a clean board bridge from contract terms to financial consequences.",
+          "ledger_tx": [
+            {
+              "memo": "Month 3 governance bridge",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 25000 },
+                { "gl": "1000", "dc": "C", "amount": 25000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -4,
+            "reputation_delta": 1
+          },
+          "feedback": "You built the bridge from contract terms to financial consequences. The board gets a story with bones."
+        },
+        {
+          "id": "LEAD_WITH_CASH_ONLY",
+          "label": "Lead with cash only",
+          "description": "Focus on cash and avoid the broader control story.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 2
+          },
+          "feedback": "Cash is useful, but it is not the whole story. The board may notice the missing skeleton."
+        },
+        {
+          "id": "BLAME_THE_CARRIER",
+          "label": "Blame the carrier",
+          "description": "Point at BudgetAir instead of explaining governance and finance controls.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 4,
+            "reputation_delta": -2
+          },
+          "feedback": "You blamed BudgetAir. Accurate, maybe. Sufficient, no."
+        }
+      ]
     }
   ]
 }
