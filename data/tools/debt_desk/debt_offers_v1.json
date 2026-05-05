@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "tool_id": "DEBT_DESK",
+  "title": "Debt Desk: Financing Options",
+  "offers": [
+    {
+      "id": "DRAW_REVOLVER_250K",
+      "label": "Draw $250k Emergency Revolver",
+      "description": "Fast liquidity, higher interest, more bank pressure.",
+      "ledger_tx": [
+        {
+          "memo": "Emergency revolver draw",
+          "cash_flow_category": "financing",
+          "journal": [
+            { "gl": "1000", "dc": "D", "amount": 250000 },
+            { "gl": "2300", "dc": "C", "amount": 250000 }
+          ]
+        }
+      ],
+      "debt_stack_add": {
+        "debt_id": "REVOLVER_DRAW_001",
+        "label": "Emergency Revolver Draw",
+        "principal": 250000,
+        "rate_apr": 0.095,
+        "amort_type": "interest_only",
+        "term_months": 12,
+        "type": "short_term_revolver"
+      },
+      "loop_delta": {
+        "audit_score_delta": 2,
+        "reputation_delta": -1
+      },
+      "feedback": "Cash runway improves. The bank now owns a larger piece of your sleep schedule."
+    },
+    {
+      "id": "DRAW_TERM_LOAN_750K",
+      "label": "Take $750k Supplemental Term Loan",
+      "description": "More runway at a lower rate, with fees and a longer debt shadow.",
+      "ledger_tx": [
+        {
+          "memo": "Supplemental term loan proceeds",
+          "cash_flow_category": "financing",
+          "journal": [
+            { "gl": "1000", "dc": "D", "amount": 750000 },
+            { "gl": "2400", "dc": "C", "amount": 750000 }
+          ]
+        },
+        {
+          "memo": "Supplemental term loan financing fee",
+          "cash_flow_category": "operating",
+          "journal": [
+            { "gl": "5300", "dc": "D", "amount": 15000 },
+            { "gl": "1000", "dc": "C", "amount": 15000 }
+          ]
+        }
+      ],
+      "debt_stack_add": {
+        "debt_id": "TERMLOAN_SUPP_001",
+        "label": "Supplemental Term Loan",
+        "principal": 750000,
+        "rate_apr": 0.072,
+        "amort_type": "interest_only",
+        "term_months": 36,
+        "type": "term_loan"
+      },
+      "loop_delta": {
+        "audit_score_delta": 1,
+        "ops_risk_delta": -1
+      },
+      "feedback": "You bought runway, not salvation. Debt is oxygen with an invoice."
+    },
+    {
+      "id": "DECLINE_DEBT",
+      "label": "Decline financing",
+      "description": "Keep the balance sheet cleaner and accept the liquidity risk.",
+      "ledger_tx": [],
+      "loop_delta": {
+        "reputation_delta": 1
+      },
+      "feedback": "No new debt. Clean, disciplined, and possibly too cute if cash gets ugly."
+    }
+  ]
+}

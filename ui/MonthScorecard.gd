@@ -23,6 +23,7 @@ func _build_body(scorecard: Dictionary) -> String:
 
 	var lines: Array[String] = []
 	lines.append("Cash: %s" % _format_currency(float(scorecard.get("cash", 0.0))))
+	lines.append("Total Debt: %s" % _format_currency(float(scorecard.get("total_debt", 0.0))))
 	lines.append("Operating Margin: %s" % _format_percent(float(scorecard.get("operating_margin", 0.0))))
 	lines.append("DSCR: %.1fx" % float(scorecard.get("dscr", 0.0)))
 	lines.append("Points: %d" % int(scorecard.get("points", 0)))

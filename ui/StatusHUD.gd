@@ -9,6 +9,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 	var week := int(loop_snapshot.get("week_number", loop_snapshot.get("week", 0)))
 	var month := int(loop_snapshot.get("month_number", loop_snapshot.get("month", 1)))
 	var cash := _extract_cash(financial_snapshot)
+	var total_debt := _extract_total_debt(financial_snapshot)
 	var points := int(loop_snapshot.get("points", 0))
 	var audit_score := int(loop_snapshot.get("audit_score", 0))
 	var reputation := float(loop_snapshot.get("reputation", 0.0))
@@ -18,6 +19,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 	body_label.text = (
 		"Week: %d | Month: %d\n" % [week, month]
 		+ "Cash: %s\n" % _format_currency(cash)
+		+ "Total Debt: %s\n" % _format_currency(total_debt)
 		+ "Points: %d\n" % points
 		+ "Audit Score: %d\n" % audit_score
 		+ "Reputation: %s\n" % _format_number(reputation)
@@ -30,6 +32,15 @@ func _extract_cash(financial_snapshot: Dictionary) -> float:
 	if balance_sheet.has("cash"):
 		return float(balance_sheet.get("cash", 0.0))
 	return float(financial_snapshot.get("cash", 0.0))
+
+func _extract_total_debt(financial_snapshot: Dictionary) -> float:
+	var balance_sheet: Dictionary = financial_snapshot.get("balance_sheet", {}) as Dictionary
+	if balance_sheet.has("total_debt"):
+		return float(balance_sheet.get("total_debt", 0.0))
+	return (
+		float(balance_sheet.get("short_term_debt", 0.0))
+		+ float(balance_sheet.get("debt_term_loan", 0.0))
+	)
 
 func _format_unlocks(loop_snapshot: Dictionary) -> String:
 	var names: Array[String] = []

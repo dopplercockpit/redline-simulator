@@ -35,7 +35,9 @@ var balance_lines: Array = [
 	["deferred_revenue", "Deferred Revenue"],
 	["accounts_payable", "Accounts Payable"],
 	["accrued_expenses", "Accrued Expenses"],
+	["short_term_debt", "Short-Term Debt / Revolver"],
 	["debt_term_loan", "Debt - Term Loan"],
+	["total_debt", "Total Debt"],
 	["retained_earnings", "Retained Earnings / Net Position"],
 	["total_assets", "Total Assets"],
 	["total_liabilities", "Total Liabilities"],
@@ -220,6 +222,9 @@ func get_financial_summary_example() -> Dictionary:
 			"cash": 0.0,
 			"accounts_receivable": 0.0,
 			"accounts_payable": 0.0,
+			"short_term_debt": 0.0,
+			"debt_term_loan": 0.0,
+			"total_debt": 0.0,
 			"equity": 0.0
 		},
 		"cash_flow": {

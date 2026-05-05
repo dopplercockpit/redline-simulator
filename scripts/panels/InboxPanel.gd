@@ -5,6 +5,7 @@ const BackendClientScript = preload("res://engine/BackendClient.gd")
 
 const CAPABILITY_FLAG := "cap.inbox"
 const LOCAL_ACTION_CARDS_PATH := "res://data/actions/flightpath/action_cards_v1.json"
+const LOCAL_DEBT_OFFERS_PATH := "res://data/tools/debt_desk/debt_offers_v1.json"
 # PATCH 2: local action-card inbox is canonical for v0.1; backend inbox remains future/optional.
 const USE_BACKEND_INBOX := false
 
@@ -188,7 +189,10 @@ func _render_local_inbox() -> void:
 	var card := _find_card_for_week(_get_current_week())
 	if card.is_empty():
 		if _has_debt_desk_unlocked():
-			_render_debt_desk_unlocked()
+			if _is_debt_desk_used():
+				_render_debt_desk_used()
+			else:
+				_render_debt_desk_offers()
 			return
 		_render_no_action_card()
 		return
@@ -274,24 +278,112 @@ func _render_no_action_card() -> void:
 	send_button.disabled = false
 
 func _has_debt_desk_unlocked() -> bool:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager and manager.has_method("is_debt_desk_unlocked"):
+		return bool(manager.call("is_debt_desk_unlocked"))
 	var loop_state := _get_loop_state_ref()
-	if loop_state == null:
-		return false
-	return bool(loop_state.unlocks.get("DEBT_DESK", false))
+	return loop_state != null and bool(loop_state.unlocks.get("DEBT_DESK", false))
 
-func _render_debt_desk_unlocked() -> void:
+func _is_debt_desk_used() -> bool:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager and manager.has_method("is_debt_desk_used"):
+		return bool(manager.call("is_debt_desk_used"))
+	var loop_state := _get_loop_state_ref()
+	return loop_state != null and bool(loop_state.flags.get("tool_used.DEBT_DESK", false))
+
+func _load_debt_offers() -> Dictionary:
+	if not FileAccess.file_exists(LOCAL_DEBT_OFFERS_PATH):
+		push_warning("Debt offers missing: " + LOCAL_DEBT_OFFERS_PATH)
+		return {}
+	var txt := FileAccess.get_file_as_string(LOCAL_DEBT_OFFERS_PATH)
+	var parsed: Variant = JSON.parse_string(txt)
+	if typeof(parsed) == TYPE_DICTIONARY:
+		return parsed as Dictionary
+	push_warning("Invalid debt offers JSON: " + LOCAL_DEBT_OFFERS_PATH)
+	return {}
+
+func _render_debt_desk_offers() -> void:
 	_clear_choice_buttons()
 	_advance_enabled = false
-	subject_label.text = "Debt Desk Unlocked"
+	subject_label.text = "Debt Desk: Financing Options"
 	sender_label.text = "Bank Relationship Manager"
-	body_label.text = "The bank is willing to discuss refinancing options now that month-end cash stabilized. Full Debt Desk tools arrive in the next patch."
+	body_label.text = "The Debt Desk is open. Choose a financing action. Cash gets easier; obligations get louder."
+	feedback_label.text = "Choose one financing option."
+	reply_input.visible = false
+	send_button.visible = false
+	send_button.disabled = true
+
+	var payload := _load_debt_offers()
+	var offers_value: Variant = payload.get("offers", [])
+	if typeof(offers_value) != TYPE_ARRAY:
+		feedback_label.text = "Debt offers unavailable."
+		return
+	var offers: Array = offers_value as Array
+	for offer_value in offers:
+		if typeof(offer_value) != TYPE_DICTIONARY:
+			continue
+		var offer: Dictionary = offer_value as Dictionary
+		var button := Button.new()
+		button.text = "%s\n%s" % [str(offer.get("label", "Choose")), str(offer.get("description", ""))]
+		button.custom_minimum_size = Vector2(0, 56)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(_on_debt_offer_pressed.bind(offer))
+		choice_container.add_child(button)
+
+func _render_debt_desk_used() -> void:
+	_clear_choice_buttons()
+	_advance_enabled = false
+	subject_label.text = "Debt Desk"
+	sender_label.text = "Bank Relationship Manager"
+	body_label.text = "Debt Desk facility already used in this MVP run. Future patches will add refinancing, repayment, and covenant negotiation."
 	feedback_label.text = ""
 	reply_input.visible = false
 	send_button.visible = false
 	send_button.disabled = true
 
 	var button := Button.new()
-	button.text = "Acknowledge"
+	button.text = "Close"
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(func() -> void:
+		visible = false
+	)
+	choice_container.add_child(button)
+
+func _on_debt_offer_pressed(offer: Dictionary) -> void:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager == null or not manager.has_method("submit_debt_desk_choice"):
+		feedback_label.text = "GameManager unavailable."
+		return
+	var offer_id := str(offer.get("id", ""))
+	var result: Dictionary = manager.call("submit_debt_desk_choice", offer_id, offer) as Dictionary
+	if not bool(result.get("ok", false)):
+		var error_texts := PackedStringArray()
+		for err in result.get("errors", []):
+			error_texts.append(str(err))
+		feedback_label.text = "; ".join(error_texts)
+		return
+
+	var ui: Dictionary = result.get("ui", {}) as Dictionary
+	feedback_label.text = str(ui.get("feedback", offer.get("feedback", "Debt Desk decision applied.")))
+	if offer_id != "DECLINE_DEBT":
+		_disable_choice_buttons()
+		_render_debt_close_button()
+	else:
+		_render_debt_decline_close_button()
+
+func _render_debt_close_button() -> void:
+	var button := Button.new()
+	button.text = "Close"
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(func() -> void:
+		visible = false
+	)
+	choice_container.add_child(button)
+
+func _render_debt_decline_close_button() -> void:
+	_clear_choice_buttons()
+	var button := Button.new()
+	button.text = "Close"
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(func() -> void:
 		visible = false

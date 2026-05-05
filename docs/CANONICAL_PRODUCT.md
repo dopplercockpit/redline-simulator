@@ -27,6 +27,10 @@ Weekly decisions are local, JSON-driven action cards. The inbox is the player-fa
 
 Scenario objectives are evaluated after month-close mission completion. Rewards may award points and unlock tools. The player must see consequences through `StatusHUD` and `MonthScorecard`.
 
+## Patch 4 Financing Tool Rule
+
+Unlocked tools become playable local systems. Debt Desk v1 posts financing transactions to the ledger and adds debt_stack items that increase future interest expense. Debt is a liquidity lever, not free money.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

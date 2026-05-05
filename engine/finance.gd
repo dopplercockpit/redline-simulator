@@ -354,7 +354,11 @@ func _weekly_interest_expense(debt_stack: Array) -> float:
 		if typeof(debt_value) != TYPE_DICTIONARY:
 			continue
 		var debt: Dictionary = debt_value as Dictionary
-		total += float(debt.get("principal", 0.0)) * float(debt.get("rate_apr", 0.0)) / 52.0
+		var principal := float(debt.get("principal", 0.0))
+		var rate_apr := float(debt.get("rate_apr", 0.0))
+		if principal <= 0.0 or rate_apr <= 0.0:
+			continue
+		total += principal * rate_apr / 52.0
 	return total
 
 func _post_airport_tx(

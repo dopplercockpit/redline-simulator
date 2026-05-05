@@ -166,7 +166,9 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		"deferred_revenue": 0.0,
 		"accounts_payable": 0.0,
 		"accrued_expenses": 0.0,
+		"short_term_debt": 0.0,
 		"debt_term_loan": 0.0,
+		"total_debt": 0.0,
 		"retained_earnings": 0.0,
 		"total_assets": 0.0,
 		"total_liabilities": 0.0,
@@ -196,6 +198,8 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 					balance_sheet["accounts_payable"] = amount
 				"2100":
 					balance_sheet["accrued_expenses"] = amount
+				"2300":
+					balance_sheet["short_term_debt"] = amount
 				"2400":
 					balance_sheet["debt_term_loan"] = amount
 				"3000":
@@ -239,11 +243,14 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		float(balance_sheet["deferred_revenue"])
 		+ float(balance_sheet["accounts_payable"])
 		+ float(balance_sheet["accrued_expenses"])
+		+ float(balance_sheet["short_term_debt"])
 		+ float(balance_sheet["debt_term_loan"])
 	)
+	var total_debt := float(balance_sheet["short_term_debt"]) + float(balance_sheet["debt_term_loan"])
 	var equity := float(balance_sheet["retained_earnings"]) + operating_surplus
 	balance_sheet["total_assets"] = total_assets
 	balance_sheet["total_liabilities"] = total_liabilities
+	balance_sheet["total_debt"] = total_debt
 	balance_sheet["equity"] = equity
 	balance_sheet["liabilities_and_equity"] = total_liabilities + equity
 

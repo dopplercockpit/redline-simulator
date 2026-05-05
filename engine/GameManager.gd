@@ -98,6 +98,35 @@ func submit_action_card_choice(card_id: String, choice_id: String, choice: Dicti
 	}
 	return submit_intent(intent)
 
+func submit_debt_desk_choice(offer_id: String, offer: Dictionary) -> Dictionary:
+	var scene_path := ""
+	if get_tree() and get_tree().current_scene:
+		scene_path = str(get_tree().current_scene.scene_file_path)
+	var intent: Dictionary = DecisionIntent.build_intent(
+		"debt_desk_choice.%s" % offer_id,
+		DecisionIntent.VERB_USE,
+		"debt_desk",
+		scene_path,
+		str(get_path())
+	)
+	intent["debt_desk_choice"] = {
+		"offer_id": offer_id,
+		"offer": offer
+	}
+	return submit_intent(intent)
+
+func is_debt_desk_unlocked() -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.unlocks.get("DEBT_DESK", false))
+
+func is_debt_desk_used() -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.flags.get("tool_used.DEBT_DESK", false))
+
 func submit_intent(intent: Dictionary) -> Dictionary:
 	if _resolver == null:
 		return {}
@@ -223,6 +252,10 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 	var financial_kpis: Dictionary = financial_snapshot.get("kpis", {}) as Dictionary
 
 	var cash := float(balance_sheet.get("cash", financial_snapshot.get("cash", 0.0)))
+	var total_debt := float(balance_sheet.get(
+		"total_debt",
+		float(balance_sheet.get("short_term_debt", 0.0)) + float(balance_sheet.get("debt_term_loan", 0.0))
+	))
 	var operating_margin := float(kpis.get("operating_margin", financial_kpis.get("operating_margin", 0.0)))
 	var dscr := float(kpis.get("dscr", financial_kpis.get("dscr", 0.0)))
 	var unlocks: Dictionary = loop_snapshot.get("unlocks", {}) as Dictionary
@@ -237,6 +270,7 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 		"title": "Month %d Scorecard" % month,
 		"month": month,
 		"cash": cash,
+		"total_debt": total_debt,
 		"operating_margin": operating_margin,
 		"dscr": dscr,
 		"points": int(loop_snapshot.get("points", 0)),

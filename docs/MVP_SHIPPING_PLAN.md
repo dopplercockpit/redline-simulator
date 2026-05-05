@@ -111,3 +111,47 @@ Patch 3 makes the Month 1 loop visibly playable. The player sees weekly decision
 ### Patch 4 Recommendation
 
 Patch 4 should turn `DEBT_DESK` from a visible stub into a small refinancing decision tool: term extension, covenant waiver, interest cost tradeoff, and debt-service impact posted through the same ledger-first resolver path.
+
+## Patch 4 — Debt Desk v1
+
+### Goal
+
+Patch 4 turns the `DEBT_DESK` unlock into a working local financing tool. After Month 1, the inbox can present financing offers that post debt proceeds to the ledger, add debt stack items, update financial statements, and increase future weekly interest expense.
+
+### Files Changed
+
+- `res://data/tools/debt_desk/debt_offers_v1.json`
+- `res://data/finance/coa_airport_v1.json`
+- `res://engine/DecisionResolver.gd`
+- `res://engine/GameManager.gd`
+- `res://engine/ledger.gd`
+- `res://engine/finance.gd`
+- `res://scripts/panels/InboxPanel.gd`
+- `res://ui/FinancialPanel.gd`
+- `res://ui/StatusHUD.gd`
+- `res://ui/StatusHUD.tscn`
+- `res://ui/MonthScorecard.gd`
+- `res://docs/PATCH_4_DEBT_DESK.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- CFO Office loads under Godot 4.5.
+- StatusHUD displays cash and total debt.
+- After Week 4 and the Boardroom quiz, passing the cash objective unlocks `DEBT_DESK`.
+- Opening the phone after unlock shows Debt Desk financing offers.
+- `DRAW_REVOLVER_250K` posts Dr `1000` / Cr `2300` for `$250,000`.
+- Revolver draw increases cash, short-term debt, total debt, and adds `REVOLVER_DRAW_001` to `debt_stack`.
+- `DRAW_TERM_LOAN_750K` posts Dr `1000` / Cr `2400` for `$750,000` and Dr `5300` / Cr `1000` for the `$15,000` fee.
+- Term loan draw increases term debt, total debt, and adds `TERMLOAN_SUPP_001` to `debt_stack`.
+- Future weekly interest expense increases because airport weekly finance sums every valid debt stack item.
+- Debt Desk draw cannot be executed twice in the same MVP run.
+- `DECLINE_DEBT` posts no ledger entries and does not consume the one draw.
+- FinancialPanel shows Short-Term Debt / Revolver, Debt - Term Loan, and Total Debt.
+- MonthScorecard shows Total Debt.
+- No backend or LLM call is required.
+
+### Patch 5 Recommendation
+
+Patch 5 should add repayment/refinancing choices and covenant pressure: optional revolver repayment, term loan amendment, covenant waiver fees, and board feedback when leverage or DSCR deteriorates.

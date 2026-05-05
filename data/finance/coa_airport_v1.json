@@ -6,6 +6,7 @@
     { "code": "1300", "name": "Deferred Revenue", "type": "liability", "statement": "BS", "rollup": "deferred_rev" },
     { "code": "2000", "name": "Accounts Payable", "type": "liability", "statement": "BS", "rollup": "ap" },
     { "code": "2100", "name": "Accrued Expenses", "type": "liability", "statement": "BS", "rollup": "accruals" },
+    { "code": "2300", "name": "Short-Term Debt / Revolver", "type": "liability", "statement": "BS", "rollup": "debt_short_term" },
     { "code": "2400", "name": "Debt - Term Loan", "type": "liability", "statement": "BS", "rollup": "debt" },
     { "code": "3000", "name": "Retained Earnings", "type": "equity", "statement": "BS", "rollup": "equity" },
 
@@ -32,6 +33,7 @@
       "deferred_rev": ["1300"],
       "ap": ["2000"],
       "accruals": ["2100"],
+      "debt_short_term": ["2300"],
       "debt": ["2400"],
       "equity": ["3000"]
     }

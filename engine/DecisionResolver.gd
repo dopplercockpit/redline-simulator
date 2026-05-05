@@ -109,6 +109,13 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 			action_card_choice.get("choice", {}) as Dictionary
 		)
 
+	if intent.has("debt_desk_choice") and typeof(intent["debt_desk_choice"]) == TYPE_DICTIONARY:
+		var debt_desk_choice: Dictionary = intent["debt_desk_choice"] as Dictionary
+		return _apply_debt_desk_choice(
+			str(debt_desk_choice.get("offer_id", "")),
+			debt_desk_choice.get("offer", {}) as Dictionary
+		)
+
 	var impacts: Dictionary = {}
 	var verb := str(intent.get("verb", "intent"))
 	var target := str(intent.get("target", "target"))
@@ -157,6 +164,113 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 		"events": [],
 		"errors": [],
 		"ui": {}
+	}
+
+func _apply_debt_desk_choice(offer_id: String, offer: Dictionary) -> Dictionary:
+	var errors: Array[String] = []
+	if offer_id.strip_edges() == "":
+		errors.append("Debt Desk offer missing offer_id.")
+	if _loop_system == null:
+		errors.append("LoopSystem unavailable")
+	if not errors.is_empty():
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": errors,
+			"ui": {}
+		}
+
+	var loop_state: LoopState = _loop_system.call("get_state_ref") as LoopState
+	if not bool(loop_state.unlocks.get("DEBT_DESK", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": ["Debt Desk is locked."],
+			"ui": {"feedback": "Debt Desk is locked."}
+		}
+
+	if bool(loop_state.flags.get("tool_used.DEBT_DESK", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": ["Debt Desk already used in this MVP run."],
+			"ui": {"feedback": "Debt Desk already used in this MVP run."}
+		}
+
+	var ledger_posted := 0
+	var ledger_errors: Array[String] = []
+	var ledger_value: Variant = offer.get("ledger_tx", [])
+	if typeof(ledger_value) == TYPE_ARRAY:
+		var txs: Array = ledger_value as Array
+		for i in range(txs.size()):
+			var tx_value: Variant = txs[i]
+			if typeof(tx_value) != TYPE_DICTIONARY:
+				ledger_errors.append("ledger_tx entry must be a Dictionary")
+				continue
+			var tx: Dictionary = (tx_value as Dictionary).duplicate(true)
+			tx["tx_id"] = "DEBT_DESK_%s_%s" % [offer_id, str(i).pad_zeros(3)]
+			tx["week"] = get_current_decision_week()
+			tx["source"] = "debt_desk"
+			tx["offer_id"] = offer_id
+			var result: Dictionary = _ledger.post_transaction(_financial_state.ledger, tx)
+			if bool(result.get("ok", false)):
+				ledger_posted += 1
+			else:
+				for msg in result.get("errors", []):
+					ledger_errors.append(str(msg))
+	elif ledger_value != null:
+		ledger_errors.append("ledger_tx must be an Array")
+
+	var debt_added := false
+	if ledger_errors.is_empty() and offer.has("debt_stack_add") and typeof(offer["debt_stack_add"]) == TYPE_DICTIONARY:
+		var debt_item: Dictionary = (offer["debt_stack_add"] as Dictionary).duplicate(true)
+		if float(debt_item.get("principal", 0.0)) > 0.0:
+			_financial_state.debt_stack.append(debt_item)
+			_financial_state.finance["debt_stack"] = _financial_state.debt_stack.duplicate(true)
+			debt_added = true
+
+	var loop_impact: Dictionary = {}
+	if ledger_errors.is_empty() and offer.has("loop_delta") and typeof(offer["loop_delta"]) == TYPE_DICTIONARY:
+		loop_impact = _apply_loop_delta(offer["loop_delta"] as Dictionary)
+
+	var statements := _finance.generate_statements_from_ledger(_financial_state)
+	_financial_state.meta["financial_statements"] = statements
+	var balance_sheet: Dictionary = statements.get("balance_sheet", {}) as Dictionary
+	_financial_state.cash = float(balance_sheet.get("cash", _financial_state.cash))
+
+	var feedback := str(offer.get("feedback", "Debt Desk decision applied."))
+	loop_state.memory["last_debt_desk_feedback"] = feedback
+	if offer_id == "DECLINE_DEBT":
+		# Declining is a preview/discipline choice. It does not consume the only Patch 4 draw.
+		loop_state.flags["tool_seen.DEBT_DESK"] = true
+	elif ledger_errors.is_empty():
+		loop_state.flags["tool_used.DEBT_DESK"] = true
+
+	_loop_system.call("notify_updated")
+
+	var debt_impact := {
+		"offer_id": offer_id,
+		"ledger_posted": ledger_posted,
+		"debt_added": debt_added,
+		"feedback": feedback,
+		"errors": ledger_errors
+	}
+	var impacts := {
+		"debt_desk": debt_impact,
+		"loop": loop_impact
+	}
+	emit_signal("decision_applied", "debt_desk.%s" % offer_id, impacts)
+	return {
+		"ok": ledger_errors.is_empty(),
+		"impacts": impacts,
+		"events": [],
+		"errors": ledger_errors,
+		"ui": {
+			"feedback": feedback
+		}
 	}
 
 func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
