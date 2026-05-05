@@ -5,17 +5,27 @@ signal turn_advanced(new_week: int, new_month: int)
 signal month_end_ready(month_number: int, report: Dictionary)
 signal mission_triggered(mission_id: String)
 signal state_updated()
+signal scorecard_ready(scorecard: Dictionary)
 
 const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.json"
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 
 var _resolver: Node = null
+var _current_scenario_config: Dictionary = {}
+var _objectives_evaluated: Dictionary = {}
+var _mission_manager_connected: bool = false
 
 func _ready() -> void:
 	_resolver = get_node_or_null("/root/DecisionResolver")
 	if _resolver == null:
 		push_warning("DecisionResolver autoload missing; GameManager is inactive.")
 
+	_connect_mission_manager()
+	call_deferred("_connect_mission_manager")
+
+func _connect_mission_manager() -> void:
+	if _mission_manager_connected:
+		return
 	var mission_manager := get_node_or_null("/root/MissionManager")
 	if mission_manager:
 		var loop_system := get_node_or_null("/root/LoopSystem")
@@ -23,6 +33,9 @@ func _ready() -> void:
 			mission_manager.call("init_from_state", loop_system.call("get_state_ref"))
 		if not month_end_ready.is_connected(_on_month_end_ready):
 			month_end_ready.connect(_on_month_end_ready)
+		if mission_manager.has_signal("mission_completed") and not mission_manager.mission_completed.is_connected(_on_mission_completed):
+			mission_manager.mission_completed.connect(_on_mission_completed)
+		_mission_manager_connected = true
 
 func load_scenario(path: String = DEFAULT_SCENARIO_PATH) -> void:
 	var cfg := _read_json(path)
@@ -31,6 +44,8 @@ func load_scenario(path: String = DEFAULT_SCENARIO_PATH) -> void:
 	load_scenario_config(cfg)
 
 func load_scenario_config(cfg: Dictionary) -> void:
+	_current_scenario_config = cfg.duplicate(true)
+	_objectives_evaluated = {}
 	if _resolver:
 		_resolver.call("load_scenario", cfg)
 	emit_signal("state_updated")
@@ -115,6 +130,124 @@ func get_loop_snapshot() -> Dictionary:
 		snap["month"] = snap.get("month_number")
 	return snap
 
+func evaluate_objectives(context: Dictionary = {}) -> Dictionary:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return {"results": [], "errors": ["LoopState unavailable"]}
+
+	var objectives_value: Variant = _current_scenario_config.get("objectives", [])
+	if typeof(objectives_value) != TYPE_ARRAY:
+		return {"results": [], "errors": ["Scenario objectives must be an Array"]}
+
+	var objectives: Array = objectives_value as Array
+	var results: Array = []
+	var current_week := int(loop_state.week_number)
+	var financial_snapshot := get_financial_snapshot()
+	var last_month_report := _get_last_month_report()
+
+	for objective_value in objectives:
+		if typeof(objective_value) != TYPE_DICTIONARY:
+			continue
+		var objective: Dictionary = objective_value as Dictionary
+		var objective_id := str(objective.get("id", "objective"))
+		var by_week := int(objective.get("by_week", 0))
+		if by_week > 0 and current_week < by_week:
+			continue
+
+		var stored_results: Dictionary = loop_state.memory.get("objective_results", {}) as Dictionary
+		var checked_flag := "objective_checked.%s" % objective_id
+		if bool(loop_state.flags.get(checked_flag, false)) and stored_results.has(objective_id):
+			results.append(stored_results.get(objective_id))
+			continue
+
+		var metric := str(objective.get("metric", ""))
+		var actual := _get_objective_metric(metric, loop_state, financial_snapshot, last_month_report, context)
+		var target := float(objective.get("value", 0.0))
+		var operator := str(objective.get("operator", ">="))
+		var passed := _compare_metric(actual, operator, target)
+
+		var reward: Dictionary = objective.get("reward", {}) as Dictionary
+		var points_awarded := 0
+		var unlocks_awarded: Array[String] = []
+		var message := ""
+		if passed:
+			var completed_flag := "objective_completed.%s" % objective_id
+			if not bool(loop_state.flags.get(completed_flag, false)):
+				points_awarded = int(reward.get("points", 0))
+				loop_state.points += points_awarded
+				var unlocks_add: Dictionary = reward.get("unlocks_add", {}) as Dictionary
+				for unlock_key in unlocks_add.keys():
+					if bool(unlocks_add.get(unlock_key, false)):
+						loop_state.unlocks[str(unlock_key)] = true
+						unlocks_awarded.append(str(unlock_key))
+				var flags_set: Dictionary = reward.get("flags_set", {}) as Dictionary
+				for flag_key in flags_set.keys():
+					loop_state.flags[str(flag_key)] = flags_set.get(flag_key)
+				loop_state.flags[completed_flag] = true
+			message = _objective_success_message(objective_id, unlocks_awarded)
+		else:
+			message = _objective_failure_message(objective_id)
+
+		loop_state.flags[checked_flag] = true
+		var result := {
+			"id": objective_id,
+			"passed": passed,
+			"message": message,
+			"points_awarded": points_awarded,
+			"unlocks": unlocks_awarded,
+			"metric": metric,
+			"actual": actual,
+			"target": target,
+			"operator": operator
+		}
+		stored_results[objective_id] = result
+		_objectives_evaluated[objective_id] = result
+		loop_state.memory["objective_results"] = stored_results
+		results.append(result)
+
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("notify_updated"):
+		loop_system.call("notify_updated")
+
+	return {
+		"results": results,
+		"errors": []
+	}
+
+func build_month_scorecard(objective_results: Array = []) -> Dictionary:
+	var loop_snapshot := get_loop_snapshot()
+	var financial_snapshot := get_financial_snapshot()
+	var last_month_report := _get_last_month_report()
+	var balance_sheet: Dictionary = financial_snapshot.get("balance_sheet", {}) as Dictionary
+	var kpis: Dictionary = last_month_report.get("kpis", {}) as Dictionary
+	var financial_kpis: Dictionary = financial_snapshot.get("kpis", {}) as Dictionary
+
+	var cash := float(balance_sheet.get("cash", financial_snapshot.get("cash", 0.0)))
+	var operating_margin := float(kpis.get("operating_margin", financial_kpis.get("operating_margin", 0.0)))
+	var dscr := float(kpis.get("dscr", financial_kpis.get("dscr", 0.0)))
+	var unlocks: Dictionary = loop_snapshot.get("unlocks", {}) as Dictionary
+	var completed_missions_dict: Dictionary = loop_snapshot.get("completed_missions", {}) as Dictionary
+	var completed_missions: Array[String] = []
+	for mission_id in completed_missions_dict.keys():
+		if bool(completed_missions_dict.get(mission_id, false)):
+			completed_missions.append(str(mission_id))
+
+	var month := int(last_month_report.get("month", max(1, int(loop_snapshot.get("month_number", 1)) - 1)))
+	return {
+		"title": "Month %d Scorecard" % month,
+		"month": month,
+		"cash": cash,
+		"operating_margin": operating_margin,
+		"dscr": dscr,
+		"points": int(loop_snapshot.get("points", 0)),
+		"audit_score": int(loop_snapshot.get("audit_score", 0)),
+		"reputation": float(loop_snapshot.get("reputation", 0.0)),
+		"ops_risk": float(loop_snapshot.get("ops_risk", 0.0)),
+		"completed_missions": completed_missions,
+		"unlocks": unlocks.duplicate(true),
+		"objective_results": objective_results
+	}
+
 func _on_month_end_ready(month_number: int, report: Dictionary) -> void:
 	var mission_manager := get_node_or_null("/root/MissionManager")
 	if mission_manager == null:
@@ -122,6 +255,78 @@ func _on_month_end_ready(month_number: int, report: Dictionary) -> void:
 	var loop_snapshot := get_loop_snapshot()
 	loop_snapshot["closed_month"] = month_number
 	mission_manager.call("enqueue_month_close", report, loop_snapshot)
+
+func _on_mission_completed(result: Dictionary) -> void:
+	var mission_id := str(result.get("mission_id", ""))
+	if not mission_id.contains("MISSION_MONTH_CLOSE_V1"):
+		emit_signal("state_updated")
+		return
+
+	var objective_result_payload := evaluate_objectives()
+	var objective_results: Array = objective_result_payload.get("results", []) as Array
+	var scorecard := build_month_scorecard(objective_results)
+	emit_signal("scorecard_ready", scorecard)
+	emit_signal("state_updated")
+
+func _get_last_month_report() -> Dictionary:
+	if _resolver and _resolver.has_method("get_last_month_report"):
+		return _resolver.call("get_last_month_report") as Dictionary
+	return {}
+
+func _get_objective_metric(
+	metric: String,
+	loop_state: LoopState,
+	financial_snapshot: Dictionary,
+	last_month_report: Dictionary,
+	context: Dictionary
+) -> float:
+	if context.has(metric):
+		return float(context.get(metric, 0.0))
+	match metric:
+		"cash":
+			var balance_sheet: Dictionary = financial_snapshot.get("balance_sheet", {}) as Dictionary
+			return float(balance_sheet.get("cash", financial_snapshot.get("cash", 0.0)))
+		"audit_score":
+			return float(loop_state.audit_score)
+		"points":
+			return float(loop_state.points)
+		"operating_margin":
+			var report_kpis: Dictionary = last_month_report.get("kpis", {}) as Dictionary
+			var financial_kpis: Dictionary = financial_snapshot.get("kpis", {}) as Dictionary
+			return float(report_kpis.get("operating_margin", financial_kpis.get("operating_margin", 0.0)))
+		"dscr":
+			var report_kpis_dscr: Dictionary = last_month_report.get("kpis", {}) as Dictionary
+			var financial_kpis_dscr: Dictionary = financial_snapshot.get("kpis", {}) as Dictionary
+			return float(report_kpis_dscr.get("dscr", financial_kpis_dscr.get("dscr", 0.0)))
+		_:
+			return 0.0
+
+func _compare_metric(actual: float, operator: String, target: float) -> bool:
+	match operator:
+		">=":
+			return actual >= target
+		">":
+			return actual > target
+		"<=":
+			return actual <= target
+		"<":
+			return actual < target
+		"==":
+			return absf(actual - target) < 0.0001
+		_:
+			return false
+
+func _objective_success_message(objective_id: String, unlocks: Array[String]) -> String:
+	if objective_id == "obj_cash" and unlocks.has("DEBT_DESK"):
+		return "Cash objective met. Debt Desk unlocked."
+	if unlocks.is_empty():
+		return "Objective met."
+	return "Objective met. Unlocked: %s." % ", ".join(PackedStringArray(unlocks))
+
+func _objective_failure_message(objective_id: String) -> String:
+	if objective_id == "obj_cash":
+		return "Cash objective missed. Debt Desk remains locked."
+	return "Objective missed."
 
 func _read_json(p: String) -> Dictionary:
 	var txt: String = FileAccess.get_file_as_string(p)

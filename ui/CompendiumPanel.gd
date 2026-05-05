@@ -1,7 +1,10 @@
 extends CanvasLayer
+
+const BackendClientScript = preload("res://engine/BackendClient.gd")
+
 @onready var body: RichTextLabel = $PanelContainer/ScrollContainer/VBoxContainer/Body
 
-var _backend_client: BackendClient
+var _backend_client: Node
 var _local_compendium_text: String = "[b]Missing compendium[/b]"
 var _nudge_request_in_flight: bool = false
 
@@ -29,7 +32,7 @@ func _load_static_compendium(path: String) -> String:
 	return t
 
 func _ready() -> void:
-	_backend_client = BackendClient.new()
+	_backend_client = BackendClientScript.new()
 	add_child(_backend_client)
 	if not _backend_client.nudge_request_finished.is_connected(_on_nudge_finished):
 		_backend_client.nudge_request_finished.connect(_on_nudge_finished)
@@ -177,6 +180,6 @@ func _on_nudge_finished(result: Dictionary) -> void:
 func _prepend_fallback_nudge(base_text: String) -> String:
 	return (
 		"[b]Coach Nudge: Review Drivers[/b]\n"
-		"Check margin, cash discipline, and audit posture before finalizing your next move.\n\n"
+		+ "Check margin, cash discipline, and audit posture before finalizing your next move.\n\n"
 		+ base_text
 	)

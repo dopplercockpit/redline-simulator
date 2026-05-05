@@ -1,8 +1,10 @@
 extends CanvasLayer
 
+const BackendClientScript = preload("res://engine/BackendClient.gd")
+
 @onready var body: RichTextLabel = $PanelContainer/ScrollContainer/VBoxContainer/Body
 
-var _backend_client: BackendClient
+var _backend_client: Node
 var _local_fallback_text: String = "[b]No news found[/b]"
 var _news_request_in_flight: bool = false
 
@@ -14,7 +16,7 @@ func load_news(path: String) -> void:
 
 
 func _ready() -> void:
-	_backend_client = BackendClient.new()
+	_backend_client = BackendClientScript.new()
 	add_child(_backend_client)
 	if not _backend_client.news_request_finished.is_connected(_on_backend_news_finished):
 		_backend_client.news_request_finished.connect(_on_backend_news_finished)

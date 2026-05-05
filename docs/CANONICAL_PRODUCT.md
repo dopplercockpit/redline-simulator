@@ -23,6 +23,10 @@ The ledger is the source of truth. Airport CFO statements are generated from GL 
 
 Weekly decisions are local, JSON-driven action cards. The inbox is the player-facing action hub. Choices may post ledger transactions and update airport/economy/loop state, but all mutations must go through `DecisionResolver`.
 
+## Patch 3 Progression Rule
+
+Scenario objectives are evaluated after month-close mission completion. Rewards may award points and unlock tools. The player must see consequences through `StatusHUD` and `MonthScorecard`.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

@@ -71,3 +71,43 @@ Patch 2 adds the local-first player decision loop for Airport CFO. The phone inb
 ## Patch 3 Recommendation
 
 Patch 3 should add richer airport operating context around the weekly cards: compact KPI/status widgets in the CFO office, a clearer history of chosen actions, and a small runway of future card definitions for route incentives, staffing/service quality, covenant pressure, and capex deferral.
+
+## Patch 3 — Boardroom, Unlocks, Status HUD, and Month 1 Scorecard
+
+### Goal
+
+Patch 3 makes the Month 1 loop visibly playable. The player sees weekly decision consequences in a persistent HUD, completes the month-close boardroom quiz, receives mission points/audit impact, has scenario objectives evaluated, and sees a Month 1 scorecard with any tool unlocks.
+
+### Files Changed
+
+- `res://engine/GameManager.gd`
+- `res://scenes/cfo_office.gd`
+- `res://scripts/panels/InboxPanel.gd`
+- `res://ui/BoardroomQuiz.gd`
+- `res://ui/BoardroomQuiz.tscn`
+- `res://ui/StatusHUD.gd`
+- `res://ui/StatusHUD.tscn`
+- `res://ui/MonthScorecard.gd`
+- `res://ui/MonthScorecard.tscn`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- CFO Office loads with a visible StatusHUD.
+- StatusHUD shows week, month, cash, points, audit score, reputation, ops risk, and unlocks.
+- Week 1 action card selection updates HUD through `GameManager.state_updated`.
+- Week advance updates the displayed week/month.
+- Week 4 advance queues the month-close mission.
+- Boardroom quiz completion still awards mission points and audit score through `MissionManager`.
+- `GameManager` evaluates `scenario_001` objectives after month-close mission completion.
+- If cash is at least `$900,000` by week 4, `obj_cash` awards `150` points once and unlocks `DEBT_DESK`.
+- Objective rewards cannot be duplicated after the objective is checked.
+- MonthScorecard appears after month-close mission completion.
+- MonthScorecard displays cash, operating margin, DSCR, points, audit score, reputation, ops risk, completed missions, unlocks, and objective results.
+- After `DEBT_DESK` unlocks, the inbox can show a Debt Desk unlocked stub.
+- No backend or LLM call is required.
+
+### Patch 4 Recommendation
+
+Patch 4 should turn `DEBT_DESK` from a visible stub into a small refinancing decision tool: term extension, covenant waiver, interest cost tradeoff, and debt-service impact posted through the same ledger-first resolver path.

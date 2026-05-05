@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+const BackendClientScript = preload("res://engine/BackendClient.gd")
 
 const CAPABILITY_FLAG := "cap.inbox"
 const LOCAL_ACTION_CARDS_PATH := "res://data/actions/flightpath/action_cards_v1.json"
@@ -16,7 +17,7 @@ const USE_BACKEND_INBOX := false
 @onready var send_button: Button = $PanelContainer/VBox/SendButton
 @onready var feedback_label: Label = $PanelContainer/VBox/FeedbackLabel
 
-var _backend_client: BackendClient
+var _backend_client: Node
 var _email_id: String = ""
 var _inbox_request_in_flight: bool = false
 var _advance_enabled: bool = false
@@ -24,7 +25,7 @@ var _advance_enabled: bool = false
 func _ready() -> void:
 	_ensure_choice_container()
 	if USE_BACKEND_INBOX:
-		_backend_client = BackendClient.new()
+		_backend_client = BackendClientScript.new()
 		add_child(_backend_client)
 		if not _backend_client.inbox_request_finished.is_connected(_on_dynamic_inbox_finished):
 			_backend_client.inbox_request_finished.connect(_on_dynamic_inbox_finished)
@@ -186,6 +187,9 @@ func _render_local_inbox() -> void:
 
 	var card := _find_card_for_week(_get_current_week())
 	if card.is_empty():
+		if _has_debt_desk_unlocked():
+			_render_debt_desk_unlocked()
+			return
 		_render_no_action_card()
 		return
 	_render_action_card(card)
@@ -268,6 +272,31 @@ func _render_no_action_card() -> void:
 	send_button.text = "Advance Week"
 	send_button.visible = true
 	send_button.disabled = false
+
+func _has_debt_desk_unlocked() -> bool:
+	var loop_state := _get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.unlocks.get("DEBT_DESK", false))
+
+func _render_debt_desk_unlocked() -> void:
+	_clear_choice_buttons()
+	_advance_enabled = false
+	subject_label.text = "Debt Desk Unlocked"
+	sender_label.text = "Bank Relationship Manager"
+	body_label.text = "The bank is willing to discuss refinancing options now that month-end cash stabilized. Full Debt Desk tools arrive in the next patch."
+	feedback_label.text = ""
+	reply_input.visible = false
+	send_button.visible = false
+	send_button.disabled = true
+
+	var button := Button.new()
+	button.text = "Acknowledge"
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(func() -> void:
+		visible = false
+	)
+	choice_container.add_child(button)
 
 func _on_choice_pressed(card: Dictionary, choice: Dictionary) -> void:
 	var manager := get_node_or_null("/root/GameManager")
@@ -498,6 +527,6 @@ func _apply_fallback_memo(reason: String) -> void:
 	sender_label.text = "CFO Office"
 	body_label.text = (
 		"Dynamic inbox is unavailable right now. "
-		"Review cash position, expense discipline, and audit readiness before advancing."
+		+ "Review cash position, expense discipline, and audit readiness before advancing."
 	)
 	feedback_label.text = "Using fallback memo."

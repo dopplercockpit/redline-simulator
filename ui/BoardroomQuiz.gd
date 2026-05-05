@@ -100,7 +100,7 @@ func _show_results() -> void:
 	if progress_label:
 		progress_label.text = "Complete"
 	if result_label:
-		result_label.text = "Score: %d | Correct: %d | Wrong: %d" % [score, _correct, _wrong]
+		result_label.text = "Score: %d | Correct: %d | Wrong: %d\nMission complete. Return to CFO Office for your scorecard." % [score, _correct, _wrong]
 		result_label.visible = true
 	if finish_button:
 		finish_button.visible = true

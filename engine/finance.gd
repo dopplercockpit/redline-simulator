@@ -113,19 +113,19 @@ func calculate_airport_week(state: Resource, week_number: int) -> Dictionary:
 	traffic_modifier *= 1.0 + (float(service_quality_tier - 1) * 0.03)
 	traffic_modifier *= 1.0 + (float(resilience_tier - 1) * 0.02)
 
-	var passenger_volume_week := round(18000.0 * traffic_modifier)
-	var turnarounds_week := passenger_volume_week / 145.0
+	var passenger_volume_week: float = round(18000.0 * traffic_modifier)
+	var turnarounds_week: float = passenger_volume_week / 145.0
 
 	var landing_fees: Dictionary = revenue_streams.get("landing_fees", {}) as Dictionary
 	var passenger_fees: Dictionary = revenue_streams.get("passenger_fees", {}) as Dictionary
 	var concessions: Dictionary = revenue_streams.get("concessions", {}) as Dictionary
 
-	var landing_revenue := turnarounds_week * float(landing_fees.get("price_per_turnaround_usd", 850.0))
-	var pfc_revenue := passenger_volume_week * float(passenger_fees.get("pax_facility_charge_usd", 8.0))
-	var concessions_revenue := float(concessions.get("baseline_sales_usd_week", 180000.0)) * traffic_modifier * 0.18
-	var payroll_expense := 175000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.08)
-	var utilities_expense := 45000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.05)
-	var interest_expense := _weekly_interest_expense(s.debt_stack)
+	var landing_revenue: float = turnarounds_week * float(landing_fees.get("price_per_turnaround_usd", 850.0))
+	var pfc_revenue: float = passenger_volume_week * float(passenger_fees.get("pax_facility_charge_usd", 8.0))
+	var concessions_revenue: float = float(concessions.get("baseline_sales_usd_week", 180000.0)) * traffic_modifier * 0.18
+	var payroll_expense: float = 175000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.08)
+	var utilities_expense: float = 45000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.05)
+	var interest_expense: float = _weekly_interest_expense(s.debt_stack)
 
 	var scenario_id := str(s.meta.get("id", s.meta.get("scenario_id", "")))
 	posted += _post_airport_tx(s, week_number, scenario_id, "Landing fees collected", CASH_GL, LANDING_FEES_REV_GL, landing_revenue, errors)
@@ -136,8 +136,8 @@ func calculate_airport_week(state: Resource, week_number: int) -> Dictionary:
 	if interest_expense > 0.0:
 		posted += _post_airport_tx(s, week_number, scenario_id, "Interest paid", INTEREST_EXP_GL, CASH_GL, interest_expense, errors)
 
-	var revenue_delta := landing_revenue + pfc_revenue + concessions_revenue
-	var expense_delta := payroll_expense + utilities_expense + interest_expense
+	var revenue_delta: float = landing_revenue + pfc_revenue + concessions_revenue
+	var expense_delta: float = payroll_expense + utilities_expense + interest_expense
 
 	s.cash = _ledger.get_gl_balance(s.ledger, CASH_GL)
 	s.revenue_ytd = float(s.revenue_ytd) + revenue_delta

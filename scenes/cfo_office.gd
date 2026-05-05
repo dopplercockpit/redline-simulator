@@ -6,6 +6,8 @@ extends Node2D
 const SUBMIT_WEBHOOK_URL := "https://script.google.com/macros/s/AKfycbw2XJuAMKD5Po9sEW3oAvQH251lIAsoWh3Ant-r8ZAK1iOI8OimUKouJy5esIn93pEz/exec"
 var backend_base := "" # keep empty for web demo (no backend calls)
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+const StatusHUDScene = preload("res://ui/StatusHUD.tscn")
+const MonthScorecardScene = preload("res://ui/MonthScorecard.tscn")
 const INBOX_UNLOCKED := true
 
 # ===========================
@@ -24,6 +26,9 @@ var month_end_ready: bool = false
 @onready var financial_panel: CanvasLayer = $FinancialPanel
 @onready var submit_http: HTTPRequest = $SubmitHTTP
 @onready var inbox_panel: CanvasLayer = $InboxPanel
+
+var status_hud: CanvasLayer = null
+var month_scorecard: CanvasLayer = null
 
 # Reference to GameController (if it exists as an autoload)
 # If GameController is registered as an autoload in Project Settings, it's accessible globally
@@ -44,6 +49,8 @@ func _ready() -> void:
 
 	# Connect commentary submit
 	_connect_financial_panel()
+	_ensure_status_hud()
+	_ensure_month_scorecard()
 	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
 		financial_panel.set_submission_enabled(false)
 		month_end_ready = false
@@ -76,8 +83,18 @@ func _ready() -> void:
 			manager.turn_advanced.connect(_on_turn_advanced)
 		if not manager.month_end_ready.is_connected(_on_month_end_ready):
 			manager.month_end_ready.connect(_on_month_end_ready)
+		if manager.has_signal("state_updated") and not manager.state_updated.is_connected(_on_game_manager_state_updated):
+			manager.state_updated.connect(_on_game_manager_state_updated)
+		if manager.has_signal("scorecard_ready") and not manager.scorecard_ready.is_connected(_on_scorecard_ready):
+			manager.scorecard_ready.connect(_on_scorecard_ready)
+
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager and mission_manager.has_signal("mission_completed"):
+		if not mission_manager.mission_completed.is_connected(_on_mission_completed):
+			mission_manager.mission_completed.connect(_on_mission_completed)
 
 	_connect_inbox()
+	_refresh_status_hud()
 
 func _connect_financial_panel() -> void:
 	if financial_panel and not financial_panel.commentary_submitted.is_connected(_on_commentary_submitted):
@@ -89,6 +106,65 @@ func _connect_inbox() -> void:
 		var state = loop_system.call("get_state_ref")
 		if state and INBOX_UNLOCKED:
 			state.flags["cap.inbox"] = true
+	_refresh_status_hud()
+
+func _ensure_status_hud() -> void:
+	status_hud = get_node_or_null("StatusHUD") as CanvasLayer
+	if status_hud != null:
+		return
+	status_hud = StatusHUDScene.instantiate() as CanvasLayer
+	status_hud.name = "StatusHUD"
+	add_child(status_hud)
+
+func _ensure_month_scorecard() -> void:
+	month_scorecard = get_node_or_null("MonthScorecard") as CanvasLayer
+	if month_scorecard != null:
+		return
+	month_scorecard = MonthScorecardScene.instantiate() as CanvasLayer
+	month_scorecard.name = "MonthScorecard"
+	add_child(month_scorecard)
+
+func _refresh_status_hud() -> void:
+	if status_hud == null:
+		_ensure_status_hud()
+	if status_hud == null or not status_hud.has_method("refresh"):
+		return
+
+	var loop_snapshot: Dictionary = {}
+	var financial_snapshot: Dictionary = {}
+	var manager: Node = get_node_or_null("/root/GameManager")
+	if manager:
+		if manager.has_method("get_loop_snapshot"):
+			loop_snapshot = manager.call("get_loop_snapshot") as Dictionary
+		if manager.has_method("get_financial_snapshot"):
+			financial_snapshot = manager.call("get_financial_snapshot") as Dictionary
+
+	if loop_snapshot.is_empty():
+		var loop_system := get_node_or_null("/root/LoopSystem")
+		if loop_system and loop_system.has_method("get_snapshot"):
+			loop_snapshot = loop_system.call("get_snapshot") as Dictionary
+	if financial_snapshot.is_empty():
+		var state := _get_financial_state()
+		if state:
+			financial_snapshot = state.get_financial_summary()
+
+	status_hud.call("refresh", loop_snapshot, financial_snapshot)
+
+func _on_game_manager_state_updated() -> void:
+	_refresh_status_hud()
+
+func _on_mission_completed(_result: Dictionary) -> void:
+	_refresh_status_hud()
+
+func _on_scorecard_ready(scorecard: Dictionary) -> void:
+	_ensure_month_scorecard()
+	if month_scorecard and month_scorecard.has_method("show_scorecard"):
+		month_scorecard.call("show_scorecard", scorecard)
+	_refresh_status_hud()
+	var objective_results: Array = scorecard.get("objective_results", []) as Array
+	if not objective_results.is_empty():
+		var first_result: Dictionary = objective_results[0] as Dictionary
+		$DialogueBox.show_text(str(first_result.get("message", "Month scorecard ready.")))
 
 func _get_resolver() -> Node:
 	return get_node_or_null("/root/DecisionResolver")
@@ -495,6 +571,7 @@ func _on_state_updated(state: Dictionary):
 	# 3. Update UI
 	if financial_panel:
 		financial_panel.update_display(fin_data)
+	_refresh_status_hud()
 
 func _on_decision_processed(impacts: Dictionary):
 	$DialogueBox.show_text("Decision applied! Impact: " + str(impacts))
@@ -502,9 +579,11 @@ func _on_decision_processed(impacts: Dictionary):
 func _on_turn_advanced(week_number: int, month_number: int) -> void:
 	var week_in_month := ((week_number - 1) % 4) + 1 if week_number > 0 else 0
 	$DialogueBox.show_text("Week %d complete. Month %d. (Week-in-month %d/4)" % [week_number, month_number, week_in_month])
+	_refresh_status_hud()
 
 func _on_month_end_ready(month_number: int, _report: Dictionary) -> void:
 	month_end_ready = true
 	if is_instance_valid(financial_panel) and financial_panel.has_method("set_submission_enabled"):
 		financial_panel.set_submission_enabled(true)
 	$DialogueBox.show_text("Month %d closed. Review results and submit analysis." % month_number)
+	_refresh_status_hud()

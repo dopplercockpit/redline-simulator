@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://c7k3x5h1n8h2p"]
 
-[ext_resource type="Script" uid="uid://d5v8a8h1f3k1w" path="res://scripts/panels/InboxPanel.gd" id="1"]
-[ext_resource type="Script" uid="uid://c2u1l6b9q7k2y" path="res://scripts/services/ApiClient.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/panels/InboxPanel.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/services/ApiClient.gd" id="2"]
 
 [node name="InboxPanel" type="CanvasLayer"]
 visible = false
