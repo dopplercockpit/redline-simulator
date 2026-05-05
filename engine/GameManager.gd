@@ -34,7 +34,7 @@ func load_scenario_config(cfg: Dictionary) -> void:
 		_resolver.call("load_scenario", cfg)
 	emit_signal("state_updated")
 
-func advance_week(use_legacy_burn: bool = true) -> Dictionary:
+func advance_week(use_legacy_burn: bool = false) -> Dictionary:
 	if _resolver == null:
 		return {}
 

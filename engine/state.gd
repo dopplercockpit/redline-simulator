@@ -18,13 +18,23 @@ var is_month_end: bool = false
 var ledger: Dictionary = {}
 var coa: Dictionary = {}   # placeholder for later, keep empty for now
 
-# Domain
+# Airport CFO domain (canonical v0.1)
+var airport: Dictionary = {}
+var commercial: Dictionary = {}
+var contracts: Dictionary = {}
+var economy: Dictionary = {}
+var finance: Dictionary = {}
+var debt_stack: Array = []
+var covenants: Dictionary = {}
+
+# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+# These fields remain for backwards-compatible scenario loading and legacy delta mode only.
 var fleet := {}          # {"A320ceo": {"count":4, "lease_usd_mpm":220000, "hours_avail":10.5, "age_avg":8.2}}
 var routes := {}         # {"LYS-BCN": {"weekly_freq":10, "price_usd":99, "capacity_seats":180, "demand_idx":0.76}}
 var fuel := {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
 
 # KPIs / rolling counters (reset on month close where noted)
-var kpis := {}           # "ask", "rpk" rolling; plus derived CASK/RASK/LF
+var kpis := {}           # Airport counters in active mode; legacy airline counters only in legacy mode.
 var meta := {}           # scenario metadata
 
 func reset() -> void:
@@ -36,6 +46,13 @@ func reset() -> void:
 	# PATCH 1: LEDGER
 	ledger = _ledger_util.new_ledger_state()
 	coa = {}
+	airport = {}
+	commercial = {}
+	contracts = {}
+	economy = {}
+	finance = {}
+	debt_stack = []
+	covenants = {}
 	fleet = {}
 	routes = {}
 	fuel = {"price_usd_per_ton": 830.0, "hedge_pct": 0.2, "hedge_price": 700.0}
@@ -43,10 +60,35 @@ func reset() -> void:
 	meta = {}
 
 func load_config(cfg: Dictionary) -> void:
-	# PATCH 1: LEDGER
-	# Accept optional finance payload without changing legacy delta simulation behavior.
+	if typeof(cfg) != TYPE_DICTIONARY:
+		return
+
+	if cfg.has("cash"):
+		cash = float(cfg.get("cash", cash))
+	if cfg.has("revenue_ytd"):
+		revenue_ytd = float(cfg.get("revenue_ytd", revenue_ytd))
+	if cfg.has("expense_ytd"):
+		expense_ytd = float(cfg.get("expense_ytd", expense_ytd))
+	if cfg.has("revenue_mtd"):
+		revenue_mtd = float(cfg.get("revenue_mtd", revenue_mtd))
+	if cfg.has("expense_mtd"):
+		expense_mtd = float(cfg.get("expense_mtd", expense_mtd))
+	if cfg.has("meta") and typeof(cfg["meta"]) == TYPE_DICTIONARY:
+		meta = (cfg["meta"] as Dictionary).duplicate(true)
+	if cfg.has("kpis") and typeof(cfg["kpis"]) == TYPE_DICTIONARY:
+		kpis = (cfg["kpis"] as Dictionary).duplicate(true)
+
+	if cfg.has("airport") and typeof(cfg["airport"]) == TYPE_DICTIONARY:
+		airport = (cfg["airport"] as Dictionary).duplicate(true)
+	if cfg.has("commercial") and typeof(cfg["commercial"]) == TYPE_DICTIONARY:
+		commercial = (cfg["commercial"] as Dictionary).duplicate(true)
+	if cfg.has("contracts") and typeof(cfg["contracts"]) == TYPE_DICTIONARY:
+		contracts = (cfg["contracts"] as Dictionary).duplicate(true)
+	if cfg.has("economy") and typeof(cfg["economy"]) == TYPE_DICTIONARY:
+		economy = (cfg["economy"] as Dictionary).duplicate(true)
+
 	if cfg.has("finance") and typeof(cfg["finance"]) == TYPE_DICTIONARY:
-		var finance: Dictionary = cfg["finance"] as Dictionary
+		finance = (cfg["finance"] as Dictionary).duplicate(true)
 
 		if finance.has("opening_balances") and typeof(finance["opening_balances"]) == TYPE_DICTIONARY:
 			_ensure_ledger_initialized()
@@ -62,9 +104,28 @@ func load_config(cfg: Dictionary) -> void:
 			if typeof(meta) != TYPE_DICTIONARY:
 				meta = {}
 			meta["coa_ref"] = str(finance["coa_ref"])
+			coa = _ledger_util.load_coa(str(finance["coa_ref"]))
 
-	for k in cfg.keys():
-		self.set(k, cfg[k])
+		if finance.has("debt_stack") and typeof(finance["debt_stack"]) == TYPE_ARRAY:
+			debt_stack = (finance["debt_stack"] as Array).duplicate(true)
+			if not debt_stack.is_empty():
+				var first_debt: Variant = debt_stack[0]
+				if typeof(first_debt) == TYPE_DICTIONARY:
+					var covenants_value: Variant = (first_debt as Dictionary).get("covenants", {})
+					if typeof(covenants_value) == TYPE_DICTIONARY:
+						covenants = (covenants_value as Dictionary).duplicate(true)
+
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# Legacy keys load explicitly for backwards compatibility; they are not used in Airport CFO ledger mode.
+	if cfg.has("fleet") and typeof(cfg["fleet"]) == TYPE_DICTIONARY:
+		fleet = (cfg["fleet"] as Dictionary).duplicate(true)
+	if cfg.has("routes") and typeof(cfg["routes"]) == TYPE_DICTIONARY:
+		routes = (cfg["routes"] as Dictionary).duplicate(true)
+	if cfg.has("fuel") and typeof(cfg["fuel"]) == TYPE_DICTIONARY:
+		fuel = (cfg["fuel"] as Dictionary).duplicate(true)
+
+	if not ledger.is_empty() and not coa.is_empty():
+		meta["financial_statements"] = _ledger_util.build_statements(ledger, coa)
 
 func get_ledger_snapshot() -> Dictionary:
 	return {
@@ -94,6 +155,11 @@ func load_from_statements(income_statement: Dictionary, balance_sheet: Dictionar
 
 # Calculate financial summary on the fly based on operational state
 func get_financial_summary() -> Dictionary:
+	if typeof(ledger) == TYPE_DICTIONARY and not ledger.is_empty() and typeof(coa) == TYPE_DICTIONARY and not coa.is_empty():
+		var ledger_statements := _ledger_util.build_statements(ledger, coa)
+		meta["financial_statements"] = ledger_statements
+		return ledger_statements
+
 	if meta.has("financial_statements") and typeof(meta["financial_statements"]) == TYPE_DICTIONARY:
 		var fs: Dictionary = meta["financial_statements"] as Dictionary
 		var income: Dictionary = fs.get("income_statement", {}) as Dictionary

@@ -10,6 +10,13 @@ const CASH_GL := "1000"
 const REV_GL := "4000"
 const EXP_GL := "5000"
 const RETAINED_EARNINGS_GL := "3000"
+const AR_GL := "1200"
+const LANDING_FEES_REV_GL := "4000"
+const PFC_REV_GL := "4100"
+const CONCESSIONS_REV_GL := "4200"
+const PAYROLL_EXP_GL := "5000"
+const UTILITIES_EXP_GL := "5100"
+const INTEREST_EXP_GL := "5600"
 
 var _ledger := preload("res://engine/ledger.gd").new()
 
@@ -18,6 +25,8 @@ func apply_day(_state: Resource, _date: Dictionary) -> void:
 	push_warning("Finance.apply_day is deprecated. Use DecisionResolver + calculate_week_delta().")
 
 func calculate_week_delta(state: Resource) -> Dictionary:
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# Kept for backwards-compatible airline scenarios and explicit legacy delta mode only.
 	var week_ask: float = 0.0
 	var week_rpk: float = 0.0
 	var week_revenue: float = 0.0
@@ -71,6 +80,88 @@ func calculate_week_delta(state: Resource) -> Dictionary:
 		"cash_delta": (week_revenue - week_cost)
 	}
 
+func calculate_airport_week(state: Resource, week_number: int) -> Dictionary:
+	var errors: Array[String] = []
+	var posted := 0
+
+	if not (state is GameStateData):
+		return {
+			"passenger_volume_delta": 0.0,
+			"turnarounds_delta": 0.0,
+			"revenue_delta": 0.0,
+			"expense_delta": 0.0,
+			"cash": 0.0,
+			"posted": 0,
+			"errors": ["calculate_airport_week requires GameStateData"]
+		}
+
+	var s := state as GameStateData
+	ensure_coa_loaded(s)
+
+	var airport: Dictionary = s.airport
+	var commercial: Dictionary = s.commercial
+	var economy: Dictionary = s.economy
+	var revenue_streams: Dictionary = commercial.get("revenue_streams", {}) as Dictionary
+
+	var tourism_index := maxf(float(economy.get("tourism_index", 55.0)), 1.0)
+	var reputation := maxf(float(airport.get("reputation", 50.0)), 1.0)
+	var service_quality_tier := int(airport.get("service_quality_tier", 1))
+	var resilience_tier := int(airport.get("resilience_tier", 1))
+	var airport_tier := int(airport.get("tier", 1))
+
+	var traffic_modifier := (tourism_index / 55.0) * (reputation / 50.0)
+	traffic_modifier *= 1.0 + (float(service_quality_tier - 1) * 0.03)
+	traffic_modifier *= 1.0 + (float(resilience_tier - 1) * 0.02)
+
+	var passenger_volume_week := round(18000.0 * traffic_modifier)
+	var turnarounds_week := passenger_volume_week / 145.0
+
+	var landing_fees: Dictionary = revenue_streams.get("landing_fees", {}) as Dictionary
+	var passenger_fees: Dictionary = revenue_streams.get("passenger_fees", {}) as Dictionary
+	var concessions: Dictionary = revenue_streams.get("concessions", {}) as Dictionary
+
+	var landing_revenue := turnarounds_week * float(landing_fees.get("price_per_turnaround_usd", 850.0))
+	var pfc_revenue := passenger_volume_week * float(passenger_fees.get("pax_facility_charge_usd", 8.0))
+	var concessions_revenue := float(concessions.get("baseline_sales_usd_week", 180000.0)) * traffic_modifier * 0.18
+	var payroll_expense := 175000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.08)
+	var utilities_expense := 45000.0 * (1.0 + maxf(float(airport_tier - 1), 0.0) * 0.05)
+	var interest_expense := _weekly_interest_expense(s.debt_stack)
+
+	var scenario_id := str(s.meta.get("id", s.meta.get("scenario_id", "")))
+	posted += _post_airport_tx(s, week_number, scenario_id, "Landing fees collected", CASH_GL, LANDING_FEES_REV_GL, landing_revenue, errors)
+	posted += _post_airport_tx(s, week_number, scenario_id, "Passenger facility charges collected", CASH_GL, PFC_REV_GL, pfc_revenue, errors)
+	posted += _post_airport_tx(s, week_number, scenario_id, "Concessions revenue collected", CASH_GL, CONCESSIONS_REV_GL, concessions_revenue, errors)
+	posted += _post_airport_tx(s, week_number, scenario_id, "Payroll paid", PAYROLL_EXP_GL, CASH_GL, payroll_expense, errors)
+	posted += _post_airport_tx(s, week_number, scenario_id, "Utilities paid", UTILITIES_EXP_GL, CASH_GL, utilities_expense, errors)
+	if interest_expense > 0.0:
+		posted += _post_airport_tx(s, week_number, scenario_id, "Interest paid", INTEREST_EXP_GL, CASH_GL, interest_expense, errors)
+
+	var revenue_delta := landing_revenue + pfc_revenue + concessions_revenue
+	var expense_delta := payroll_expense + utilities_expense + interest_expense
+
+	s.cash = _ledger.get_gl_balance(s.ledger, CASH_GL)
+	s.revenue_ytd = float(s.revenue_ytd) + revenue_delta
+	s.expense_ytd = float(s.expense_ytd) + expense_delta
+	s.revenue_mtd = float(s.revenue_mtd) + revenue_delta
+	s.expense_mtd = float(s.expense_mtd) + expense_delta
+	s.kpis["passenger_volume_mtd"] = float(s.kpis.get("passenger_volume_mtd", 0.0)) + passenger_volume_week
+	s.kpis["passenger_volume_ytd"] = float(s.kpis.get("passenger_volume_ytd", 0.0)) + passenger_volume_week
+	s.kpis["turnarounds_mtd"] = float(s.kpis.get("turnarounds_mtd", 0.0)) + turnarounds_week
+	s.kpis["turnarounds_ytd"] = float(s.kpis.get("turnarounds_ytd", 0.0)) + turnarounds_week
+
+	var statements := generate_statements_from_ledger(s)
+	s.meta["financial_statements"] = statements
+
+	return {
+		"passenger_volume_delta": passenger_volume_week,
+		"turnarounds_delta": turnarounds_week,
+		"revenue_delta": revenue_delta,
+		"expense_delta": expense_delta,
+		"cash": s.cash,
+		"posted": posted,
+		"errors": errors
+	}
+
 # PATCH 2: LEDGER MODE
 func ensure_coa_loaded(state: GameStateData) -> void:
 	if typeof(state.coa) == TYPE_DICTIONARY and typeof(state.coa.get("accounts", null)) == TYPE_ARRAY:
@@ -90,14 +181,13 @@ func ensure_coa_loaded(state: GameStateData) -> void:
 
 func generate_statements_from_ledger(state: GameStateData) -> Dictionary:
 	ensure_coa_loaded(state)
-	var statements: Dictionary = _ledger.rollup_tb_to_statements(state.ledger, state.coa)
+	var statements: Dictionary = _ledger.build_statements(state.ledger, state.coa)
 	var cash_flow: Dictionary = statements.get("cash_flow", {}) as Dictionary
 	var ending_cash := float(cash_flow.get("ending_cash", _ledger.get_gl_balance(state.ledger, CASH_GL)))
-	var anchor := ending_cash
 	if typeof(state.meta) == TYPE_DICTIONARY and state.meta.has("cash_close_anchor"):
-		anchor = float(state.meta.get("cash_close_anchor", ending_cash))
+		var anchor := float(state.meta.get("cash_close_anchor", ending_cash))
+		cash_flow["net_change_in_cash"] = ending_cash - anchor
 	cash_flow["ending_cash"] = ending_cash
-	cash_flow["net_change_in_cash"] = ending_cash - anchor
 	statements["cash_flow"] = cash_flow
 	return statements
 
@@ -183,38 +273,41 @@ func post_week(state: GameStateData, week_ctx: Dictionary) -> Dictionary:
 	}
 
 func close_month(state: Resource, month_id: int) -> Dictionary:
-	# PATCH 2: LEDGER MODE month close uses TB-derived statements, but keeps existing KPI resets.
-	if typeof(state.meta) == TYPE_DICTIONARY and str(state.meta.get("finance_mode", "delta")) == "ledger":
+	# PATCH 1: Airport CFO month close uses statement output, not airline CASK/RASK/LF.
+	if typeof(state.meta) == TYPE_DICTIONARY and (str(state.meta.get("module", "")) == "flightpath_airport" or str(state.meta.get("finance_mode", "delta")) == "ledger"):
 		var state_gs := state as GameStateData
 		if state_gs == null:
-			push_warning("PATCH 2: ledger month close requires GameStateData; falling back to legacy close_month.")
+			push_warning("PATCH 1: airport ledger month close requires GameStateData; falling back to legacy close_month.")
 		else:
-			var ask_led: float = max(float(state.kpis.get("ask", 0.0)), 1.0)
-			var rpk_led: float = float(state.kpis.get("rpk", 0.0))
-			var cask_led: float = float(state.expense_mtd) / ask_led
-			var rask_led: float = float(state.revenue_mtd) / ask_led
-			var lf_led: float = rpk_led / ask_led
 			var statements := generate_statements_from_ledger(state_gs)
 			state.meta["financial_statements"] = statements
+			var income_statement: Dictionary = statements.get("income_statement", {}) as Dictionary
+			var balance_sheet: Dictionary = statements.get("balance_sheet", {}) as Dictionary
+			var cash_flow: Dictionary = statements.get("cash_flow", {}) as Dictionary
+			var total_revenue := float(income_statement.get("total_operating_revenue", 0.0))
+			var operating_surplus := float(income_statement.get("operating_surplus", 0.0))
+			var interest := float(income_statement.get("interest_expense", 0.0))
+			var operating_margin := operating_surplus / total_revenue if absf(total_revenue) > 0.0001 else 0.0
+			var dscr := (operating_surplus + interest) / interest if interest > 0.0001 else 999.0
 
 			var report_led: Dictionary = {
 				"month": month_id,
-				"rev_mtd": state.revenue_mtd,
-				"exp_mtd": state.expense_mtd,
-				"rev_ytd": state.revenue_ytd,
-				"exp_ytd": state.expense_ytd,
 				"cash": state.cash,
-				"cask": cask_led,
-				"rask": rask_led,
-				"lf": lf_led,
-				"statements": statements
+				"income_statement": income_statement,
+				"balance_sheet": balance_sheet,
+				"cash_flow": cash_flow,
+				"kpis": {
+					"cash": state.cash,
+					"operating_margin": operating_margin,
+					"dscr": dscr,
+					"passenger_volume_mtd": float(state.kpis.get("passenger_volume_mtd", 0.0))
+				}
 			}
 
 			state.meta["cash_close_anchor"] = state.cash
 
-			# Reset rolling counters for next month aggregation (same as legacy path).
-			state.kpis.erase("ask")
-			state.kpis.erase("rpk")
+			state.kpis.erase("passenger_volume_mtd")
+			state.kpis.erase("turnarounds_mtd")
 			state.revenue_mtd = 0.0
 			state.expense_mtd = 0.0
 
@@ -254,3 +347,47 @@ func _lease_cost_weekly(state: Resource) -> float:
 		var a: Dictionary = state.fleet[t]
 		monthly += float(a.get("lease_usd_mpm", 0.0)) * float(a.get("count", 0))
 	return monthly / 4.0
+
+func _weekly_interest_expense(debt_stack: Array) -> float:
+	var total := 0.0
+	for debt_value in debt_stack:
+		if typeof(debt_value) != TYPE_DICTIONARY:
+			continue
+		var debt: Dictionary = debt_value as Dictionary
+		total += float(debt.get("principal", 0.0)) * float(debt.get("rate_apr", 0.0)) / 52.0
+	return total
+
+func _post_airport_tx(
+	state: GameStateData,
+	week_number: int,
+	scenario_id: String,
+	memo: String,
+	debit_gl: String,
+	credit_gl: String,
+	amount: float,
+	errors: Array[String]
+) -> int:
+	if amount <= 0.0:
+		return 0
+	var txs: Array = state.ledger.get("transactions", [])
+	var tx_id := "AIRPORT_W%s_TX_%s" % [str(week_number).pad_zeros(2), str(txs.size()).pad_zeros(6)]
+	var tx: Dictionary = {
+		"tx_id": tx_id,
+		"week": week_number,
+		"scenario_id": scenario_id,
+		"source": "airport_week",
+		"cash_flow_category": "operating",
+		"memo": memo,
+		"tags": {"mode": "flightpath_airport"},
+		"journal": [
+			{"gl": debit_gl, "dc": "D", "amount": amount},
+			{"gl": credit_gl, "dc": "C", "amount": amount}
+		]
+	}
+	var result: Dictionary = _ledger.post_transaction(state.ledger, tx)
+	if bool(result.get("ok", false)):
+		return 1
+	var tx_errors: Array = result.get("errors", [])
+	for msg in tx_errors:
+		errors.append(str(msg))
+	return 0

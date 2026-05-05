@@ -69,7 +69,7 @@ func get_loop_snapshot() -> Dictionary:
 func get_last_month_report() -> Dictionary:
 	return _last_month_report
 
-func advance_week(use_legacy_burn: bool = true) -> Dictionary:
+func advance_week(use_legacy_burn: bool = false) -> Dictionary:
 	var impacts: Dictionary = {}
 	if use_legacy_burn:
 		impacts["financial"] = _apply_weekly_burn(LEGACY_WEEKLY_OPEX_USD)
@@ -190,18 +190,33 @@ func _apply_weekly_burn(weekly_opex: float) -> Dictionary:
 	}
 
 func _apply_weekly_finance() -> Dictionary:
+	var module := str(_financial_state.meta.get("module", ""))
 	var finance_mode := str(_financial_state.meta.get("finance_mode", "delta"))
-	if finance_mode == "ledger":
-		# PATCH 2: LEDGER WEEK POST
-		var loop_week := 0
-		if _loop_system:
-			var ls: LoopState = _loop_system.call("get_state_ref") as LoopState
-			loop_week = int(ls.week_number) + 1
-		var result: Dictionary = _finance.post_week(_financial_state, {"week_number": loop_week})
-		return result
-	# legacy
+	if module == "flightpath_airport" or finance_mode == "ledger":
+		return _apply_airport_weekly_finance()
+
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# Legacy airline delta mode remains available only for scenarios that do not opt into Flightpath ledger mode.
 	var delta := _finance.calculate_week_delta(_financial_state)
 	return _apply_financial_delta(delta)
+
+func _apply_airport_weekly_finance() -> Dictionary:
+	var loop_week := 1
+	if _loop_system:
+		var ls: LoopState = _loop_system.call("get_state_ref") as LoopState
+		loop_week = int(ls.week_number) + 1
+	var result: Dictionary = _finance.calculate_airport_week(_financial_state, loop_week)
+	return result
+
+func _apply_legacy_ledger_weekly_finance() -> Dictionary:
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# Kept as an adapter for older Patch 2 tests that explicitly call post_week().
+	var loop_week := 0
+	if _loop_system:
+		var ls: LoopState = _loop_system.call("get_state_ref") as LoopState
+		loop_week = int(ls.week_number) + 1
+	var result: Dictionary = _finance.post_week(_financial_state, {"week_number": loop_week})
+	return result
 
 func _apply_financial_delta(delta: Dictionary) -> Dictionary:
 	var cash_delta := float(delta.get("cash_delta", 0.0))

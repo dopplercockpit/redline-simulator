@@ -1,39 +1,50 @@
 {
   "id": "MISSION_MONTH_CLOSE_V1",
   "type": "month_close",
-  "title": "Month-End Close: Explain the Numbers",
-  "description": "Present to the board. Answer questions based on this month's performance.",
+  "title": "Month-End Close: Airport CFO Review",
+  "description": "The board wants the ledger story, not noise. Answer the close questions and defend the airport's numbers.",
   "questions": [
     {
-      "id": "Q1_CASK",
-      "prompt": "CASK increased this month. Which is the best first explanation to investigate?",
+      "id": "Q1_CASH_REVENUE",
+      "prompt": "Cash increased, but revenue did not increase by the same amount. What is the most likely explanation?",
       "choices": [
-        "Operating costs rose faster than available seat-km (ASK).",
-        "Revenue rose faster than RPK.",
-        "Load factor automatically sets CASK.",
-        "CASK only changes when you change ticket prices."
+        "Some cash movement may relate to collections, financing, deferred revenue, or working capital - not all cash is revenue.",
+        "Cash and revenue should always move by the same amount.",
+        "The airport should record all cash receipts as concessions revenue.",
+        "Revenue only changes when debt is repaid."
       ],
       "correct_index": 0
     },
     {
-      "id": "Q2_RASK",
-      "prompt": "RASK decreased while ASK was stable. Which is the most plausible driver?",
+      "id": "Q2_AP_STRETCH",
+      "prompt": "Why does stretching Accounts Payable improve short-term cash but increase risk?",
       "choices": [
-        "Lower yield / pricing reduced revenue per ASK.",
-        "Higher maintenance costs reduced RASK.",
-        "Lease payments always reduce RASK.",
-        "RASK is unrelated to revenue."
+        "It delays cash outflow but can damage vendor terms, service reliability, and audit/compliance posture.",
+        "It permanently reduces the amount owed to vendors.",
+        "It turns every unpaid bill into equity.",
+        "It increases passenger facility charges automatically."
       ],
       "correct_index": 0
     },
     {
-      "id": "Q3_LF",
-      "prompt": "Load Factor fell month-over-month. What metric relationship defines Load Factor?",
+      "id": "Q3_PFC_CLOSE",
+      "prompt": "Passenger facility charges are collected with passenger activity. What should the CFO verify at month close?",
       "choices": [
-        "RPK / ASK",
-        "ASK / RPK",
-        "Revenue / Cost",
-        "Cost / Revenue"
+        "That collected/earned amounts are properly recognized and any deferred or restricted amounts are not treated as free operating cash.",
+        "That all passenger-related cash is posted to payroll expense.",
+        "That passenger facility charges are excluded from the ledger.",
+        "That collected amounts are always unrestricted profit."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q4_INTEREST_PRINCIPAL",
+      "prompt": "Why does interest expense reduce earnings even when principal repayment is separate?",
+      "choices": [
+        "Interest is the cost of borrowing and hits the income statement; principal repayment changes the balance sheet and financing cash flow.",
+        "Interest is an asset, while principal is revenue.",
+        "Principal repayment is the only borrowing cost shown on the income statement.",
+        "Interest expense should be ignored when cash is tight."
       ],
       "correct_index": 0
     }

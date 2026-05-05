@@ -115,7 +115,21 @@ func get_gl_balance(ledger: Dictionary, gl: String) -> float:
 	var tb: Dictionary = ledger.get("trial_balance", {})
 	return float(tb.get(gl, 0.0))
 
-# PATCH 2: LEDGER TB -> statements rollup
+# PATCH 1: Airport CFO statement builder
+func load_coa(path: String) -> Dictionary:
+	if path.strip_edges() == "":
+		push_warning("COA path is empty.")
+		return {}
+	if not FileAccess.file_exists(path):
+		push_warning("COA not found: " + path)
+		return {}
+	var txt := FileAccess.get_file_as_string(path)
+	var parsed: Variant = JSON.parse_string(txt)
+	if parsed is Dictionary:
+		return parsed as Dictionary
+	push_warning("Invalid COA JSON: " + path)
+	return {}
+
 func normalize_sign_by_account_type(acct_type: String, tb_balance: float) -> float:
 	return _present_balance_by_type(acct_type, tb_balance)
 
@@ -129,94 +143,112 @@ func _present_balance_by_type(acct_type: String, tb_balance: float) -> float:
 		return absf(tb_balance)
 	return tb_balance
 
-func rollup_tb_to_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
+func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 	_ensure_ledger_shape(ledger)
 	var tb: Dictionary = ledger.get("trial_balance", {})
-	var empty_result := {
-		"income_statement": {},
-		"balance_sheet": {},
-		"cash_flow": {},
-		"tb": tb.duplicate(true)
+
+	var income_statement: Dictionary = {
+		"landing_fees_revenue": 0.0,
+		"passenger_facility_charges_revenue": 0.0,
+		"concessions_revenue": 0.0,
+		"total_operating_revenue": 0.0,
+		"payroll_expense": 0.0,
+		"utilities_expense": 0.0,
+		"interest_expense": 0.0,
+		"total_operating_expense": 0.0,
+		"operating_surplus": 0.0
 	}
-
-	if typeof(coa) != TYPE_DICTIONARY:
-		return empty_result
-	var accounts_value = coa.get("accounts", [])
-	if typeof(accounts_value) != TYPE_ARRAY:
-		return empty_result
-
-	var account_meta_by_code: Dictionary = {}
-	for acct_value in accounts_value:
-		if typeof(acct_value) != TYPE_DICTIONARY:
-			continue
-		var acct: Dictionary = acct_value as Dictionary
-		var code := str(acct.get("code", ""))
-		if code == "":
-			continue
-		account_meta_by_code[code] = acct
-
-	var income_statement: Dictionary = {}
-	var balance_sheet: Dictionary = {}
+	var balance_sheet: Dictionary = {
+		"cash": 0.0,
+		"accounts_receivable": 0.0,
+		"deferred_revenue": 0.0,
+		"accounts_payable": 0.0,
+		"accrued_expenses": 0.0,
+		"debt_term_loan": 0.0,
+		"retained_earnings": 0.0,
+		"total_assets": 0.0,
+		"total_liabilities": 0.0,
+		"equity": 0.0,
+		"liabilities_and_equity": 0.0
+	}
 	var cash_flow: Dictionary = {}
-	var total_revenue := 0.0
-	var total_expense := 0.0
-	var total_assets := 0.0
-	var total_liabilities := 0.0
-	var total_equity := 0.0
 
-	for gl_code in tb.keys():
-		var code := str(gl_code)
-		var tb_balance := float(tb.get(gl_code, 0.0))
-		var meta: Dictionary = account_meta_by_code.get(code, {}) as Dictionary
-		if meta.is_empty():
-			continue
+	var accounts_value = coa.get("accounts", [])
+	if typeof(accounts_value) == TYPE_ARRAY:
+		for acct_value in accounts_value:
+			if typeof(acct_value) != TYPE_DICTIONARY:
+				continue
+			var acct: Dictionary = acct_value as Dictionary
+			var code := str(acct.get("code", ""))
+			if code == "":
+				continue
+			var amount := _present_balance_by_type(str(acct.get("type", "")), float(tb.get(code, 0.0)))
+			match code:
+				"1000":
+					balance_sheet["cash"] = amount
+				"1200":
+					balance_sheet["accounts_receivable"] = amount
+				"1300":
+					balance_sheet["deferred_revenue"] = amount
+				"2000":
+					balance_sheet["accounts_payable"] = amount
+				"2100":
+					balance_sheet["accrued_expenses"] = amount
+				"2400":
+					balance_sheet["debt_term_loan"] = amount
+				"3000":
+					balance_sheet["retained_earnings"] = amount
+				"4000":
+					income_statement["landing_fees_revenue"] = amount
+				"4100":
+					income_statement["passenger_facility_charges_revenue"] = amount
+				"4200":
+					income_statement["concessions_revenue"] = amount
+				"5000":
+					income_statement["payroll_expense"] = amount
+				"5100":
+					income_statement["utilities_expense"] = amount
+				"5600":
+					income_statement["interest_expense"] = amount
 
-		var acct_type := str(meta.get("type", "")).to_lower()
-		var statement := str(meta.get("statement", "")).to_upper()
-		var rollup_key := str(meta.get("rollup", code))
-		if rollup_key == "":
-			rollup_key = code
+	var total_operating_revenue := (
+		float(income_statement["landing_fees_revenue"])
+		+ float(income_statement["passenger_facility_charges_revenue"])
+		+ float(income_statement["concessions_revenue"])
+	)
+	var total_operating_expense := (
+		float(income_statement["payroll_expense"])
+		+ float(income_statement["utilities_expense"])
+		+ float(income_statement["interest_expense"])
+	)
+	var operating_surplus := total_operating_revenue - total_operating_expense
+	income_statement["total_operating_revenue"] = total_operating_revenue
+	income_statement["total_operating_expense"] = total_operating_expense
+	income_statement["operating_surplus"] = operating_surplus
 
-		var presented := _present_balance_by_type(acct_type, tb_balance)
-
-		if statement == "IS" or acct_type == "revenue" or acct_type == "expense":
-			income_statement[rollup_key] = float(income_statement.get(rollup_key, 0.0)) + presented
-			if acct_type == "revenue":
-				total_revenue += presented
-			elif acct_type == "expense":
-				total_expense += presented
-		elif statement == "BS" or acct_type == "asset" or acct_type == "liability" or acct_type == "equity":
-			balance_sheet[rollup_key] = float(balance_sheet.get(rollup_key, 0.0)) + presented
-			if acct_type == "asset":
-				total_assets += presented
-			elif acct_type == "liability":
-				total_liabilities += presented
-			elif acct_type == "equity":
-				total_equity += presented
-
-	var net_income := total_revenue - total_expense
-	income_statement["total_revenue"] = total_revenue
-	income_statement["total_expense"] = total_expense
-	income_statement["net_income"] = net_income
-
+	var total_assets := float(balance_sheet["cash"]) + float(balance_sheet["accounts_receivable"])
+	var total_liabilities := (
+		float(balance_sheet["deferred_revenue"])
+		+ float(balance_sheet["accounts_payable"])
+		+ float(balance_sheet["accrued_expenses"])
+		+ float(balance_sheet["debt_term_loan"])
+	)
+	var equity := float(balance_sheet["retained_earnings"]) + operating_surplus
 	balance_sheet["total_assets"] = total_assets
 	balance_sheet["total_liabilities"] = total_liabilities
-	balance_sheet["total_equity"] = total_equity
-	balance_sheet["is_balanced"] = absf(total_assets - (total_liabilities + total_equity)) <= BALANCE_EPSILON
+	balance_sheet["equity"] = equity
+	balance_sheet["liabilities_and_equity"] = total_liabilities + equity
 
-	var ending_cash := 0.0
-	if balance_sheet.has("cash"):
-		ending_cash = float(balance_sheet.get("cash", 0.0))
-	elif tb.has("1000"):
-		ending_cash = _present_balance_by_type("asset", float(tb.get("1000", 0.0)))
-
+	var operating_cash_flow := _cash_movement_by_category(ledger, "operating")
+	var investing_cash_flow := _cash_movement_by_category(ledger, "investing")
+	var financing_cash_flow := _cash_movement_by_category(ledger, "financing")
+	var ending_cash := float(balance_sheet["cash"])
+	var net_change_in_cash := operating_cash_flow + investing_cash_flow + financing_cash_flow
 	cash_flow = {
-		"net_income": net_income,
-		"change_in_working_capital": 0.0,
-		"capex": 0.0,
-		"debt_activity": 0.0,
-		"equity_activity": 0.0,
-		"net_change_in_cash": 0.0,
+		"operating_cash_flow": operating_cash_flow,
+		"investing_cash_flow": investing_cash_flow,
+		"financing_cash_flow": financing_cash_flow,
+		"net_change_in_cash": net_change_in_cash,
 		"ending_cash": ending_cash
 	}
 
@@ -224,5 +256,34 @@ func rollup_tb_to_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		"income_statement": income_statement,
 		"balance_sheet": balance_sheet,
 		"cash_flow": cash_flow,
+		"kpis": {
+			"cash": ending_cash,
+			"operating_margin": operating_surplus / total_operating_revenue if absf(total_operating_revenue) > BALANCE_EPSILON else 0.0
+		},
 		"tb": tb.duplicate(true)
 	}
+
+func _cash_movement_by_category(ledger: Dictionary, category: String) -> float:
+	var movement := 0.0
+	var transactions: Array = ledger.get("transactions", [])
+	for tx_value in transactions:
+		if typeof(tx_value) != TYPE_DICTIONARY:
+			continue
+		var tx: Dictionary = tx_value as Dictionary
+		var tx_category := str(tx.get("cash_flow_category", tx.get("category", "operating")))
+		if tx_category != category:
+			continue
+		var journal: Array = tx.get("journal", [])
+		for line_value in journal:
+			if typeof(line_value) != TYPE_DICTIONARY:
+				continue
+			var line: Dictionary = line_value as Dictionary
+			if str(line.get("gl", "")) != "1000":
+				continue
+			var amount := float(line.get("amount", 0.0))
+			movement += amount if str(line.get("dc", "")) == "D" else -amount
+	return movement
+
+# PATCH 1: compatibility wrapper for older Patch 2 call sites.
+func rollup_tb_to_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
+	return build_statements(ledger, coa)

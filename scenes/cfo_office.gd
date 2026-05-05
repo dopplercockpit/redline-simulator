@@ -11,7 +11,7 @@ const INBOX_UNLOCKED := true
 # ===========================
 # STATE
 # ===========================
-var game_state: GameStateData = null  # Airline operational state (read via DecisionResolver)
+var game_state: GameStateData = null  # Airport CFO financial state (read via DecisionResolver)
 var cached_financials: Dictionary = {}
 var scenarios: Array = []
 var current_scenario_index: int = 0
@@ -48,14 +48,15 @@ func _ready() -> void:
 		financial_panel.set_submission_enabled(false)
 		month_end_ready = false
 
-	# Initialize airline state with demo data
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# Legacy demo seed is retained below for old manual tests, but is no longer active.
 	# _init_demo_airline_state()
 
 	# Load scenarios
 	_load_scenarios()
 
 	# Flavor
-	$DialogueBox.show_text("System boot complete. Welcome to RedLine Airlines.")
+	$DialogueBox.show_text("System boot complete. Welcome to Flightpath CFO.")
 	$Camera2D.make_current()
 
 	# Deprecated backend GameController path; use /root/GameManager + /root/DecisionResolver loop.
@@ -119,9 +120,11 @@ func _ensure_contract_panel() -> void:
 		add_child(p)
 
 # ===========================
-# DEMO AIRLINE STATE
+# LEGACY DEMO AIRLINE STATE
 # ===========================
 func _init_demo_airline_state() -> void:
+	# PATCH 1: disabled legacy airline behavior because Airport CFO is canonical v0.1.
+	# This remains only for backwards-compatible manual testing.
 	# UI scripts must not mutate business state directly.
 	var resolver: Node = _get_resolver()
 	if resolver == null:
@@ -302,7 +305,7 @@ func _on_hotspot_mouse_exited() -> void:
 # SCENARIOS
 # ===========================
 func _load_scenarios() -> void:
-	var path := "res://data/redline_scenarios_v3.json"
+	var path := "res://data/scenarios/flightpath/scenario_001.json"
 	if not FileAccess.file_exists(path):
 		push_warning("No scenarios JSON at: " + path)
 		return
@@ -311,11 +314,11 @@ func _load_scenarios() -> void:
 	if typeof(j) != TYPE_DICTIONARY:
 		push_warning("Malformed scenarios JSON")
 		return
-	var arr: Variant = j.get("scenarios", [])
-	if typeof(arr) == TYPE_ARRAY and arr.size() > 0:
-		scenarios = arr
-		current_scenario_index = 0
-		_show_current_scenario()
+	# PATCH 1: redline_scenarios_v3.json is legacy manufacturing content and is not active in Airport MVP.
+	current_scenario = j as Dictionary
+	scenarios = [current_scenario]
+	current_scenario_index = 0
+	_show_current_scenario()
 
 func _show_current_scenario() -> void:
 	if scenarios.is_empty():
@@ -327,8 +330,10 @@ func _show_current_scenario() -> void:
 	if not has_node("ScenarioPanel"):
 		var p := preload("res://ui/ScenarioPanel.tscn").instantiate()
 		add_child(p)
-	var title := str(current_scenario.get("title","Scenario"))
-	var brief := str(current_scenario.get("brief",""))
+	var meta: Dictionary = current_scenario.get("meta", {}) as Dictionary
+	var narrative: Dictionary = current_scenario.get("narrative", {}) as Dictionary
+	var title := str(meta.get("title", current_scenario.get("title","Scenario")))
+	var brief := str(narrative.get("logline", current_scenario.get("brief","")))
 	var objectives: Array = current_scenario.get("objectives", [])
 	var tips: Array = current_scenario.get("tips", [])
 	$ScenarioPanel.set_brief(title, brief, objectives, tips)
@@ -404,8 +409,8 @@ func _on_commentary_submitted(text: String) -> void:
 	var entry := {
 		"ts": Time.get_unix_time_from_system(),
 		"student_name": student,
-		"scenario_id": str(current_scenario.get("id","")),
-		"scenario_title": str(current_scenario.get("title","")),
+		"scenario_id": str((current_scenario.get("meta", {}) as Dictionary).get("id", current_scenario.get("id",""))),
+		"scenario_title": str((current_scenario.get("meta", {}) as Dictionary).get("title", current_scenario.get("title",""))),
 		"analysis": text
 	}
 	arr.append(entry)

@@ -16,38 +16,35 @@ signal commentary_submitted(text)
 var close_button: Button
 
 var income_lines: Array = [
-	["ticket_rev", "Passenger Revenue"],
-	["ancillary_rev", "Ancillary Revenue (Bags/Seats)"],
-	["total_rev", "Total Revenue"],
-	["fuel_costs", "Fuel Costs"],
-	["crew_costs", "Crew & Salaries"],
-	["airport_fees", "Landing & Navigation Fees"],
-	["maintenance", "MRO (Maintenance)"],
-	["leasing_costs", "Aircraft Leases"],
-	["ebitdar", "EBITDAR"],
-	["net_income", "Net Income"]
+	["landing_fees_revenue", "Landing Fees Revenue"],
+	["passenger_facility_charges_revenue", "Passenger Facility Charges Revenue"],
+	["concessions_revenue", "Concessions Revenue"],
+	["total_operating_revenue", "Total Operating Revenue"],
+	["payroll_expense", "Payroll Expense"],
+	["utilities_expense", "Utilities Expense"],
+	["interest_expense", "Interest Expense"],
+	["total_operating_expense", "Total Operating Expense"],
+	["operating_surplus", "Operating Surplus"]
 ]
 
 var balance_lines: Array = [
-	["cash", "Cash & Equivalents"],
-	["receivables", "Accounts Receivable (OTA/Credit Cards)"],
-	["rotable_parts", "Spare Parts Inventory"],
-	["flight_equipment", "Flight Equipment (Owned)"],
-	["rou_assets", "Right-of-Use Assets (Leased Planes)"],
-	["total_assets", "Total Assets"],
+	["cash", "Cash"],
+	["accounts_receivable", "Accounts Receivable"],
+	["deferred_revenue", "Deferred Revenue"],
 	["accounts_payable", "Accounts Payable"],
-	["air_traffic_liab", "Unearned Revenue (Future Flights)"],
-	["lease_liabilities", "Lease Liabilities"],
-	["long_term_debt", "Long Term Debt"],
-	["equity", "Shareholder Equity"]
+	["accrued_expenses", "Accrued Expenses"],
+	["debt_term_loan", "Debt - Term Loan"],
+	["retained_earnings", "Retained Earnings / Net Position"],
+	["total_assets", "Total Assets"],
+	["total_liabilities", "Total Liabilities"],
+	["equity", "Equity / Net Position"],
+	["liabilities_and_equity", "Liabilities + Equity"]
 ]
 
 var cash_lines: Array = [
-	["net_income", "Net Income"],
-	["change_in_working_capital", "Change in Working Capital"],
-	["capex", "Capital Expenditures"],
-	["debt_activity", "Debt Activity"],
-	["equity_activity", "Equity Activity"],
+	["operating_cash_flow", "Cash Flow from Operations"],
+	["investing_cash_flow", "Cash Flow from Investing Activities"],
+	["financing_cash_flow", "Cash Flow from Financing Activities"],
 	["net_change_in_cash", "Net Change in Cash"],
 	["ending_cash", "Ending Cash Balance"]
 ]
@@ -201,36 +198,28 @@ func _on_submit_pressed() -> void:
 func _on_close_pressed() -> void:
 	visible = false
 
-# Example helper function for calculating financial summary
-# This would typically live in your state management script (e.g., res://engine/state.gd)
-# but is included here as a reference for how to structure the data
+# Example helper function for the active Airport CFO statement shape.
 func get_financial_summary_example() -> Dictionary:
-	# This is just a template - replace with actual game state data
-	var monthly_lease_cost = 0.0
-	# for plane_type in fleet:
-	#     var p = fleet[plane_type]
-	#     monthly_lease_cost += p["count"] * p["lease_usd_mpm"]
-
-	var monthly_fuel_cost = 0.0
-	
-	# Return the dictionary structured for the FinancialPanel
 	return {
 		"income_statement": {
-			"ticket_rev": 0.0,
-			"ancillary_rev": 0.0,
-			"total_rev": 0.0,
-			"leasing_costs": monthly_lease_cost,
-			"fuel_costs": monthly_fuel_cost,
-			"ebitdar": 0.0,
-			"net_income": 0.0
+			"landing_fees_revenue": 0.0,
+			"passenger_facility_charges_revenue": 0.0,
+			"concessions_revenue": 0.0,
+			"total_operating_revenue": 0.0,
+			"payroll_expense": 0.0,
+			"utilities_expense": 0.0,
+			"interest_expense": 0.0,
+			"total_operating_expense": 0.0,
+			"operating_surplus": 0.0
 		},
 		"balance_sheet": {
 			"cash": 0.0,
-			"rou_assets": monthly_lease_cost * 12 * 5,
+			"accounts_receivable": 0.0,
+			"accounts_payable": 0.0,
 			"equity": 0.0
 		},
 		"cash_flow": {
-			"net_income": 0.0,
+			"operating_cash_flow": 0.0,
 			"net_change_in_cash": 0.0,
 			"ending_cash": 0.0
 		}
