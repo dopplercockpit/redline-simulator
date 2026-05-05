@@ -31,6 +31,10 @@ Scenario objectives are evaluated after month-close mission completion. Rewards 
 
 Unlocked tools become playable local systems. Debt Desk v1 posts financing transactions to the ledger and adds debt_stack items that increase future interest expense. Debt is a liquidity lever, not free money.
 
+## Patch 5 Scenario Continuation Rule
+
+The MVP now supports a continuous multi-month scenario arc. Month 2 introduces route incentive decisions, evaluates operating margin and liquidity, and adds a route-incentive boardroom mission.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

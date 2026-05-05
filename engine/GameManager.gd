@@ -292,7 +292,7 @@ func _on_month_end_ready(month_number: int, report: Dictionary) -> void:
 
 func _on_mission_completed(result: Dictionary) -> void:
 	var mission_id := str(result.get("mission_id", ""))
-	if not mission_id.contains("MISSION_MONTH_CLOSE_V1"):
+	if not mission_id.contains("MISSION_MONTH_CLOSE"):
 		emit_signal("state_updated")
 		return
 
@@ -353,6 +353,10 @@ func _compare_metric(actual: float, operator: String, target: float) -> bool:
 func _objective_success_message(objective_id: String, unlocks: Array[String]) -> String:
 	if objective_id == "obj_cash" and unlocks.has("DEBT_DESK"):
 		return "Cash objective met. Debt Desk unlocked."
+	if objective_id == "obj_route_incentive":
+		return "Route incentive economics held above the operating margin threshold. Contract Review unlocked."
+	if objective_id == "obj_cash_month2":
+		return "Month 2 cash floor held. Liquidity survived the growth experiment."
 	if unlocks.is_empty():
 		return "Objective met."
 	return "Objective met. Unlocked: %s." % ", ".join(PackedStringArray(unlocks))
@@ -360,6 +364,10 @@ func _objective_success_message(objective_id: String, unlocks: Array[String]) ->
 func _objective_failure_message(objective_id: String) -> String:
 	if objective_id == "obj_cash":
 		return "Cash objective missed. Debt Desk remains locked."
+	if objective_id == "obj_route_incentive":
+		return "Route incentive economics missed the margin target. The board sees growth, but the ledger sees indigestion."
+	if objective_id == "obj_cash_month2":
+		return "Month 2 cash floor missed. Growth ate the runway."
 	return "Objective missed."
 
 func _read_json(p: String) -> Dictionary:

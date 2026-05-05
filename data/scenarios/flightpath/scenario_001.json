@@ -93,6 +93,31 @@
       "value": 900000,
       "by_week": 4,
       "reward": { "points": 150, "unlocks_add": { "DEBT_DESK": true } }
+    },
+    {
+      "id": "obj_route_incentive",
+      "type": "threshold",
+      "metric": "operating_margin",
+      "operator": ">=",
+      "value": 0.05,
+      "by_week": 8,
+      "reward": {
+        "points": 200,
+        "unlocks_add": {
+          "CONTRACT_REVIEW": true
+        }
+      }
+    },
+    {
+      "id": "obj_cash_month2",
+      "type": "threshold",
+      "metric": "cash",
+      "operator": ">=",
+      "value": 750000,
+      "by_week": 8,
+      "reward": {
+        "points": 100
+      }
     }
   ],
 

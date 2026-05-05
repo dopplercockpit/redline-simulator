@@ -1,0 +1,56 @@
+{
+  "id": "MISSION_MONTH_CLOSE_ROUTE_INCENTIVE_V1",
+  "type": "month_close",
+  "title": "Month-End Close: Route Incentive Review",
+  "description": "The board wants to know whether the BudgetAir incentive created value or just lit cash on fire with a commemorative match.",
+  "questions": [
+    {
+      "id": "Q1_TRACKING",
+      "prompt": "Why should the airport track route incentive expense separately?",
+      "choices": [
+        "Because separating the incentive from normal operating expenses allows management to evaluate route contribution and avoid hiding subsidies inside generic cost buckets.",
+        "Because incentives should never be recorded in the ledger.",
+        "Because all route incentives automatically become passenger facility charge revenue.",
+        "Because separate tracking lets the airport ignore the cash effect."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q2_VOLUME_WEAKNESS",
+      "prompt": "Passenger volume increased after the incentive. Why might the decision still be financially weak?",
+      "choices": [
+        "Because volume growth only creates value if incremental revenue and contribution exceed incentive cost and added operating burden.",
+        "Because passenger growth is always bad for an airport.",
+        "Because higher traffic eliminates all operating costs.",
+        "Because incentives should be judged only by press coverage."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q3_DEBT_FUNDED_PRESSURE",
+      "prompt": "Why can a debt-funded incentive create pressure even if cash increases from the Debt Desk?",
+      "choices": [
+        "Because the borrowing improves liquidity now but adds interest expense and leverage risk in future periods.",
+        "Because new debt always counts as revenue.",
+        "Because interest expense disappears when passenger volume rises.",
+        "Because debt-funded cash never has to be repaid."
+      ],
+      "correct_index": 0
+    },
+    {
+      "id": "Q4_BOARD_PRESENTATION",
+      "prompt": "What should the CFO present to the board?",
+      "choices": [
+        "A bridge from incentive cost to incremental revenue, margin impact, cash effect, and risk - not just passenger growth.",
+        "Only a passenger growth chart.",
+        "Only the marketing headline from the carrier.",
+        "A cash balance with no explanation of debt or expense."
+      ],
+      "correct_index": 0
+    }
+  ],
+  "scoring": {
+    "points_per_correct": 10,
+    "audit_per_wrong": 5
+  }
+}

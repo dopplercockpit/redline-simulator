@@ -216,6 +216,243 @@
           "feedback": "The audit gods have noticed your little clown show."
         }
       ]
+    },
+    {
+      "id": "CARD_W5_BUDGETAIR_OFFER",
+      "week": 5,
+      "title": "BudgetAir Offer: Growth With a Bill Attached",
+      "sender": "Commercial Director",
+      "body": "BudgetAir will add route activity if the airport funds an incentive package. The growth story is tempting. The cash burn is not imaginary.",
+      "choices": [
+        {
+          "id": "AGGRESSIVE_INCENTIVE",
+          "label": "Offer aggressive incentive",
+          "description": "Buy the growth story with a large cash incentive.",
+          "ledger_tx": [
+            {
+              "memo": "Aggressive BudgetAir route incentive",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5200", "dc": "D", "amount": 120000 },
+                { "gl": "1000", "dc": "C", "amount": 120000 }
+              ]
+            }
+          ],
+          "commercial_delta": {
+            "revenue_streams.landing_fees.price_per_turnaround_usd": 50,
+            "revenue_streams.concessions.baseline_sales_usd_week": 30000
+          },
+          "airport_delta": {
+            "reputation": 3
+          },
+          "loop_delta": {
+            "audit_score_delta": 2,
+            "ops_risk_delta": 2
+          },
+          "feedback": "Traffic improves, cash takes a body shot, and the board gets to pretend growth is free."
+        },
+        {
+          "id": "MEASURED_INCENTIVE_CLAWBACK",
+          "label": "Measured incentive with clawback",
+          "description": "Fund growth, but keep the package more defensible.",
+          "ledger_tx": [
+            {
+              "memo": "Measured BudgetAir route incentive with clawback",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5200", "dc": "D", "amount": 65000 },
+                { "gl": "1000", "dc": "C", "amount": 65000 }
+              ]
+            }
+          ],
+          "commercial_delta": {
+            "revenue_streams.landing_fees.price_per_turnaround_usd": 25,
+            "revenue_streams.concessions.baseline_sales_usd_week": 18000
+          },
+          "airport_delta": {
+            "reputation": 2
+          },
+          "loop_delta": {
+            "audit_score_delta": -1,
+            "ops_risk_delta": 1
+          },
+          "feedback": "Less flashy, more defensible. The finance version of eating vegetables."
+        },
+        {
+          "id": "REJECT_INCENTIVE",
+          "label": "Reject incentive",
+          "description": "Protect cash and accept the weaker growth story.",
+          "ledger_tx": [],
+          "airport_delta": {
+            "reputation": -2
+          },
+          "loop_delta": {
+            "ops_risk_delta": -1
+          },
+          "feedback": "No cash burn. No growth story. The board will call this discipline right up until they call it cowardice."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W6_ROUTE_ECONOMICS",
+      "week": 6,
+      "title": "Route Economics: Accounting Wants a Spine",
+      "sender": "Controller",
+      "body": "The Controller asks how to track the incentive and explain whether the route economics actually work.",
+      "choices": [
+        {
+          "id": "MEMO_ONLY",
+          "label": "Track incentive as memo only",
+          "description": "Keep a narrative note and avoid building a real tracking view.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 4
+          },
+          "feedback": "A memo is not accounting. That noise you hear is audit sharpening a pencil."
+        },
+        {
+          "id": "CREATE_ROUTE_TRACKING",
+          "label": "Create separate tracking / cost center",
+          "description": "Pay for clean tracking so the route economics can be explained.",
+          "ledger_tx": [
+            {
+              "memo": "Route incentive tracking setup",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 15000 },
+                { "gl": "1000", "dc": "C", "amount": 15000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -4
+          },
+          "feedback": "You paid for tracking. Boring, traceable, and annoyingly correct."
+        },
+        {
+          "id": "BUNDLE_IN_MARKETING",
+          "label": "Bundle incentive into general marketing",
+          "description": "Push more spending through the incentive bucket and blur the story.",
+          "ledger_tx": [
+            {
+              "memo": "Additional route incentive marketing support",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5200", "dc": "D", "amount": 30000 },
+                { "gl": "1000", "dc": "C", "amount": 30000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": 2
+          },
+          "feedback": "Close enough for PowerPoint, not quite enough for the ledger."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W7_SERVICE_CAPACITY",
+      "week": 7,
+      "title": "Service Capacity: Growth Hits the Floor",
+      "sender": "Head of Ops",
+      "body": "More traffic is stressing airport service levels. The route story looks better if passengers can actually move through the terminal.",
+      "choices": [
+        {
+          "id": "ADD_TEMP_STAFF",
+          "label": "Add temporary staffing",
+          "description": "Spend cash to keep service from buckling under added traffic.",
+          "ledger_tx": [
+            {
+              "memo": "Temporary staffing for added route activity",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5000", "dc": "D", "amount": 45000 },
+                { "gl": "1000", "dc": "C", "amount": 45000 }
+              ]
+            }
+          ],
+          "airport_delta": {
+            "service_quality_tier": 1
+          },
+          "loop_delta": {
+            "ops_risk_delta": -3,
+            "reputation_delta": 1
+          },
+          "feedback": "You spent cash to keep the machine from coughing bolts."
+        },
+        {
+          "id": "ABSORB_PRESSURE",
+          "label": "Do nothing and absorb pressure",
+          "description": "Keep cash untouched and hope queues stay tolerable.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "ops_risk_delta": 4,
+            "reputation_delta": -1
+          },
+          "feedback": "Bold choice. Nothing says leadership like hoping queues solve themselves."
+        },
+        {
+          "id": "DEFER_MAINTENANCE",
+          "label": "Cut non-critical maintenance timing",
+          "description": "Preserve cash by pushing some non-critical work later.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "ops_risk_delta": 5,
+            "audit_score_delta": 3
+          },
+          "feedback": "Cash preserved. Risk moved out of sight, not out of the building."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W8_BOARD_PREP_ROUTE_INCENTIVE",
+      "week": 8,
+      "title": "Board Prep: Was the Incentive Worth It?",
+      "sender": "Controller",
+      "body": "The board wants to know whether the route incentive created value or just purchased a better passenger chart.",
+      "choices": [
+        {
+          "id": "BUILD_MARGIN_BRIDGE",
+          "label": "Build contribution margin bridge",
+          "description": "Pay for a clean bridge from incentive cost to route economics.",
+          "ledger_tx": [
+            {
+              "memo": "Contribution margin bridge for route incentive review",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 20000 },
+                { "gl": "1000", "dc": "C", "amount": 20000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -3
+          },
+          "feedback": "The board gets a bridge instead of a fog machine."
+        },
+        {
+          "id": "LEAD_WITH_PASSENGERS",
+          "label": "Lead with passenger growth",
+          "description": "Tell the growth story first and leave margin detail in the appendix.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "reputation_delta": 1,
+            "audit_score_delta": 2
+          },
+          "feedback": "Traffic is up. Whether the economics are good is hiding in the bushes."
+        },
+        {
+          "id": "AVOID_TOPIC",
+          "label": "Avoid the topic",
+          "description": "Skate past the route incentive economics and hope nobody asks.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 5,
+            "reputation_delta": -2
+          },
+          "feedback": "Avoiding the obvious: the oldest executive tradition after blaming timing."
+        }
+      ]
     }
   ]
 }

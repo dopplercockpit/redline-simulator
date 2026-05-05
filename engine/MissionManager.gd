@@ -8,6 +8,7 @@ signal inbox_updated(inbox: Array)
 const SAVE_PATH := "user://save.cfg"
 const SAVE_SECTION := "progress"
 const MONTH_CLOSE_DEF_ID := "MISSION_MONTH_CLOSE_V1"
+const ROUTE_INCENTIVE_CLOSE_DEF_ID := "MISSION_MONTH_CLOSE_ROUTE_INCENTIVE_V1"
 const AUDIT_STUB_ID := "MISSION_AUDIT_STUB_V1"
 const AUDIT_THRESHOLD := 100
 
@@ -29,15 +30,18 @@ func init_from_state(state_ref) -> void:
 func enqueue_month_close(report: Dictionary, loop_snapshot: Dictionary) -> void:
 	if _state_ref == null:
 		return
-	var def: Dictionary = _missions.get(MONTH_CLOSE_DEF_ID, {}) as Dictionary
-	if def.is_empty():
-		push_warning("Mission definition missing: " + MONTH_CLOSE_DEF_ID)
-		return
-
-	var created_week: int = int(loop_snapshot.get("week_number", 0))
 	var created_month: int = int(report.get("month", loop_snapshot.get("month_number", 0) - 1))
 	if created_month <= 0:
 		created_month = int(loop_snapshot.get("month_number", 0))
+
+	# Patch 5: Month 2 uses the route incentive close mission; later months fall back to the generic close.
+	var def_id := _month_close_definition_id(created_month)
+	var def: Dictionary = _missions.get(def_id, {}) as Dictionary
+	if def.is_empty():
+		push_warning("Mission definition missing: " + def_id)
+		return
+
+	var created_week: int = int(loop_snapshot.get("week_number", 0))
 
 	for item in _inbox:
 		if typeof(item) != TYPE_DICTIONARY:
@@ -47,7 +51,7 @@ func enqueue_month_close(report: Dictionary, loop_snapshot: Dictionary) -> void:
 			if status == "queued" or status == "active":
 				return
 
-	var mission_id := "%s_M%d" % [MONTH_CLOSE_DEF_ID, created_month]
+	var mission_id := "%s_M%d" % [def_id, created_month]
 	if _state_ref.completed_missions.has(mission_id):
 		return
 
@@ -62,7 +66,7 @@ func enqueue_month_close(report: Dictionary, loop_snapshot: Dictionary) -> void:
 	_inbox.append(inbox_item)
 	_state_ref.inbox = _inbox
 	_mission_context[mission_id] = {
-		"definition_id": def.get("id", MONTH_CLOSE_DEF_ID),
+		"definition_id": def.get("id", def_id),
 		"report": report,
 		"loop_snapshot": loop_snapshot
 	}
@@ -184,6 +188,7 @@ func _ensure_state_defaults() -> void:
 
 func _load_mission_defs() -> void:
 	_load_mission_file("res://data/missions/month_close_v1.json")
+	_load_mission_file("res://data/missions/month_close_route_incentive_v1.json")
 
 func _load_mission_file(path: String) -> void:
 	if not FileAccess.file_exists(path):
@@ -263,7 +268,14 @@ func _resolve_definition_id(mission_id: String) -> String:
 			return def_id
 	if mission_id.begins_with(MONTH_CLOSE_DEF_ID):
 		return MONTH_CLOSE_DEF_ID
+	if mission_id.begins_with(ROUTE_INCENTIVE_CLOSE_DEF_ID):
+		return ROUTE_INCENTIVE_CLOSE_DEF_ID
 	return mission_id
+
+func _month_close_definition_id(month_number: int) -> String:
+	if month_number == 2:
+		return ROUTE_INCENTIVE_CLOSE_DEF_ID
+	return MONTH_CLOSE_DEF_ID
 
 func _get_loop_snapshot() -> Dictionary:
 	var gm := get_node_or_null("/root/GameManager")

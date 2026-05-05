@@ -42,7 +42,14 @@ func _build_body(scorecard: Dictionary) -> String:
 			if typeof(result_value) != TYPE_DICTIONARY:
 				continue
 			var result: Dictionary = result_value as Dictionary
-			lines.append("Objective: Stabilize cash above $900,000")
+			lines.append("Objective: %s" % str(result.get("id", "objective")))
+			lines.append(
+				"Metric: %s %s %s" % [
+					str(result.get("metric", "metric")),
+					str(result.get("operator", ">=")),
+					_format_target(result)
+				]
+			)
 			lines.append("Result: %s" % ("PASSED" if bool(result.get("passed", false)) else "MISSED"))
 			lines.append("Reward: +%d points" % int(result.get("points_awarded", 0)))
 			var result_unlocks: Array = result.get("unlocks", []) as Array
@@ -56,9 +63,9 @@ func _build_body(scorecard: Dictionary) -> String:
 			any_passed = true
 			break
 	if any_passed:
-		lines.append("Comment: The airport is still a leaking financial bucket, but at least now it has a handle.")
+		lines.append("Comment: The board has a clearer story. Now the numbers need to keep earning it.")
 	else:
-		lines.append("Comment: The board saw the problem clearly. Patch the cash story before asking the bank for more room.")
+		lines.append("Comment: The board saw the gap. Fix the economics before calling it strategy.")
 
 	return "\n".join(PackedStringArray(lines))
 
@@ -83,6 +90,15 @@ func _format_int_with_commas(value: int) -> String:
 
 func _format_percent(value: float) -> String:
 	return "%.1f%%" % (value * 100.0)
+
+func _format_target(result: Dictionary) -> String:
+	var metric := str(result.get("metric", ""))
+	var target := float(result.get("target", 0.0))
+	if metric == "operating_margin":
+		return _format_percent(target)
+	if metric == "cash":
+		return _format_currency(target)
+	return _format_number(target)
 
 func _format_number(value: float) -> String:
 	if absf(value - round(value)) < 0.001:

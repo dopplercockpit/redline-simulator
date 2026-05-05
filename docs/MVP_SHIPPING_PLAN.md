@@ -155,3 +155,45 @@ Patch 4 turns the `DEBT_DESK` unlock into a working local financing tool. After 
 ### Patch 5 Recommendation
 
 Patch 5 should add repayment/refinancing choices and covenant pressure: optional revolver repayment, term loan amendment, covenant waiver fees, and board feedback when leverage or DSCR deteriorates.
+
+## Patch 5 — Scenario 2 / Month 2: Route Incentive Offer
+
+### Goal
+
+Patch 5 extends the continuous Airport CFO MVP into Month 2. BudgetAir proposes added route activity if the airport funds an incentive package, forcing the player to balance growth, incentive expense, liquidity, service capacity, and board explanation.
+
+### Files Changed
+
+- `res://data/actions/flightpath/action_cards_v1.json`
+- `res://data/scenarios/flightpath/scenario_001.json`
+- `res://data/missions/month_close_route_incentive_v1.json`
+- `res://engine/MissionManager.gd`
+- `res://engine/GameManager.gd`
+- `res://scripts/panels/InboxPanel.gd`
+- `res://ui/MonthScorecard.gd`
+- `res://docs/PATCH_5_ROUTE_INCENTIVE.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- Week 1-4 action cards still work.
+- Month 1 close still queues and launches the generic boardroom mission.
+- Month 1 cash objective still unlocks `DEBT_DESK` once.
+- Debt Desk remains available after Month 1 and does not block Week 5.
+- Week 5 shows `CARD_W5_BUDGETAIR_OFFER`.
+- Week 6 shows `CARD_W6_ROUTE_ECONOMICS`.
+- Week 7 shows `CARD_W7_SERVICE_CAPACITY`.
+- Week 8 shows `CARD_W8_BOARD_PREP_ROUTE_INCENTIVE`.
+- Week 8 close queues `MISSION_MONTH_CLOSE_ROUTE_INCENTIVE_V1_M2`.
+- Month 2 boardroom questions focus on route incentive economics.
+- Completing Month 2 close evaluates `obj_route_incentive` and `obj_cash_month2`.
+- Month 2 objectives do not evaluate before week 8.
+- Objective rewards cannot duplicate.
+- Month 2 scorecard displays objective id, metric, operator, target, result, reward, unlocks, and note for each evaluated objective.
+- Total debt remains visible in HUD and scorecard.
+- No backend or LLM call is required.
+
+### Patch 6 Recommendation
+
+Patch 6 should add Contract Review as the next unlocked tool, using the Month 2 reward to introduce carrier agreement terms, clawback language, minimum service commitments, and board-ready contract risk explanations.

@@ -349,6 +349,17 @@ func _render_debt_desk_used() -> void:
 	)
 	choice_container.add_child(button)
 
+	var advance_button := Button.new()
+	advance_button.text = "Advance Week"
+	advance_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	advance_button.pressed.connect(func() -> void:
+		var manager := get_node_or_null("/root/GameManager")
+		if manager and manager.has_method("advance_week"):
+			manager.call("advance_week", false)
+			_render_local_inbox()
+	)
+	choice_container.add_child(advance_button)
+
 func _on_debt_offer_pressed(offer: Dictionary) -> void:
 	var manager := get_node_or_null("/root/GameManager")
 	if manager == null or not manager.has_method("submit_debt_desk_choice"):
