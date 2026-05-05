@@ -101,6 +101,14 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 			"ui": {}
 		}
 
+	if intent.has("action_card_choice") and typeof(intent["action_card_choice"]) == TYPE_DICTIONARY:
+		var action_card_choice: Dictionary = intent["action_card_choice"] as Dictionary
+		return _apply_action_card_choice(
+			str(action_card_choice.get("card_id", "")),
+			str(action_card_choice.get("choice_id", "")),
+			action_card_choice.get("choice", {}) as Dictionary
+		)
+
 	var impacts: Dictionary = {}
 	var verb := str(intent.get("verb", "intent"))
 	var target := str(intent.get("target", "target"))
@@ -150,6 +158,110 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 		"errors": [],
 		"ui": {}
 	}
+
+func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
+	var action_errors: Array[String] = []
+	if card_id.strip_edges() == "":
+		action_errors.append("Action card missing card_id")
+	if choice_id.strip_edges() == "":
+		action_errors.append("Action card missing choice_id")
+	if _loop_system == null:
+		action_errors.append("LoopSystem unavailable")
+	if not action_errors.is_empty():
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": action_errors,
+			"ui": {}
+		}
+
+	var loop_state: LoopState = _loop_system.call("get_state_ref") as LoopState
+	var completed_flag := "card_completed.%s" % card_id
+	if bool(loop_state.flags.get(completed_flag, false)):
+		var duplicate_error := "Action card already completed: %s" % card_id
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": [duplicate_error],
+			"ui": {"feedback": duplicate_error}
+		}
+
+	var posted := 0
+	var ledger_errors: Array[String] = []
+	var ledger_value: Variant = choice.get("ledger_tx", [])
+	if typeof(ledger_value) == TYPE_ARRAY:
+		var txs: Array = ledger_value as Array
+		var base_index := int((_financial_state.ledger.get("transactions", []) as Array).size())
+		for i in range(txs.size()):
+			var tx_value: Variant = txs[i]
+			if typeof(tx_value) != TYPE_DICTIONARY:
+				ledger_errors.append("ledger_tx entry must be a Dictionary")
+				continue
+			var tx: Dictionary = (tx_value as Dictionary).duplicate(true)
+			tx["tx_id"] = "ACTION_%s_%s_%s" % [card_id, choice_id, str(base_index + i).pad_zeros(4)]
+			tx["week"] = get_current_decision_week()
+			tx["source"] = "action_card"
+			tx["card_id"] = card_id
+			tx["choice_id"] = choice_id
+			var result: Dictionary = _ledger.post_transaction(_financial_state.ledger, tx)
+			if bool(result.get("ok", false)):
+				posted += 1
+			else:
+				for msg in result.get("errors", []):
+					ledger_errors.append(str(msg))
+	elif ledger_value != null:
+		ledger_errors.append("ledger_tx must be an Array")
+
+	if choice.has("airport_delta") and typeof(choice["airport_delta"]) == TYPE_DICTIONARY:
+		_apply_domain_delta(_financial_state.airport, choice["airport_delta"] as Dictionary, "airport")
+	if choice.has("commercial_delta") and typeof(choice["commercial_delta"]) == TYPE_DICTIONARY:
+		_apply_domain_delta(_financial_state.commercial, choice["commercial_delta"] as Dictionary, "commercial")
+	if choice.has("economy_delta") and typeof(choice["economy_delta"]) == TYPE_DICTIONARY:
+		_apply_domain_delta(_financial_state.economy, choice["economy_delta"] as Dictionary, "economy")
+
+	var loop_impact: Dictionary = {}
+	if choice.has("loop_delta") and typeof(choice["loop_delta"]) == TYPE_DICTIONARY:
+		loop_impact = _apply_loop_delta(choice["loop_delta"] as Dictionary)
+
+	var statements := _finance.generate_statements_from_ledger(_financial_state)
+	_financial_state.meta["financial_statements"] = statements
+	var balance_sheet: Dictionary = statements.get("balance_sheet", {}) as Dictionary
+	_financial_state.cash = float(balance_sheet.get("cash", _financial_state.cash))
+
+	var feedback := str(choice.get("feedback", "Decision applied."))
+	loop_state.memory["last_action_feedback"] = feedback
+	loop_state.flags[completed_flag] = true
+	_loop_system.call("notify_updated")
+
+	var action_impact := {
+		"card_id": card_id,
+		"choice_id": choice_id,
+		"feedback": feedback,
+		"ledger_posted": posted,
+		"errors": ledger_errors
+	}
+	var impacts := {
+		"action_card": action_impact,
+		"loop": loop_impact
+	}
+	emit_signal("decision_applied", "action_card.%s" % card_id, impacts)
+	return {
+		"ok": ledger_errors.is_empty(),
+		"impacts": impacts,
+		"events": [],
+		"errors": ledger_errors,
+		"ui": {
+			"feedback": feedback
+		}
+	}
+
+func get_current_decision_week() -> int:
+	if _loop_system == null:
+		return 1
+	var state: LoopState = _loop_system.call("get_state_ref") as LoopState
+	return int(state.week_number) + 1
 
 func _advance_loop_time() -> Dictionary:
 	if _loop_system == null:
@@ -287,3 +399,23 @@ func _apply_loop_delta(delta: Dictionary) -> Dictionary:
 		"flags": state.flags,
 		"memory": state.memory
 	}
+
+func _apply_domain_delta(root: Dictionary, delta: Dictionary, root_name: String) -> void:
+	for key in delta.keys():
+		var path := str(key)
+		if path.begins_with(root_name + "."):
+			path = path.substr(root_name.length() + 1)
+		_apply_nested_numeric_delta(root, path, float(delta.get(key, 0.0)))
+
+func _apply_nested_numeric_delta(root: Dictionary, dotted_path: String, delta: float) -> void:
+	if dotted_path.strip_edges() == "":
+		return
+	var parts := dotted_path.split(".")
+	var cursor := root
+	for i in range(parts.size() - 1):
+		var part := str(parts[i])
+		if typeof(cursor.get(part, null)) != TYPE_DICTIONARY:
+			cursor[part] = {}
+		cursor = cursor[part] as Dictionary
+	var leaf := str(parts[parts.size() - 1])
+	cursor[leaf] = float(cursor.get(leaf, 0.0)) + delta

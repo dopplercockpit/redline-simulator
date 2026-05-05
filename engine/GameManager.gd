@@ -7,6 +7,7 @@ signal mission_triggered(mission_id: String)
 signal state_updated()
 
 const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.json"
+const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 
 var _resolver: Node = null
 
@@ -51,6 +52,36 @@ func advance_week(use_legacy_burn: bool = false) -> Dictionary:
 
 	emit_signal("state_updated")
 	return result
+
+func get_current_week() -> int:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return 1
+	return int(loop_state.week_number) + 1
+
+func get_loop_state_ref() -> LoopState:
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("get_state_ref"):
+		return loop_system.call("get_state_ref") as LoopState
+	return null
+
+func submit_action_card_choice(card_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
+	var scene_path := ""
+	if get_tree() and get_tree().current_scene:
+		scene_path = str(get_tree().current_scene.scene_file_path)
+	var intent: Dictionary = DecisionIntent.build_intent(
+		"action_card_choice.%s.%s" % [card_id, choice_id],
+		DecisionIntent.VERB_USE,
+		"action_card",
+		scene_path,
+		str(get_path())
+	)
+	intent["action_card_choice"] = {
+		"card_id": card_id,
+		"choice_id": choice_id,
+		"choice": choice
+	}
+	return submit_intent(intent)
 
 func submit_intent(intent: Dictionary) -> Dictionary:
 	if _resolver == null:

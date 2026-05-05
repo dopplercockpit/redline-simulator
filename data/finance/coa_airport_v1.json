@@ -15,13 +15,15 @@
 
     { "code": "5000", "name": "Payroll Expense", "type": "expense", "statement": "IS", "rollup": "opex_payroll" },
     { "code": "5100", "name": "Utilities Expense", "type": "expense", "statement": "IS", "rollup": "opex_utilities" },
+    { "code": "5200", "name": "Route Incentive Expense", "type": "expense", "statement": "IS", "rollup": "opex_route_incentives" },
+    { "code": "5300", "name": "Professional Fees / Close Prep Expense", "type": "expense", "statement": "IS", "rollup": "opex_professional_fees" },
     { "code": "5600", "name": "Interest Expense", "type": "expense", "statement": "IS", "rollup": "fin_interest" }
   ],
 
   "rollups": {
     "IS": {
       "revenue": ["4000", "4100", "4200"],
-      "opex": ["5000", "5100"],
+      "opex": ["5000", "5100", "5200", "5300"],
       "interest": ["5600"]
     },
     "BS": {

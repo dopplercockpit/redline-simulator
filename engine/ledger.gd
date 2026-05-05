@@ -154,6 +154,8 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 		"total_operating_revenue": 0.0,
 		"payroll_expense": 0.0,
 		"utilities_expense": 0.0,
+		"route_incentive_expense": 0.0,
+		"professional_fees_expense": 0.0,
 		"interest_expense": 0.0,
 		"total_operating_expense": 0.0,
 		"operating_surplus": 0.0
@@ -208,6 +210,10 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 					income_statement["payroll_expense"] = amount
 				"5100":
 					income_statement["utilities_expense"] = amount
+				"5200":
+					income_statement["route_incentive_expense"] = amount
+				"5300":
+					income_statement["professional_fees_expense"] = amount
 				"5600":
 					income_statement["interest_expense"] = amount
 
@@ -219,6 +225,8 @@ func build_statements(ledger: Dictionary, coa: Dictionary) -> Dictionary:
 	var total_operating_expense := (
 		float(income_statement["payroll_expense"])
 		+ float(income_statement["utilities_expense"])
+		+ float(income_statement["route_incentive_expense"])
+		+ float(income_statement["professional_fees_expense"])
 		+ float(income_statement["interest_expense"])
 	)
 	var operating_surplus := total_operating_revenue - total_operating_expense

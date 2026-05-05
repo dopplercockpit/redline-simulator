@@ -19,6 +19,10 @@ The canonical v0.1 product is Airport CFO. The player runs a distressed regional
 
 The ledger is the source of truth. Airport CFO statements are generated from GL balances in `res://data/finance/coa_airport_v1.json`, seeded and advanced by `res://data/scenarios/flightpath/scenario_001.json`.
 
+## Patch 2 Action Card Rule
+
+Weekly decisions are local, JSON-driven action cards. The inbox is the player-facing action hub. Choices may post ledger transactions and update airport/economy/loop state, but all mutations must go through `DecisionResolver`.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

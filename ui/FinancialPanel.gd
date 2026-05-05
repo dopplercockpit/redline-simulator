@@ -22,6 +22,8 @@ var income_lines: Array = [
 	["total_operating_revenue", "Total Operating Revenue"],
 	["payroll_expense", "Payroll Expense"],
 	["utilities_expense", "Utilities Expense"],
+	["route_incentive_expense", "Route Incentive Expense"],
+	["professional_fees_expense", "Professional Fees / Close Prep Expense"],
 	["interest_expense", "Interest Expense"],
 	["total_operating_expense", "Total Operating Expense"],
 	["operating_surplus", "Operating Surplus"]
@@ -208,6 +210,8 @@ func get_financial_summary_example() -> Dictionary:
 			"total_operating_revenue": 0.0,
 			"payroll_expense": 0.0,
 			"utilities_expense": 0.0,
+			"route_incentive_expense": 0.0,
+			"professional_fees_expense": 0.0,
 			"interest_expense": 0.0,
 			"total_operating_expense": 0.0,
 			"operating_surplus": 0.0

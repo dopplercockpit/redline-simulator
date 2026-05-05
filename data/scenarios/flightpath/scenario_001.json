@@ -5,6 +5,8 @@
     "module": "flightpath_airport",
     "seed": 123456,
     "finance_mode": "ledger",
+    "action_cards_ref": "res://data/actions/flightpath/action_cards_v1.json",
+    "patch_notes": "Patch 2 uses action_cards_ref for local weekly decisions.",
     "starting_week": 0,
     "version": "1.0"
   },

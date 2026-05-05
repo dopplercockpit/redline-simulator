@@ -1,0 +1,221 @@
+{
+  "version": "1.0",
+  "scenario_id": "scenario_001",
+  "cards": [
+    {
+      "id": "CARD_W1_CASH_TRIAGE",
+      "week": 1,
+      "title": "Cash Triage: Receivables Are Getting Moldy",
+      "sender": "Controller",
+      "body": "Accounts receivable is bloated. We can push collections, preserve relationships, or ignore it and pretend cash magically breeds in captivity.",
+      "choices": [
+        {
+          "id": "PUSH_COLLECTIONS",
+          "label": "Push collections hard",
+          "description": "Collect the overdue AR aggressively and accept the relationship hit.",
+          "ledger_tx": [
+            {
+              "memo": "Collected overdue receivables",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "1000", "dc": "D", "amount": 125000 },
+                { "gl": "1200", "dc": "C", "amount": 125000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": 2,
+            "reputation_delta": -1
+          },
+          "feedback": "Cash improves, but the commercial team is already making faces."
+        },
+        {
+          "id": "GENTLE_FOLLOW_UP",
+          "label": "Gentle follow-up",
+          "description": "Collect part of the balance while keeping partners calm.",
+          "ledger_tx": [
+            {
+              "memo": "Collected receivables with gentle follow-up",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "1000", "dc": "D", "amount": 65000 },
+                { "gl": "1200", "dc": "C", "amount": 65000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "reputation_delta": 1
+          },
+          "feedback": "Less cash now, fewer broken relationships."
+        },
+        {
+          "id": "DO_NOTHING",
+          "label": "Do nothing",
+          "description": "Leave AR alone and hope cash solves itself.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 3,
+            "ops_risk_delta": 1
+          },
+          "feedback": "Nothing says CFO like watching working capital rot in a drawer."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W2_VENDOR_PRESSURE",
+      "week": 2,
+      "title": "Vendor Pressure: The Lights Prefer Money",
+      "sender": "Head of Ops",
+      "body": "Critical vendors are asking when they get paid. We can protect operations, stretch payables, or split the difference.",
+      "choices": [
+        {
+          "id": "PAY_CRITICAL_VENDORS",
+          "label": "Pay critical vendors",
+          "description": "Use cash to reduce payables and stabilize operations.",
+          "ledger_tx": [
+            {
+              "memo": "Paid critical vendors",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "2000", "dc": "D", "amount": 90000 },
+                { "gl": "1000", "dc": "C", "amount": 90000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "ops_risk_delta": -2,
+            "audit_score_delta": -1
+          },
+          "feedback": "Cash goes down, but the people who keep the lights on stop sharpening knives."
+        },
+        {
+          "id": "STRETCH_AP",
+          "label": "Stretch AP another week",
+          "description": "Preserve cash now and accept vendor pressure.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "ops_risk_delta": 3,
+            "audit_score_delta": 3
+          },
+          "feedback": "Cash preserved. Vendor trust now smells like old fish."
+        },
+        {
+          "id": "PARTIAL_PAYMENT",
+          "label": "Partial payment",
+          "description": "Reduce payables enough to keep operations moving.",
+          "ledger_tx": [
+            {
+              "memo": "Made partial vendor payment",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "2000", "dc": "D", "amount": 45000 },
+                { "gl": "1000", "dc": "C", "amount": 45000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "ops_risk_delta": -1
+          },
+          "feedback": "A compromise. Nobody is happy, which means finance probably did its job."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W3_CONCESSIONS_DEAL",
+      "week": 3,
+      "title": "Concessions Deal: Upside Is Not a Plan, But It Helps",
+      "sender": "Commercial Director",
+      "body": "The concessions operator wants relief. You can push for percentage rent upside, demand a fixed guarantee, or leave the contract alone.",
+      "choices": [
+        {
+          "id": "PERCENTAGE_RENT_UPSIDE",
+          "label": "Negotiate percentage rent upside",
+          "description": "Improve the weekly concessions sales base with no immediate cash receipt.",
+          "ledger_tx": [],
+          "commercial_delta": {
+            "revenue_streams.concessions.baseline_sales_usd_week": 20000
+          },
+          "loop_delta": {
+            "reputation_delta": 1
+          },
+          "feedback": "You gave away some certainty for upside. Dangerous, but not stupid."
+        },
+        {
+          "id": "FIXED_MINIMUM_GUARANTEE",
+          "label": "Demand fixed minimum guarantee",
+          "description": "Take cash now from the operator under a tougher deal.",
+          "ledger_tx": [
+            {
+              "memo": "Collected concessions minimum guarantee",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "1000", "dc": "D", "amount": 40000 },
+                { "gl": "4200", "dc": "C", "amount": 40000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "reputation_delta": -1
+          },
+          "feedback": "Cash now. Vendor grumbling also now."
+        },
+        {
+          "id": "LEAVE_CONTRACT_UNCHANGED",
+          "label": "Leave contract unchanged",
+          "description": "Avoid the negotiation and accept the current economics.",
+          "ledger_tx": [],
+          "feedback": "A bold commitment to mediocrity."
+        }
+      ]
+    },
+    {
+      "id": "CARD_W4_CLOSE_PREP",
+      "week": 4,
+      "title": "Close Prep: Documentation Does Not File Itself",
+      "sender": "Controller",
+      "body": "Month close is coming. You can fund a documentation sprint, lean on the internal team, or skip prep and let the audit universe decide your fate.",
+      "choices": [
+        {
+          "id": "FUND_CLOSE_PREP",
+          "label": "Fund close prep / documentation sprint",
+          "description": "Pay for short-term close support and lower audit pressure.",
+          "ledger_tx": [
+            {
+              "memo": "Funded close preparation sprint",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 30000 },
+                { "gl": "1000", "dc": "C", "amount": 30000 }
+              ]
+            }
+          ],
+          "loop_delta": {
+            "audit_score_delta": -8
+          },
+          "feedback": "You paid for boring control work. Civilization advances by inches."
+        },
+        {
+          "id": "INTERNAL_TEAM_ONLY",
+          "label": "Lean on internal team only",
+          "description": "Save cash, but add stress and execution risk.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": -2,
+            "ops_risk_delta": 1
+          },
+          "feedback": "Cheap and stressful. The official finance department motto."
+        },
+        {
+          "id": "SKIP_PREP",
+          "label": "Skip prep",
+          "description": "Do nothing before close and accept the audit consequences.",
+          "ledger_tx": [],
+          "loop_delta": {
+            "audit_score_delta": 8
+          },
+          "feedback": "The audit gods have noticed your little clown show."
+        }
+      ]
+    }
+  ]
+}

@@ -49,6 +49,11 @@ fit_content = true
 autowrap_mode = 1
 text = ""
 
+[node name="ChoiceContainer" type="VBoxContainer" parent="PanelContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
 [node name="ReplyInput" type="TextEdit" parent="PanelContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 3

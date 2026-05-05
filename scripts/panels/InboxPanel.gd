@@ -3,11 +3,15 @@ extends CanvasLayer
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 
 const CAPABILITY_FLAG := "cap.inbox"
+const LOCAL_ACTION_CARDS_PATH := "res://data/actions/flightpath/action_cards_v1.json"
+# PATCH 2: local action-card inbox is canonical for v0.1; backend inbox remains future/optional.
+const USE_BACKEND_INBOX := false
 
 @onready var api_client: Node = $ApiClient
 @onready var subject_label: Label = $PanelContainer/VBox/SubjectLabel
 @onready var sender_label: Label = $PanelContainer/VBox/SenderLabel
 @onready var body_label: RichTextLabel = $PanelContainer/VBox/BodyLabel
+@onready var choice_container: VBoxContainer = get_node_or_null("PanelContainer/VBox/ChoiceContainer") as VBoxContainer
 @onready var reply_input: TextEdit = $PanelContainer/VBox/ReplyInput
 @onready var send_button: Button = $PanelContainer/VBox/SendButton
 @onready var feedback_label: Label = $PanelContainer/VBox/FeedbackLabel
@@ -15,14 +19,17 @@ const CAPABILITY_FLAG := "cap.inbox"
 var _backend_client: BackendClient
 var _email_id: String = ""
 var _inbox_request_in_flight: bool = false
+var _advance_enabled: bool = false
 
 func _ready() -> void:
-	_backend_client = BackendClient.new()
-	add_child(_backend_client)
-	if not _backend_client.inbox_request_finished.is_connected(_on_dynamic_inbox_finished):
-		_backend_client.inbox_request_finished.connect(_on_dynamic_inbox_finished)
+	_ensure_choice_container()
+	if USE_BACKEND_INBOX:
+		_backend_client = BackendClient.new()
+		add_child(_backend_client)
+		if not _backend_client.inbox_request_finished.is_connected(_on_dynamic_inbox_finished):
+			_backend_client.inbox_request_finished.connect(_on_dynamic_inbox_finished)
 
-	if api_client:
+	if USE_BACKEND_INBOX and api_client:
 		api_client.email_generated.connect(_on_email_generated)
 		api_client.reply_scored.connect(_on_reply_scored)
 	if send_button and not send_button.pressed.is_connected(_on_send_pressed):
@@ -37,14 +44,22 @@ func try_open() -> bool:
 
 func open_panel() -> void:
 	visible = true
-	feedback_label.text = "Fetching memo..."
+	feedback_label.text = ""
 	subject_label.text = ""
 	sender_label.text = ""
 	body_label.text = ""
 	reply_input.text = ""
 	_email_id = ""
+	_advance_enabled = false
+	_clear_choice_buttons()
+	reply_input.visible = USE_BACKEND_INBOX
 	send_button.disabled = true
-	_request_dynamic_inbox()
+	send_button.visible = USE_BACKEND_INBOX
+	if USE_BACKEND_INBOX:
+		feedback_label.text = "Fetching memo..."
+		_request_dynamic_inbox()
+	else:
+		_render_local_inbox()
 
 func _on_email_generated(data: Dictionary) -> void:
 	_email_id = str(data.get("email_id", ""))
@@ -55,6 +70,9 @@ func _on_email_generated(data: Dictionary) -> void:
 	send_button.disabled = false
 
 func _on_send_pressed() -> void:
+	if not USE_BACKEND_INBOX:
+		_on_advance_week_pressed()
+		return
 	if _email_id == "":
 		feedback_label.text = "No email loaded yet."
 		return
@@ -146,6 +164,217 @@ func _show_locked_tooltip() -> void:
 			dialogue_box.call("show_text", "Inbox locked. Capability required: %s" % CAPABILITY_FLAG)
 			return
 	feedback_label.text = "Inbox locked."
+
+func _ensure_choice_container() -> void:
+	if choice_container != null:
+		return
+	var vbox := get_node_or_null("PanelContainer/VBox") as VBoxContainer
+	if vbox == null:
+		return
+	choice_container = VBoxContainer.new()
+	choice_container.name = "ChoiceContainer"
+	choice_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(choice_container)
+	if body_label:
+		vbox.move_child(choice_container, body_label.get_index() + 1)
+
+func _render_local_inbox() -> void:
+	var mission := _get_queued_month_close_mission()
+	if not mission.is_empty():
+		_render_month_close_mission(mission)
+		return
+
+	var card := _find_card_for_week(_get_current_week())
+	if card.is_empty():
+		_render_no_action_card()
+		return
+	_render_action_card(card)
+
+func _load_local_action_cards() -> Dictionary:
+	if not FileAccess.file_exists(LOCAL_ACTION_CARDS_PATH):
+		push_warning("Action cards missing: " + LOCAL_ACTION_CARDS_PATH)
+		return {}
+	var txt := FileAccess.get_file_as_string(LOCAL_ACTION_CARDS_PATH)
+	var parsed: Variant = JSON.parse_string(txt)
+	if typeof(parsed) == TYPE_DICTIONARY:
+		return parsed as Dictionary
+	push_warning("Invalid action card JSON: " + LOCAL_ACTION_CARDS_PATH)
+	return {}
+
+func _get_current_week() -> int:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager and manager.has_method("get_current_week"):
+		return int(manager.call("get_current_week"))
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("get_state_ref"):
+		var state: LoopState = loop_system.call("get_state_ref") as LoopState
+		return int(state.week_number) + 1
+	return 1
+
+func _find_card_for_week(week_number: int) -> Dictionary:
+	var payload := _load_local_action_cards()
+	var cards_value: Variant = payload.get("cards", [])
+	if typeof(cards_value) != TYPE_ARRAY:
+		return {}
+	var loop_state := _get_loop_state_ref()
+	var cards: Array = cards_value as Array
+	for card_value in cards:
+		if typeof(card_value) != TYPE_DICTIONARY:
+			continue
+		var card: Dictionary = card_value as Dictionary
+		if int(card.get("week", 0)) != week_number:
+			continue
+		var card_id := str(card.get("id", ""))
+		if loop_state != null and bool(loop_state.flags.get("card_completed.%s" % card_id, false)):
+			return {}
+		return card
+	return {}
+
+func _render_action_card(card: Dictionary) -> void:
+	_clear_choice_buttons()
+	_advance_enabled = false
+	subject_label.text = str(card.get("title", "Weekly Decision"))
+	sender_label.text = str(card.get("sender", "CFO Office"))
+	body_label.text = str(card.get("body", ""))
+	feedback_label.text = "Choose one response."
+	reply_input.visible = false
+	send_button.visible = false
+	send_button.disabled = true
+
+	var choices_value: Variant = card.get("choices", [])
+	if typeof(choices_value) != TYPE_ARRAY:
+		feedback_label.text = "This card has no choices."
+		return
+	var choices: Array = choices_value as Array
+	for choice_value in choices:
+		if typeof(choice_value) != TYPE_DICTIONARY:
+			continue
+		var choice: Dictionary = choice_value as Dictionary
+		var button := Button.new()
+		button.text = "%s\n%s" % [str(choice.get("label", "Choose")), str(choice.get("description", ""))]
+		button.custom_minimum_size = Vector2(0, 56)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(_on_choice_pressed.bind(card, choice))
+		choice_container.add_child(button)
+
+func _render_no_action_card() -> void:
+	_clear_choice_buttons()
+	_advance_enabled = true
+	subject_label.text = "No Open Decision"
+	sender_label.text = "CFO Office"
+	body_label.text = "No local action card is scheduled for week %d." % _get_current_week()
+	feedback_label.text = "You may advance the week."
+	reply_input.visible = false
+	send_button.text = "Advance Week"
+	send_button.visible = true
+	send_button.disabled = false
+
+func _on_choice_pressed(card: Dictionary, choice: Dictionary) -> void:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager == null or not manager.has_method("submit_action_card_choice"):
+		feedback_label.text = "GameManager unavailable."
+		return
+	var card_id := str(card.get("id", ""))
+	var choice_id := str(choice.get("id", ""))
+	var result: Dictionary = manager.call("submit_action_card_choice", card_id, choice_id, choice) as Dictionary
+	if not bool(result.get("ok", false)):
+		var error_texts := PackedStringArray()
+		for err in result.get("errors", []):
+			error_texts.append(str(err))
+		feedback_label.text = "; ".join(error_texts)
+		return
+
+	var ui: Dictionary = result.get("ui", {}) as Dictionary
+	var feedback := str(ui.get("feedback", choice.get("feedback", "Decision applied.")))
+	feedback_label.text = feedback
+	_disable_choice_buttons()
+	_advance_enabled = true
+	send_button.text = "Advance Week"
+	send_button.visible = true
+	send_button.disabled = false
+
+func _on_advance_week_pressed() -> void:
+	if not _advance_enabled:
+		feedback_label.text = "Choose a response before advancing the week."
+		return
+	var manager := get_node_or_null("/root/GameManager")
+	if manager == null or not manager.has_method("advance_week"):
+		feedback_label.text = "GameManager unavailable."
+		return
+	manager.call("advance_week", false)
+	_show_dialogue_feedback()
+	_render_local_inbox()
+
+func _get_queued_month_close_mission() -> Dictionary:
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager == null or not mission_manager.has_method("get_inbox"):
+		return {}
+	var inbox: Array = mission_manager.call("get_inbox") as Array
+	for item_value in inbox:
+		if typeof(item_value) != TYPE_DICTIONARY:
+			continue
+		var item: Dictionary = item_value as Dictionary
+		if str(item.get("type", "")) == "month_close" and str(item.get("status", "queued")) == "queued":
+			return item
+	return {}
+
+func _render_month_close_mission(mission: Dictionary) -> void:
+	_clear_choice_buttons()
+	_advance_enabled = false
+	subject_label.text = str(mission.get("title", "Month Close"))
+	sender_label.text = "Board Secretary"
+	body_label.text = "Month close is ready. The board wants answers."
+	feedback_label.text = ""
+	reply_input.visible = false
+	send_button.visible = false
+	send_button.disabled = true
+
+	var button := Button.new()
+	button.text = "Enter Boardroom"
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var mission_id := str(mission.get("mission_id", ""))
+	button.pressed.connect(func() -> void:
+		var mission_manager := get_node_or_null("/root/MissionManager")
+		if mission_manager and mission_manager.has_method("start_mission"):
+			mission_manager.call("start_mission", mission_id)
+			visible = false
+	)
+	choice_container.add_child(button)
+
+func _get_loop_state_ref() -> LoopState:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager and manager.has_method("get_loop_state_ref"):
+		return manager.call("get_loop_state_ref") as LoopState
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("get_state_ref"):
+		return loop_system.call("get_state_ref") as LoopState
+	return null
+
+func _clear_choice_buttons() -> void:
+	if choice_container == null:
+		return
+	for child in choice_container.get_children():
+		choice_container.remove_child(child)
+		child.queue_free()
+
+func _disable_choice_buttons() -> void:
+	if choice_container == null:
+		return
+	for child in choice_container.get_children():
+		if child is Button:
+			(child as Button).disabled = true
+
+func _show_dialogue_feedback() -> void:
+	var loop_state := _get_loop_state_ref()
+	if loop_state == null:
+		return
+	var feedback := str(loop_state.memory.get("last_action_feedback", ""))
+	if feedback == "":
+		return
+	if get_tree() and get_tree().current_scene:
+		var dialogue_box := get_tree().current_scene.get_node_or_null("DialogueBox")
+		if dialogue_box:
+			dialogue_box.call("show_text", feedback)
 
 
 func _request_dynamic_inbox() -> void:
