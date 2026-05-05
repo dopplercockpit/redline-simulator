@@ -116,6 +116,14 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 			debt_desk_choice.get("offer", {}) as Dictionary
 		)
 
+	if intent.has("contract_review_choice") and typeof(intent["contract_review_choice"]) == TYPE_DICTIONARY:
+		var contract_review_choice: Dictionary = intent["contract_review_choice"] as Dictionary
+		return _apply_contract_review_choice(
+			str(contract_review_choice.get("review_id", "")),
+			str(contract_review_choice.get("choice_id", "")),
+			contract_review_choice.get("choice", {}) as Dictionary
+		)
+
 	var impacts: Dictionary = {}
 	var verb := str(intent.get("verb", "intent"))
 	var target := str(intent.get("target", "target"))
@@ -273,6 +281,122 @@ func _apply_debt_desk_choice(offer_id: String, offer: Dictionary) -> Dictionary:
 		}
 	}
 
+func _apply_contract_review_choice(review_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
+	var errors: Array[String] = []
+	if review_id.strip_edges() == "":
+		errors.append("Contract review missing review_id.")
+	if choice_id.strip_edges() == "":
+		errors.append("Contract review missing choice_id.")
+	if _loop_system == null:
+		errors.append("LoopSystem unavailable")
+	if not errors.is_empty():
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": errors,
+			"ui": {}
+		}
+
+	var loop_state: LoopState = _loop_system.call("get_state_ref") as LoopState
+	if not bool(loop_state.unlocks.get("CONTRACT_REVIEW", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": ["Contract Review is locked."],
+			"ui": {"feedback": "Contract Review is locked."}
+		}
+
+	var completed_flag := "contract_review_completed.%s" % review_id
+	if bool(loop_state.flags.get(completed_flag, false)):
+		var duplicate_error := "Contract review already completed: %s" % review_id
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": [duplicate_error],
+			"ui": {"feedback": duplicate_error}
+		}
+
+	var ledger_posted := 0
+	var ledger_errors: Array[String] = []
+	var ledger_value: Variant = choice.get("ledger_tx", [])
+	if typeof(ledger_value) == TYPE_ARRAY:
+		var txs: Array = ledger_value as Array
+		for i in range(txs.size()):
+			var tx_value: Variant = txs[i]
+			if typeof(tx_value) != TYPE_DICTIONARY:
+				ledger_errors.append("ledger_tx entry must be a Dictionary")
+				continue
+			var tx: Dictionary = (tx_value as Dictionary).duplicate(true)
+			tx["tx_id"] = "CONTRACT_%s_%s_%s" % [review_id, choice_id, str(i).pad_zeros(3)]
+			tx["week"] = get_current_decision_week()
+			tx["source"] = "contract_review"
+			tx["review_id"] = review_id
+			tx["choice_id"] = choice_id
+			var result: Dictionary = _ledger.post_transaction(_financial_state.ledger, tx)
+			if bool(result.get("ok", false)):
+				ledger_posted += 1
+			else:
+				for msg in result.get("errors", []):
+					ledger_errors.append(str(msg))
+	elif ledger_value != null:
+		ledger_errors.append("ledger_tx must be an Array")
+
+	var loop_impact: Dictionary = {}
+	var contract_result: Dictionary = {}
+	var feedback := str(choice.get("feedback", "Contract review applied."))
+	if ledger_errors.is_empty():
+		if choice.has("loop_delta") and typeof(choice["loop_delta"]) == TYPE_DICTIONARY:
+			loop_impact = _apply_loop_delta(choice["loop_delta"] as Dictionary)
+
+		var contract_delta: Dictionary = {}
+		if choice.has("contract_delta") and typeof(choice["contract_delta"]) == TYPE_DICTIONARY:
+			contract_delta = (choice["contract_delta"] as Dictionary).duplicate(true)
+		contract_result = _upsert_contract_review_state(review_id, choice_id, contract_delta)
+
+		var review_memory_value: Variant = loop_state.memory.get("contract_reviews", {})
+		var review_memory: Dictionary = {}
+		if typeof(review_memory_value) == TYPE_DICTIONARY:
+			review_memory = review_memory_value as Dictionary
+		review_memory[review_id] = contract_result.duplicate(true)
+		review_memory[review_id]["feedback"] = feedback
+		loop_state.memory["contract_reviews"] = review_memory
+		loop_state.memory["last_contract_review_feedback"] = feedback
+		loop_state.flags[completed_flag] = true
+
+	var statements := _finance.generate_statements_from_ledger(_financial_state)
+	_financial_state.meta["financial_statements"] = statements
+	var balance_sheet: Dictionary = statements.get("balance_sheet", {}) as Dictionary
+	_financial_state.cash = float(balance_sheet.get("cash", _financial_state.cash))
+
+	_loop_system.call("notify_updated")
+
+	var contract_impact := {
+		"review_id": review_id,
+		"choice_id": choice_id,
+		"ledger_posted": ledger_posted,
+		"contract_status": str(contract_result.get("status", "")),
+		"risk_rating": str(contract_result.get("risk_rating", "")),
+		"feedback": feedback,
+		"errors": ledger_errors
+	}
+	var impacts := {
+		"contract_review": contract_impact,
+		"loop": loop_impact
+	}
+	emit_signal("decision_applied", "contract_review.%s" % review_id, impacts)
+	return {
+		"ok": ledger_errors.is_empty(),
+		"impacts": impacts,
+		"events": [],
+		"errors": ledger_errors,
+		"ui": {
+			"feedback": feedback
+		}
+	}
+
 func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
 	var action_errors: Array[String] = []
 	if card_id.strip_edges() == "":
@@ -370,6 +494,37 @@ func _apply_action_card_choice(card_id: String, choice_id: String, choice: Dicti
 			"feedback": feedback
 		}
 	}
+
+func _upsert_contract_review_state(review_id: String, choice_id: String, contract_delta: Dictionary) -> Dictionary:
+	if typeof(_financial_state.contracts) != TYPE_DICTIONARY:
+		_financial_state.contracts = {}
+	var active_value: Variant = _financial_state.contracts.get("active", [])
+	var active: Array = []
+	if typeof(active_value) == TYPE_ARRAY:
+		active = active_value as Array
+
+	var result := {
+		"review_id": review_id,
+		"choice_id": choice_id,
+		"status": str(contract_delta.get("status", "")),
+		"risk_rating": str(contract_delta.get("risk_rating", "")),
+		"clawback_strength": str(contract_delta.get("clawback_strength", "")),
+		"minimum_service_commitment": bool(contract_delta.get("minimum_service_commitment", false)),
+		"week": get_current_decision_week()
+	}
+
+	var replaced := false
+	for i in range(active.size()):
+		var item_value: Variant = active[i]
+		if typeof(item_value) == TYPE_DICTIONARY and str((item_value as Dictionary).get("review_id", "")) == review_id:
+			active[i] = result.duplicate(true)
+			replaced = true
+			break
+	if not replaced:
+		active.append(result.duplicate(true))
+
+	_financial_state.contracts["active"] = active
+	return result
 
 func get_current_decision_week() -> int:
 	if _loop_system == null:

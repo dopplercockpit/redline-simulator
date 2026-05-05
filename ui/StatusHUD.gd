@@ -24,7 +24,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 		+ "Audit Score: %d\n" % audit_score
 		+ "Reputation: %s\n" % _format_number(reputation)
 		+ "Ops Risk: %s\n" % _format_number(ops_risk)
-		+ "Unlocks: %s" % unlocks
+		+ "Unlocks: %s%s" % [unlocks, _format_contract_review_done(loop_snapshot)]
 	)
 
 func _extract_cash(financial_snapshot: Dictionary) -> float:
@@ -56,6 +56,12 @@ func _format_unlocks(loop_snapshot: Dictionary) -> String:
 	if names.is_empty():
 		return "None"
 	return ", ".join(PackedStringArray(names))
+
+func _format_contract_review_done(loop_snapshot: Dictionary) -> String:
+	var flags: Dictionary = loop_snapshot.get("flags", {}) as Dictionary
+	if bool(flags.get("contract_review_completed.BUDGETAIR_INCENTIVE_REVIEW", false)):
+		return "\nContract Review: Done"
+	return ""
 
 func _format_currency(value: float) -> String:
 	return "$" + _format_int_with_commas(int(round(value)))

@@ -197,3 +197,42 @@ Patch 5 extends the continuous Airport CFO MVP into Month 2. BudgetAir proposes 
 ### Patch 6 Recommendation
 
 Patch 6 should add Contract Review as the next unlocked tool, using the Month 2 reward to introduce carrier agreement terms, clawback language, minimum service commitments, and board-ready contract risk explanations.
+
+## Patch 6 — Contract Review v1
+
+### Goal
+
+Patch 6 turns the `CONTRACT_REVIEW` unlock into a local governance tool. After Month 2, the contract cabinet opens a BudgetAir incentive agreement review where the player chooses contract handling, posts any review cost through the ledger, updates loop risk, and stores a contract risk result.
+
+### Files Changed
+
+- `res://data/contracts/flightpath/budgetair_route_incentive_v1.txt`
+- `res://data/tools/contract_review/contract_reviews_v1.json`
+- `res://engine/DecisionResolver.gd`
+- `res://engine/GameManager.gd`
+- `res://scenes/cfo_office.gd`
+- `res://ui/ContractPanel.gd`
+- `res://ui/StatusHUD.gd`
+- `res://ui/MonthScorecard.gd`
+- `res://docs/PATCH_6_CONTRACT_REVIEW.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- Clicking the contract cabinet before `CONTRACT_REVIEW` unlocks shows a locked message.
+- After Month 2 objective success, StatusHUD shows `CONTRACT_REVIEW`.
+- Clicking the contract cabinet after unlock opens the BudgetAir contract review.
+- The panel displays title, sender, body, substituted contract text, and choice buttons.
+- `ACCEPT_AS_IS` posts no ledger entry, stores high risk, and applies loop risk changes.
+- `ADD_CLAWBACK_AND_SERVICE_COMMITMENT` posts Dr `5300` / Cr `1000` for `$25,000`, stores low risk, and updates statements/HUD.
+- `ADD_CLAWBACK_ONLY` posts Dr `5300` / Cr `1000` for `$10,000` and stores medium risk.
+- `ESCALATE_TO_BOARD` posts no ledger entry and stores escalated review status.
+- The same contract review cannot be applied twice.
+- Reopening the contract cabinet after completion shows completed status.
+- MonthScorecard can display stored contract reviews.
+- No backend or LLM call is required.
+
+### Patch 7 Recommendation
+
+Patch 7 should make `CONTRACT_REVIEW` consequences matter in Month 3: service commitment compliance, clawback recovery, route underperformance, board confidence, and covenant pressure tied to the selected agreement terms.

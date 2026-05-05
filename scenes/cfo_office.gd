@@ -349,18 +349,24 @@ func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		print("DEBUG: Contracts hotspot clicked.")
 		_ensure_contract_panel()
-		var vars: Dictionary = {}
+		var manager := get_node_or_null("/root/GameManager")
+		if has_node("ContractPanel") and $ContractPanel.has_method("open_contract_review_tool"):
+			$ContractPanel.call("open_contract_review_tool", "BUDGETAIR_INCENTIVE_REVIEW")
+			if manager and manager.has_method("is_contract_review_unlocked") and not bool(manager.call("is_contract_review_unlocked")):
+				$DialogueBox.show_text("Contract Review locked. Finish the route incentive boardroom objective first.")
+			return
+
+		# PATCH 6: legacy supplier framework retained for older tests; active Airport CFO contract cabinet
+		# now opens Contract Review after unlock.
+		var vars: Dictionary = {
+			"SUPPLIER_NAME": "AeroParts Intl",
+			"MAX_LEAD_DAYS": 21,
+			"BASE_PRICE_USD": 125000,
+			"MOQ_UNITS": 3,
+			"PAYMENT_TERMS": "Net 45"
+		}
 		if current_scenario.has("contract_vars") and typeof(current_scenario.get("contract_vars")) == TYPE_DICTIONARY:
 			vars = current_scenario.get("contract_vars", {}) as Dictionary
-		else:
-			# TODO: pull scenario-specific contract vars once the schema is finalized.
-			vars = {
-				"SUPPLIER_NAME": "AeroParts Intl",
-				"MAX_LEAD_DAYS": 21,
-				"BASE_PRICE_USD": 125000,
-				"MOQ_UNITS": 3,
-				"PAYMENT_TERMS": "Net 45"
-			}
 		$ContractPanel.load_contract_template("res://data/contracts/supplier_framework_v1.txt", vars)
 		$ContractPanel.visible = true
 

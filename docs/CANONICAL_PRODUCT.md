@@ -35,6 +35,10 @@ Unlocked tools become playable local systems. Debt Desk v1 posts financing trans
 
 The MVP now supports a continuous multi-month scenario arc. Month 2 introduces route incentive decisions, evaluates operating margin and liquidity, and adds a route-incentive boardroom mission.
 
+## Patch 6 Contract Governance Rule
+
+Contract Review turns unlocked tools into governance mechanics. Contract choices can post review costs, modify contract risk state, affect audit/reputation/ops risk, and must remain ledger-first.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

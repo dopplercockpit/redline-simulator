@@ -1,0 +1,113 @@
+{
+  "version": "1.0",
+  "tool_id": "CONTRACT_REVIEW",
+  "reviews": [
+    {
+      "id": "BUDGETAIR_INCENTIVE_REVIEW",
+      "title": "Contract Review: BudgetAir Route Incentive",
+      "sender": "General Counsel",
+      "contract_template": "res://data/contracts/flightpath/budgetair_route_incentive_v1.txt",
+      "vars": {
+        "CARRIER_NAME": "BudgetAir",
+        "AIRPORT_NAME": "St-Whatever Regional",
+        "TERM_WEEKS": 12,
+        "INCENTIVE_USD": 65000,
+        "MIN_WEEKLY_TURNS": 18,
+        "CLAWBACK_PCT": 50,
+        "CLAWBACK_TRIGGER": "Carrier fails to maintain minimum weekly turnarounds for two consecutive weeks",
+        "REPORTING_REQUIREMENT": "Weekly passenger and turnaround report due every Monday"
+      },
+      "body": "BudgetAir wants the incentive agreement finalized. Review the draft before the board decides whether finance is guarding the runway or just decorating it.",
+      "choices": [
+        {
+          "id": "ACCEPT_AS_IS",
+          "label": "Accept draft as-is",
+          "description": "Fastest approval, weakest protection.",
+          "ledger_tx": [],
+          "contract_delta": {
+            "status": "accepted_as_is",
+            "risk_rating": "high",
+            "clawback_strength": "weak",
+            "minimum_service_commitment": false
+          },
+          "loop_delta": {
+            "audit_score_delta": 4,
+            "ops_risk_delta": 3,
+            "reputation_delta": 1
+          },
+          "feedback": "Fast approval. Weak protection. The contract now has the structural integrity of wet cardboard."
+        },
+        {
+          "id": "ADD_CLAWBACK_AND_SERVICE_COMMITMENT",
+          "label": "Add clawback and minimum service commitment",
+          "description": "Spend money on review and add enforceable protections.",
+          "ledger_tx": [
+            {
+              "memo": "BudgetAir contract controls review",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 25000 },
+                { "gl": "1000", "dc": "C", "amount": 25000 }
+              ]
+            }
+          ],
+          "contract_delta": {
+            "status": "approved_with_controls",
+            "risk_rating": "low",
+            "clawback_strength": "strong",
+            "minimum_service_commitment": true
+          },
+          "loop_delta": {
+            "audit_score_delta": -5,
+            "ops_risk_delta": -3,
+            "reputation_delta": -1
+          },
+          "feedback": "You paid for contract discipline. Nobody claps for this work until the carrier misses targets."
+        },
+        {
+          "id": "ADD_CLAWBACK_ONLY",
+          "label": "Add clawback only",
+          "description": "Add partial protection without a full contract rewrite.",
+          "ledger_tx": [
+            {
+              "memo": "BudgetAir clawback review",
+              "cash_flow_category": "operating",
+              "journal": [
+                { "gl": "5300", "dc": "D", "amount": 10000 },
+                { "gl": "1000", "dc": "C", "amount": 10000 }
+              ]
+            }
+          ],
+          "contract_delta": {
+            "status": "approved_with_clawback",
+            "risk_rating": "medium",
+            "clawback_strength": "moderate",
+            "minimum_service_commitment": false
+          },
+          "loop_delta": {
+            "audit_score_delta": -2,
+            "ops_risk_delta": -1
+          },
+          "feedback": "Better than nothing. Still not exactly Fort Knox, but at least the door has a lock."
+        },
+        {
+          "id": "ESCALATE_TO_BOARD",
+          "label": "Escalate to board before signing",
+          "description": "Delay execution and force governance review.",
+          "ledger_tx": [],
+          "contract_delta": {
+            "status": "escalated_to_board",
+            "risk_rating": "medium",
+            "clawback_strength": "pending",
+            "minimum_service_commitment": false
+          },
+          "loop_delta": {
+            "audit_score_delta": -1,
+            "reputation_delta": -1
+          },
+          "feedback": "You slowed the deal down, which annoys everyone. Governance often does. That is why it exists."
+        }
+      ]
+    }
+  ]
+}

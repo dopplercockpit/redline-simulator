@@ -1,0 +1,16 @@
+BUDGETAIR ROUTE INCENTIVE AGREEMENT (DRAFT V1)
+
+Carrier: [CARRIER_NAME]
+Airport: [AIRPORT_NAME]
+Program Term: [TERM_WEEKS] weeks
+Airport Incentive Payment: $[INCENTIVE_USD]
+Minimum Weekly Turnarounds: [MIN_WEEKLY_TURNS]
+Clawback Percentage: [CLAWBACK_PCT]%
+Clawback Trigger: [CLAWBACK_TRIGGER]
+Reporting Requirement: [REPORTING_REQUIREMENT]
+
+Draft Notes:
+- Incentive is intended to support added route activity.
+- Payment is conditional on route activity and carrier reporting.
+- Airport finance must verify accounting treatment, cash impact, and performance obligations.
+- Final approval requires CFO sign-off.

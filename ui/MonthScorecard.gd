@@ -20,6 +20,7 @@ func _build_body(scorecard: Dictionary) -> String:
 	var objective_results: Array = scorecard.get("objective_results", []) as Array
 	var completed_missions: Array = scorecard.get("completed_missions", []) as Array
 	var unlocks: Dictionary = scorecard.get("unlocks", {}) as Dictionary
+	var contract_reviews: Dictionary = scorecard.get("contract_reviews", {}) as Dictionary
 
 	var lines: Array[String] = []
 	lines.append("Cash: %s" % _format_currency(float(scorecard.get("cash", 0.0))))
@@ -33,6 +34,7 @@ func _build_body(scorecard: Dictionary) -> String:
 	lines.append("")
 	lines.append("Completed Missions: %s" % _format_array(completed_missions))
 	lines.append("Unlocked Tools: %s" % _format_unlocks(unlocks))
+	lines.append("Contract Reviews: %s" % _format_contract_reviews(contract_reviews))
 	lines.append("")
 
 	if objective_results.is_empty():
@@ -109,6 +111,22 @@ func _format_array(values: Array) -> String:
 	var parts: Array[String] = []
 	for value in values:
 		parts.append(str(value))
+	if parts.is_empty():
+		return "None"
+	return ", ".join(PackedStringArray(parts))
+
+func _format_contract_reviews(contract_reviews: Dictionary) -> String:
+	var parts: Array[String] = []
+	for key in contract_reviews.keys():
+		var value: Variant = contract_reviews.get(key)
+		if typeof(value) != TYPE_DICTIONARY:
+			continue
+		var review: Dictionary = value as Dictionary
+		parts.append("%s: %s / %s risk" % [
+			str(key),
+			str(review.get("status", "unknown")),
+			str(review.get("risk_rating", "unknown"))
+		])
 	if parts.is_empty():
 		return "None"
 	return ", ".join(PackedStringArray(parts))

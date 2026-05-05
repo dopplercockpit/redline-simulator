@@ -115,6 +115,24 @@ func submit_debt_desk_choice(offer_id: String, offer: Dictionary) -> Dictionary:
 	}
 	return submit_intent(intent)
 
+func submit_contract_review_choice(review_id: String, choice_id: String, choice: Dictionary) -> Dictionary:
+	var scene_path := ""
+	if get_tree() and get_tree().current_scene:
+		scene_path = str(get_tree().current_scene.scene_file_path)
+	var intent: Dictionary = DecisionIntent.build_intent(
+		"contract_review_choice.%s.%s" % [review_id, choice_id],
+		DecisionIntent.VERB_USE,
+		"contract_review",
+		scene_path,
+		str(get_path())
+	)
+	intent["contract_review_choice"] = {
+		"review_id": review_id,
+		"choice_id": choice_id,
+		"choice": choice
+	}
+	return submit_intent(intent)
+
 func is_debt_desk_unlocked() -> bool:
 	var loop_state := get_loop_state_ref()
 	if loop_state == null:
@@ -126,6 +144,18 @@ func is_debt_desk_used() -> bool:
 	if loop_state == null:
 		return false
 	return bool(loop_state.flags.get("tool_used.DEBT_DESK", false))
+
+func is_contract_review_unlocked() -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.unlocks.get("CONTRACT_REVIEW", false))
+
+func is_contract_review_completed(review_id: String) -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.flags.get("contract_review_completed.%s" % review_id, false))
 
 func submit_intent(intent: Dictionary) -> Dictionary:
 	if _resolver == null:
@@ -259,6 +289,11 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 	var operating_margin := float(kpis.get("operating_margin", financial_kpis.get("operating_margin", 0.0)))
 	var dscr := float(kpis.get("dscr", financial_kpis.get("dscr", 0.0)))
 	var unlocks: Dictionary = loop_snapshot.get("unlocks", {}) as Dictionary
+	var memory: Dictionary = loop_snapshot.get("memory", {}) as Dictionary
+	var contract_reviews_value: Variant = memory.get("contract_reviews", {})
+	var contract_reviews: Dictionary = {}
+	if typeof(contract_reviews_value) == TYPE_DICTIONARY:
+		contract_reviews = contract_reviews_value as Dictionary
 	var completed_missions_dict: Dictionary = loop_snapshot.get("completed_missions", {}) as Dictionary
 	var completed_missions: Array[String] = []
 	for mission_id in completed_missions_dict.keys():
@@ -279,6 +314,7 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 		"ops_risk": float(loop_snapshot.get("ops_risk", 0.0)),
 		"completed_missions": completed_missions,
 		"unlocks": unlocks.duplicate(true),
+		"contract_reviews": contract_reviews.duplicate(true),
 		"objective_results": objective_results
 	}
 
