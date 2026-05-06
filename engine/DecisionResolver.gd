@@ -124,6 +124,13 @@ func resolve_intent(intent: Dictionary) -> Dictionary:
 			contract_review_choice.get("choice", {}) as Dictionary
 		)
 
+	if intent.has("audit_room_choice") and typeof(intent["audit_room_choice"]) == TYPE_DICTIONARY:
+		var audit_room_choice: Dictionary = intent["audit_room_choice"] as Dictionary
+		return _apply_audit_room_choice(
+			str(audit_room_choice.get("remediation_id", "")),
+			audit_room_choice.get("choice", {}) as Dictionary
+		)
+
 	var impacts: Dictionary = {}
 	var verb := str(intent.get("verb", "intent"))
 	var target := str(intent.get("target", "target"))
@@ -387,6 +394,108 @@ func _apply_contract_review_choice(review_id: String, choice_id: String, choice:
 		"loop": loop_impact
 	}
 	emit_signal("decision_applied", "contract_review.%s" % review_id, impacts)
+	return {
+		"ok": ledger_errors.is_empty(),
+		"impacts": impacts,
+		"events": [],
+		"errors": ledger_errors,
+		"ui": {
+			"feedback": feedback
+		}
+	}
+
+func _apply_audit_room_choice(remediation_id: String, choice: Dictionary) -> Dictionary:
+	var errors: Array[String] = []
+	if remediation_id.strip_edges() == "":
+		errors.append("Audit Room remediation missing remediation_id.")
+	if _loop_system == null:
+		errors.append("LoopSystem unavailable")
+	if not errors.is_empty():
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": errors,
+			"ui": {}
+		}
+
+	var loop_state: LoopState = _loop_system.call("get_state_ref") as LoopState
+	if not bool(loop_state.unlocks.get("AUDIT_ROOM", false)):
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": ["Audit Room is locked."],
+			"ui": {"feedback": "Audit Room is locked."}
+		}
+
+	if bool(loop_state.flags.get("tool_used.AUDIT_ROOM", false)):
+		var duplicate_error := "Audit Room remediation already used in this MVP run."
+		return {
+			"ok": false,
+			"impacts": {},
+			"events": [],
+			"errors": [duplicate_error],
+			"ui": {"feedback": duplicate_error}
+		}
+
+	var ledger_posted := 0
+	var ledger_errors: Array[String] = []
+	var ledger_value: Variant = choice.get("ledger_tx", [])
+	if typeof(ledger_value) == TYPE_ARRAY:
+		var txs: Array = ledger_value as Array
+		for i in range(txs.size()):
+			var tx_value: Variant = txs[i]
+			if typeof(tx_value) != TYPE_DICTIONARY:
+				ledger_errors.append("ledger_tx entry must be a Dictionary")
+				continue
+			var tx: Dictionary = (tx_value as Dictionary).duplicate(true)
+			tx["tx_id"] = "AUDIT_ROOM_%s_%s" % [remediation_id, str(i).pad_zeros(3)]
+			tx["week"] = get_current_decision_week()
+			tx["source"] = "audit_room"
+			tx["remediation_id"] = remediation_id
+			var result: Dictionary = _ledger.post_transaction(_financial_state.ledger, tx)
+			if bool(result.get("ok", false)):
+				ledger_posted += 1
+			else:
+				for msg in result.get("errors", []):
+					ledger_errors.append(str(msg))
+	elif ledger_value != null:
+		ledger_errors.append("ledger_tx must be an Array")
+
+	var loop_impact: Dictionary = {}
+	if ledger_errors.is_empty() and choice.has("loop_delta") and typeof(choice["loop_delta"]) == TYPE_DICTIONARY:
+		loop_impact = _apply_loop_delta(choice["loop_delta"] as Dictionary)
+
+	var statements := _finance.generate_statements_from_ledger(_financial_state)
+	_financial_state.meta["financial_statements"] = statements
+	var balance_sheet: Dictionary = statements.get("balance_sheet", {}) as Dictionary
+	_financial_state.cash = float(balance_sheet.get("cash", _financial_state.cash))
+
+	var feedback := str(choice.get("feedback", "Audit Room remediation applied."))
+	if ledger_errors.is_empty():
+		loop_state.memory["last_audit_room_feedback"] = feedback
+		loop_state.memory["audit_room_remediation"] = {
+			"remediation_id": remediation_id,
+			"label": str(choice.get("label", remediation_id)),
+			"week": get_current_decision_week(),
+			"feedback": feedback
+		}
+		loop_state.flags["tool_used.AUDIT_ROOM"] = true
+
+	_loop_system.call("notify_updated")
+
+	var audit_impact := {
+		"remediation_id": remediation_id,
+		"ledger_posted": ledger_posted,
+		"feedback": feedback,
+		"errors": ledger_errors
+	}
+	var impacts := {
+		"audit_room": audit_impact,
+		"loop": loop_impact
+	}
+	emit_signal("decision_applied", "audit_room.%s" % remediation_id, impacts)
 	return {
 		"ok": ledger_errors.is_empty(),
 		"impacts": impacts,

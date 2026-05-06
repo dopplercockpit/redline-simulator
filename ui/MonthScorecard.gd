@@ -21,6 +21,7 @@ func _build_body(scorecard: Dictionary) -> String:
 	var completed_missions: Array = scorecard.get("completed_missions", []) as Array
 	var unlocks: Dictionary = scorecard.get("unlocks", {}) as Dictionary
 	var contract_reviews: Dictionary = scorecard.get("contract_reviews", {}) as Dictionary
+	var audit_room_remediation: Dictionary = scorecard.get("audit_room_remediation", {}) as Dictionary
 
 	var lines: Array[String] = []
 	lines.append("Cash: %s" % _format_currency(float(scorecard.get("cash", 0.0))))
@@ -35,6 +36,7 @@ func _build_body(scorecard: Dictionary) -> String:
 	lines.append("Completed Missions: %s" % _format_array(completed_missions))
 	lines.append("Unlocked Tools: %s" % _format_unlocks(unlocks))
 	lines.append("Contract Reviews: %s" % _format_contract_reviews(contract_reviews))
+	lines.append("Audit Room Remediation: %s" % _format_audit_room_remediation(audit_room_remediation))
 	lines.append("")
 
 	if objective_results.is_empty():
@@ -130,6 +132,14 @@ func _format_contract_reviews(contract_reviews: Dictionary) -> String:
 	if parts.is_empty():
 		return "None"
 	return ", ".join(PackedStringArray(parts))
+
+func _format_audit_room_remediation(remediation: Dictionary) -> String:
+	if remediation.is_empty():
+		return "None"
+	return "%s: %s" % [
+		str(remediation.get("remediation_id", "remediation")),
+		str(remediation.get("feedback", ""))
+	]
 
 func _format_unlocks(unlocks: Dictionary) -> String:
 	var parts: Array[String] = []

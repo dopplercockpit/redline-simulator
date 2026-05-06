@@ -43,6 +43,10 @@ Contract Review turns unlocked tools into governance mechanics. Contract choices
 
 Contract terms must affect later gameplay. Month 3 converts the BudgetAir agreement into clawback, compliance, audit, covenant, and board-pressure decisions. The resolver enforces contract-dependent choices.
 
+## Patch 8 Audit Room Rule
+
+Audit Room is the post-Month-3 review/remediation tool. It summarizes the run audit trail and allows one ledger-backed remediation action after AUDIT_ROOM unlocks.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

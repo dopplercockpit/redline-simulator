@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "tool_id": "AUDIT_ROOM",
+  "title": "Audit Room: Control Review",
+  "remediations": [
+    {
+      "id": "CONTROL_EVIDENCE_CLEANUP",
+      "label": "Fund control evidence cleanup",
+      "description": "Pay for documentation cleanup to lower audit score and ops risk.",
+      "ledger_tx": [
+        {
+          "memo": "Audit control evidence cleanup",
+          "cash_flow_category": "operating",
+          "journal": [
+            { "gl": "5300", "dc": "D", "amount": 35000 },
+            { "gl": "1000", "dc": "C", "amount": 35000 }
+          ]
+        }
+      ],
+      "loop_delta": {
+        "audit_score_delta": -6,
+        "ops_risk_delta": -2
+      },
+      "feedback": "You paid for evidence, reconciliations, and documentation. Boring, which is why it works."
+    },
+    {
+      "id": "MANAGEMENT_REP_PACKAGE",
+      "label": "Prepare management representation package",
+      "description": "Prepare board/auditor-facing explanations. Lower audit pressure modestly without major operational fix.",
+      "ledger_tx": [
+        {
+          "memo": "Management representation package",
+          "cash_flow_category": "operating",
+          "journal": [
+            { "gl": "5300", "dc": "D", "amount": 15000 },
+            { "gl": "1000", "dc": "C", "amount": 15000 }
+          ]
+        }
+      ],
+      "loop_delta": {
+        "audit_score_delta": -3,
+        "reputation_delta": 1
+      },
+      "feedback": "You built the explanation package. Not a cure, but at least the story is presentable."
+    },
+    {
+      "id": "ACCEPT_AUDIT_RISK",
+      "label": "Accept residual audit risk",
+      "description": "Spend nothing and carry the current control posture forward.",
+      "ledger_tx": [],
+      "loop_delta": {
+        "audit_score_delta": 2
+      },
+      "feedback": "You accepted the risk. Cheap today, expensive if reality pushes back."
+    }
+  ]
+}

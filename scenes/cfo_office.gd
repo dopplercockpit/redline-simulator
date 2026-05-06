@@ -8,6 +8,7 @@ var backend_base := "" # keep empty for web demo (no backend calls)
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 const StatusHUDScene = preload("res://ui/StatusHUD.tscn")
 const MonthScorecardScene = preload("res://ui/MonthScorecard.tscn")
+const AuditRoomPanelScene = preload("res://ui/AuditRoomPanel.tscn")
 const INBOX_UNLOCKED := true
 
 # ===========================
@@ -29,6 +30,7 @@ var month_end_ready: bool = false
 
 var status_hud: CanvasLayer = null
 var month_scorecard: CanvasLayer = null
+var audit_room_panel: CanvasLayer = null
 
 # Reference to GameController (if it exists as an autoload)
 # If GameController is registered as an autoload in Project Settings, it's accessible globally
@@ -94,6 +96,7 @@ func _ready() -> void:
 			mission_manager.mission_completed.connect(_on_mission_completed)
 
 	_connect_inbox()
+	_connect_optional_hotspots()
 	_refresh_status_hud()
 
 func _connect_financial_panel() -> void:
@@ -194,6 +197,25 @@ func _ensure_contract_panel() -> void:
 	if not has_node("ContractPanel"):
 		var p := preload("res://ui/ContractPanel.tscn").instantiate()
 		add_child(p)
+
+func _ensure_audit_room_panel() -> void:
+	audit_room_panel = get_node_or_null("AuditRoomPanel") as CanvasLayer
+	if audit_room_panel != null:
+		return
+	audit_room_panel = AuditRoomPanelScene.instantiate() as CanvasLayer
+	audit_room_panel.name = "AuditRoomPanel"
+	add_child(audit_room_panel)
+
+func _connect_optional_hotspots() -> void:
+	var tv := get_node_or_null("Hotspots/Hotspot_TV") as Area2D
+	if tv == null:
+		return
+	if tv.has_signal("input_event") and not tv.input_event.is_connected(_on_hotspot_tv_input_event):
+		tv.input_event.connect(_on_hotspot_tv_input_event)
+	if tv.has_signal("mouse_entered") and not tv.mouse_entered.is_connected(_on_hotspot_mouse_entered):
+		tv.mouse_entered.connect(_on_hotspot_mouse_entered)
+	if tv.has_signal("mouse_exited") and not tv.mouse_exited.is_connected(_on_hotspot_mouse_exited):
+		tv.mouse_exited.connect(_on_hotspot_mouse_exited)
 
 # ===========================
 # LEGACY DEMO AIRLINE STATE
@@ -370,6 +392,13 @@ func _on_hotspot_contracts_input_event(_vp: Node, event: InputEvent, _shape_idx:
 		$ContractPanel.load_contract_template("res://data/contracts/supplier_framework_v1.txt", vars)
 		$ContractPanel.visible = true
 
+func _on_hotspot_tv_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_ensure_audit_room_panel()
+		if audit_room_panel and audit_room_panel.has_method("open_audit_room"):
+			audit_room_panel.call("open_audit_room")
+			audit_room_panel.visible = true
+
 func _on_hotspot_door_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var dialogue_box := get_node_or_null("DialogueBox")
@@ -543,6 +572,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			$CompendiumPanel.visible = false
 		if inbox_panel and inbox_panel.visible:
 			inbox_panel.visible = false
+		if audit_room_panel and audit_room_panel.visible:
+			audit_room_panel.visible = false
 
 # =====================================================
 # SECTION 8: CFO OFFICE SCENE UPDATE

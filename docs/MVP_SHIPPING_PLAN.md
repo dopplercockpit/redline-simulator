@@ -279,3 +279,41 @@ Patch 7 extends Flightpath CFO into Month 3 and makes the BudgetAir contract rev
 ### Patch 8 Recommendation
 
 Patch 8 should turn `AUDIT_ROOM` into a playable audit response tool with finding remediation, control evidence spending, management representation choices, and consequences tied to accumulated audit score.
+
+## Patch 8 — Audit Room v1 + Run Review
+
+### Goal
+
+Patch 8 turns the `AUDIT_ROOM` unlock into a working local review/remediation tool. The TV hotspot opens a run review panel that summarizes financial position, objective results, contract review status, ledger trail, and one available audit remediation.
+
+### Files Changed
+
+- `res://data/tools/audit_room/audit_remediations_v1.json`
+- `res://engine/DecisionResolver.gd`
+- `res://engine/GameManager.gd`
+- `res://scenes/cfo_office.gd`
+- `res://ui/AuditRoomPanel.gd`
+- `res://ui/AuditRoomPanel.tscn`
+- `res://ui/StatusHUD.gd`
+- `res://ui/MonthScorecard.gd`
+- `res://docs/PATCH_8_AUDIT_ROOM.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- TV hotspot opens AuditRoomPanel.
+- Before `AUDIT_ROOM` unlock, AuditRoomPanel shows the locked message.
+- After Month 3 audit objective success, StatusHUD shows `AUDIT_ROOM`.
+- Audit Room displays week/month, cash, total debt, audit score, ops risk, reputation, points, objective results, contract review result, ledger transaction count, and recent transactions.
+- `CONTROL_EVIDENCE_CLEANUP` posts Dr `5300` / Cr `1000` for `$35,000` and lowers audit/ops risk.
+- `MANAGEMENT_REP_PACKAGE` posts Dr `5300` / Cr `1000` for `$15,000` and lowers audit score while improving reputation.
+- `ACCEPT_AUDIT_RISK` posts no ledger transaction and increases audit score.
+- Only one Audit Room remediation can be applied.
+- Reopening Audit Room after remediation shows the selected remediation and feedback.
+- StatusHUD can show Audit Room remediation done.
+- No backend or LLM call is required.
+
+### Patch 9 Recommendation
+
+Patch 9 should add persistence and end-of-run review export: save/load the Month 1-3 run, replay selected decisions, and generate a concise CFO learning summary from local state.

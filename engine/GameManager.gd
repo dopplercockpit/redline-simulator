@@ -133,6 +133,23 @@ func submit_contract_review_choice(review_id: String, choice_id: String, choice:
 	}
 	return submit_intent(intent)
 
+func submit_audit_room_choice(remediation_id: String, choice: Dictionary) -> Dictionary:
+	var scene_path := ""
+	if get_tree() and get_tree().current_scene:
+		scene_path = str(get_tree().current_scene.scene_file_path)
+	var intent: Dictionary = DecisionIntent.build_intent(
+		"audit_room_choice.%s" % remediation_id,
+		DecisionIntent.VERB_USE,
+		"audit_room",
+		scene_path,
+		str(get_path())
+	)
+	intent["audit_room_choice"] = {
+		"remediation_id": remediation_id,
+		"choice": choice
+	}
+	return submit_intent(intent)
+
 func is_debt_desk_unlocked() -> bool:
 	var loop_state := get_loop_state_ref()
 	if loop_state == null:
@@ -156,6 +173,18 @@ func is_contract_review_completed(review_id: String) -> bool:
 	if loop_state == null:
 		return false
 	return bool(loop_state.flags.get("contract_review_completed.%s" % review_id, false))
+
+func is_audit_room_unlocked() -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.unlocks.get("AUDIT_ROOM", false))
+
+func is_audit_room_used() -> bool:
+	var loop_state := get_loop_state_ref()
+	if loop_state == null:
+		return false
+	return bool(loop_state.flags.get("tool_used.AUDIT_ROOM", false))
 
 func submit_intent(intent: Dictionary) -> Dictionary:
 	if _resolver == null:
@@ -188,6 +217,59 @@ func get_loop_snapshot() -> Dictionary:
 	if snap.has("month_number") and not snap.has("month"):
 		snap["month"] = snap.get("month_number")
 	return snap
+
+func get_run_review_snapshot() -> Dictionary:
+	var loop_snapshot := get_loop_snapshot()
+	var financial_snapshot := get_financial_snapshot()
+	var memory: Dictionary = loop_snapshot.get("memory", {}) as Dictionary
+	var financial_state := get_financial_state_ref()
+	var ledger_snapshot := {
+		"transaction_count": 0,
+		"recent_transactions": [],
+		"trial_balance": {}
+	}
+	var contracts: Dictionary = {}
+
+	if financial_state != null:
+		contracts = financial_state.contracts.duplicate(true)
+		var ledger_value: Variant = financial_state.ledger
+		if typeof(ledger_value) == TYPE_DICTIONARY:
+			var ledger: Dictionary = ledger_value as Dictionary
+			var transactions_value: Variant = ledger.get("transactions", [])
+			var transactions: Array = []
+			if typeof(transactions_value) == TYPE_ARRAY:
+				transactions = transactions_value as Array
+			var recent: Array = []
+			var start_index: int = max(0, transactions.size() - 10)
+			for i in range(start_index, transactions.size()):
+				var tx_value: Variant = transactions[i]
+				if typeof(tx_value) == TYPE_DICTIONARY:
+					recent.append((tx_value as Dictionary).duplicate(true))
+			var trial_balance_value: Variant = ledger.get("trial_balance", {})
+			var trial_balance: Dictionary = {}
+			if typeof(trial_balance_value) == TYPE_DICTIONARY:
+				trial_balance = (trial_balance_value as Dictionary).duplicate(true)
+			ledger_snapshot = {
+				"transaction_count": transactions.size(),
+				"recent_transactions": recent,
+				"trial_balance": trial_balance
+			}
+
+	return {
+		"loop": loop_snapshot.duplicate(true),
+		"financial": financial_snapshot.duplicate(true),
+		"ledger": ledger_snapshot,
+		"contracts": contracts,
+		"contract_reviews": _dictionary_from_memory(memory, "contract_reviews"),
+		"objectives": _dictionary_from_memory(memory, "objective_results"),
+		"audit_room_remediation": _dictionary_from_memory(memory, "audit_room_remediation")
+	}
+
+func _dictionary_from_memory(memory: Dictionary, key: String) -> Dictionary:
+	var value: Variant = memory.get(key, {})
+	if typeof(value) == TYPE_DICTIONARY:
+		return (value as Dictionary).duplicate(true)
+	return {}
 
 func evaluate_objectives(context: Dictionary = {}) -> Dictionary:
 	var loop_state := get_loop_state_ref()
@@ -294,6 +376,7 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 	var contract_reviews: Dictionary = {}
 	if typeof(contract_reviews_value) == TYPE_DICTIONARY:
 		contract_reviews = contract_reviews_value as Dictionary
+	var audit_room_remediation := _dictionary_from_memory(memory, "audit_room_remediation")
 	var completed_missions_dict: Dictionary = loop_snapshot.get("completed_missions", {}) as Dictionary
 	var completed_missions: Array[String] = []
 	for mission_id in completed_missions_dict.keys():
@@ -315,6 +398,7 @@ func build_month_scorecard(objective_results: Array = []) -> Dictionary:
 		"completed_missions": completed_missions,
 		"unlocks": unlocks.duplicate(true),
 		"contract_reviews": contract_reviews.duplicate(true),
+		"audit_room_remediation": audit_room_remediation,
 		"objective_results": objective_results
 	}
 
