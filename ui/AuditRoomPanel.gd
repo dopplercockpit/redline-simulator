@@ -183,6 +183,7 @@ func _build_review_text(snapshot: Dictionary) -> String:
 		lines.append("End-of-Run Review")
 		lines.append("- This run covers cash survival, route incentive economics, contract governance, compliance pressure, and audit remediation.")
 		lines.append("- Use Run Menu > Export Summary to save a teaching review.")
+		lines.append("- Open Run Menu > Open Run Review for the decision timeline.")
 	return "\n".join(PackedStringArray(lines))
 
 func _format_recent_transactions(recent_transactions: Array) -> String:

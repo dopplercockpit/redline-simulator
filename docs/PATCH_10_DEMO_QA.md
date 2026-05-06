@@ -29,6 +29,7 @@ Demo states are structurally valid save payloads. They are not simulation replay
 5. Jump to Month 2 Complete and open the contract cabinet.
 6. Jump to Month 3 Complete and open the TV Audit Room.
 7. Jump to Full Demo Complete and export the summary from the Run Menu.
+8. Open Run Menu > Open Run Review to inspect the decision timeline and Markdown preview.
 
 ## Known Limitations
 

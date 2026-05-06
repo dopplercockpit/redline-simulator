@@ -58,6 +58,10 @@ text = "Load Run"
 layout_mode = 2
 text = "Export Summary"
 
+[node name="OpenRunReview" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Open Run Review"
+
 [node name="ResetRun" type="Button" parent="PanelContainer/VBox"]
 layout_mode = 2
 text = "Reset Run"

@@ -395,3 +395,46 @@ Patch 10 makes the Month 1-3 Airport CFO MVP easier to test, demo, and ship. It 
 ### Patch 11 Recommendation
 
 Patch 11 should add an in-game run review viewer: decision timeline, saved-run metadata, objective trend cards, and a Markdown preview for exported summaries.
+
+## Patch 11 — Run Review Viewer + Instructor Demo Pack
+
+### Goal
+
+Patch 11 makes the MVP instructor-ready by adding an in-game Run Review panel, deterministic decision timeline, Markdown export preview, save metadata display, instructor demo script, web export checklist, and a fuller project README.
+
+### Files Changed
+
+- `res://engine/GameManager.gd`
+- `res://engine/RunSerializer.gd`
+- `res://ui/RunReviewPanel.gd`
+- `res://ui/RunReviewPanel.tscn`
+- `res://ui/RunMenuPanel.gd`
+- `res://ui/RunMenuPanel.tscn`
+- `res://ui/DemoQAPanel.gd`
+- `res://ui/AuditRoomPanel.gd`
+- `res://scenes/cfo_office.gd`
+- `res://docs/PATCH_11_RUN_REVIEW.md`
+- `res://docs/INSTRUCTOR_DEMO_SCRIPT.md`
+- `res://docs/WEB_EXPORT_CHECKLIST.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+- `README.md`
+
+### Acceptance Tests
+
+- Run Menu includes Open Run Review.
+- RunReviewPanel displays current position, objectives, decision timeline, contract reviews, Audit Room remediation, financial snapshot, and teaching prompts.
+- Preview Export Markdown displays generated Markdown without writing a file.
+- Export Summary still writes `user://flightpath_run_summary.md`.
+- Exported Markdown includes Decision Timeline when timeline exists.
+- `get_save_metadata()` returns week/month, points, audit score, risk, reputation, and demo target when a save exists.
+- RunMenuPanel displays save metadata.
+- DemoQAPanel still opens with `Ctrl+Alt+D`.
+- Applying `full_demo_complete` then opening Run Review shows demo timeline and remediation.
+- README explains how to run and demo the MVP.
+- Instructor demo script and web export checklist exist.
+- No backend or LLM call is required.
+
+### Patch 12 Recommendation
+
+Patch 12 should focus on packaging: export preset review, browser smoke testing, input polish, save-slot UX, and a final asset/license cleanup before sharing the MVP.

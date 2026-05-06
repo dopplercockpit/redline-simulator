@@ -92,6 +92,10 @@ func build_export_markdown(snapshot: Dictionary) -> String:
 	var objectives: Dictionary = snapshot.get("objectives", {}) as Dictionary
 	var contract_reviews: Dictionary = snapshot.get("contract_reviews", {}) as Dictionary
 	var remediation: Dictionary = snapshot.get("audit_room_remediation", {}) as Dictionary
+	var timeline_value: Variant = snapshot.get("timeline", [])
+	var timeline: Array = []
+	if typeof(timeline_value) == TYPE_ARRAY:
+		timeline = timeline_value as Array
 	var balance_sheet: Dictionary = financial.get("balance_sheet", {}) as Dictionary
 
 	var lines: Array[String] = []
@@ -150,6 +154,18 @@ func build_export_markdown(snapshot: Dictionary) -> String:
 			str(remediation.get("feedback", ""))
 		])
 	lines.append("")
+	if not timeline.is_empty():
+		lines.append("## Decision Timeline")
+		for event_value in timeline:
+			if typeof(event_value) != TYPE_DICTIONARY:
+				continue
+			var event: Dictionary = event_value as Dictionary
+			lines.append("- Week %d - %s - %s" % [
+				int(event.get("week", 0)),
+				str(event.get("type", "event")),
+				str(event.get("title", ""))
+			])
+		lines.append("")
 	lines.append("## Ledger Trail")
 	var recent_value: Variant = ledger.get("recent_transactions", [])
 	var recent: Array = []

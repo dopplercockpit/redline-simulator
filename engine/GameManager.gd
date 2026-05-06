@@ -352,6 +352,7 @@ func reset_run() -> Dictionary:
 
 func export_run_summary(path: String = EXPORT_PATH) -> Dictionary:
 	var snapshot := get_run_review_snapshot()
+	snapshot["timeline"] = build_decision_timeline()
 	var markdown := _serializer.build_export_markdown(snapshot)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -373,6 +374,113 @@ func get_save_path() -> String:
 
 func get_export_path() -> String:
 	return EXPORT_PATH
+
+func get_save_metadata(path: String = SAVE_PATH) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"exists": false, "path": path}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {"exists": true, "path": path, "errors": ["Save file is malformed."]}
+	var payload: Dictionary = parsed as Dictionary
+	var errors := _validate_save_payload(payload)
+	if not errors.is_empty():
+		return {"exists": true, "path": path, "errors": errors}
+	var loop_state: Dictionary = payload.get("loop_state", {}) as Dictionary
+	var flags: Dictionary = loop_state.get("flags", {}) as Dictionary
+	var memory: Dictionary = loop_state.get("memory", {}) as Dictionary
+	return {
+		"exists": true,
+		"path": path,
+		"saved_at": payload.get("saved_at", 0),
+		"week_number": int(loop_state.get("week_number", 0)),
+		"month_number": int(loop_state.get("month_number", 1)),
+		"points": int(loop_state.get("points", 0)),
+		"audit_score": int(loop_state.get("audit_score", 0)),
+		"ops_risk": float(loop_state.get("ops_risk", 0.0)),
+		"reputation": float(loop_state.get("reputation", 0.0)),
+		"demo_mode": bool(flags.get("demo_mode", false)),
+		"demo_target": str(memory.get("demo_target", "")),
+		"errors": []
+	}
+
+func build_decision_timeline() -> Array:
+	var events: Array = []
+	var financial_state := get_financial_state_ref()
+	var loop_state := get_loop_state_ref()
+	if financial_state != null:
+		var transactions: Array = financial_state.ledger.get("transactions", []) as Array
+		for tx_value in transactions:
+			if typeof(tx_value) != TYPE_DICTIONARY:
+				continue
+			var tx: Dictionary = tx_value as Dictionary
+			events.append({
+				"week": int(tx.get("week", 0)),
+				"type": "ledger",
+				"title": str(tx.get("memo", tx.get("tx_id", "Ledger transaction"))),
+				"detail": "%s / %s" % [str(tx.get("source", "ledger")), str(tx.get("cash_flow_category", "operating"))],
+				"amount": _cash_amount_from_tx(tx),
+				"source": str(tx.get("source", "ledger"))
+			})
+	if loop_state != null:
+		for mission_value in loop_state.mission_log:
+			if typeof(mission_value) != TYPE_DICTIONARY:
+				continue
+			var mission: Dictionary = mission_value as Dictionary
+			events.append({
+				"week": int(mission.get("completed_at_week", 0)),
+				"type": "mission",
+				"title": str(mission.get("mission_id", "Mission completed")),
+				"detail": "Score %s | Correct %s | Wrong %s" % [
+					str(mission.get("score", 0)),
+					str(mission.get("correct", 0)),
+					str(mission.get("wrong", 0))
+				]
+			})
+		var memory: Dictionary = loop_state.memory
+		var objectives: Dictionary = _dictionary_from_memory(memory, "objective_results")
+		for key in objectives.keys():
+			var result: Dictionary = objectives.get(key, {}) as Dictionary
+			events.append({
+				"week": _objective_week(str(result.get("id", key))),
+				"type": "objective",
+				"title": str(result.get("id", key)),
+				"detail": "%s | %s" % ["PASSED" if bool(result.get("passed", false)) else "MISSED", str(result.get("message", ""))]
+			})
+		var reviews: Dictionary = _dictionary_from_memory(memory, "contract_reviews")
+		for key in reviews.keys():
+			var review: Dictionary = reviews.get(key, {}) as Dictionary
+			events.append({
+				"week": int(review.get("week", 0)),
+				"type": "contract_review",
+				"title": "Contract Review: %s" % str(key),
+				"detail": "%s / %s risk / clawback %s" % [
+					str(review.get("status", "unknown")),
+					str(review.get("risk_rating", "unknown")),
+					str(review.get("clawback_strength", "unknown"))
+				]
+			})
+		var remediation: Dictionary = _dictionary_from_memory(memory, "audit_room_remediation")
+		if not remediation.is_empty():
+			events.append({
+				"week": int(remediation.get("week", 0)),
+				"type": "audit_room",
+				"title": "Audit Room Remediation",
+				"detail": "%s | %s" % [str(remediation.get("remediation_id", "")), str(remediation.get("feedback", ""))]
+			})
+	events.sort_custom(_sort_timeline_events)
+	return events
+
+func preview_export_markdown() -> String:
+	var snapshot := get_run_review_snapshot()
+	snapshot["timeline"] = build_decision_timeline()
+	return _serializer.build_export_markdown(snapshot)
+
+func get_review_payload() -> Dictionary:
+	return {
+		"snapshot": get_run_review_snapshot(),
+		"timeline": build_decision_timeline(),
+		"save_metadata": get_save_metadata()
+	}
 
 func apply_demo_state(target: String) -> Dictionary:
 	var scenario := _current_scenario_config.duplicate(true)
@@ -455,6 +563,43 @@ func _validate_save_payload(payload: Dictionary) -> Array[String]:
 	if payload.has("objectives_evaluated") and typeof(payload.get("objectives_evaluated")) != TYPE_DICTIONARY:
 		errors.append("Save has invalid objectives_evaluated.")
 	return errors
+
+func _cash_amount_from_tx(tx: Dictionary) -> float:
+	var amount := 0.0
+	var journal_value: Variant = tx.get("journal", [])
+	if typeof(journal_value) != TYPE_ARRAY:
+		return 0.0
+	var journal: Array = journal_value as Array
+	for line_value in journal:
+		if typeof(line_value) != TYPE_DICTIONARY:
+			continue
+		var line: Dictionary = line_value as Dictionary
+		if str(line.get("gl", "")) == "1000":
+			var line_amount := float(line.get("amount", 0.0))
+			amount += line_amount if str(line.get("dc", "")) == "D" else -line_amount
+	return amount
+
+func _objective_week(objective_id: String) -> int:
+	match objective_id:
+		"obj_cash":
+			return 4
+		"obj_route_incentive", "obj_cash_month2":
+			return 8
+		"obj_audit_month3", "obj_ops_risk_month3", "obj_cash_month3":
+			return 12
+		_:
+			return 0
+
+func _sort_timeline_events(a: Dictionary, b: Dictionary) -> bool:
+	var aw := int(a.get("week", 0))
+	var bw := int(b.get("week", 0))
+	if aw != bw:
+		return aw < bw
+	var at := str(a.get("type", ""))
+	var bt := str(b.get("type", ""))
+	if at != bt:
+		return at < bt
+	return str(a.get("title", "")) < str(b.get("title", ""))
 
 func _dictionary_from_memory(memory: Dictionary, key: String) -> Dictionary:
 	var value: Variant = memory.get(key, {})

@@ -619,6 +619,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			run_menu_panel.visible = false
 		if demo_qa_panel and demo_qa_panel.visible:
 			demo_qa_panel.visible = false
+		var run_review_panel := get_node_or_null("RunReviewPanel") as CanvasLayer
+		if run_review_panel and run_review_panel.visible:
+			run_review_panel.visible = false
 
 # =====================================================
 # SECTION 8: CFO OFFICE SCENE UPDATE

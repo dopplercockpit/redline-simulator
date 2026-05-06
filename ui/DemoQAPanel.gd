@@ -40,7 +40,7 @@ func _on_demo_target_pressed(target: String) -> void:
 		return
 	var result: Dictionary = manager.call("apply_demo_state", target) as Dictionary
 	if bool(result.get("ok", false)):
-		_set_body("Applied demo target: %s\nSaved current demo state." % target)
+		_set_body("Applied demo target: %s\nSaved current demo state.\n\nOpen Run Menu > Open Run Review to inspect this fixture." % target)
 	else:
 		_set_body("Demo target failed: %s\n%s" % [target, str(result.get("errors", []))])
 

@@ -55,6 +55,10 @@ The Month 1-3 MVP must be resumable and exportable. Save/load must preserve loop
 
 The MVP includes local demo fixtures and smoke validation so instructors/developers can jump to key states, verify files, and export summaries without replaying the entire run.
 
+## Patch 11 Reviewability Rule
+
+The MVP must be reviewable after play. Run Review summarizes current position, objectives, decisions, contract governance, audit remediation, and ledger trail for classroom discussion.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.
