@@ -15,6 +15,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 	var reputation := float(loop_snapshot.get("reputation", 0.0))
 	var ops_risk := float(loop_snapshot.get("ops_risk", 0.0))
 	var unlocks := _format_unlocks(loop_snapshot)
+	var save_status := _format_save_status()
 
 	body_label.text = (
 		"Week: %d | Month: %d\n" % [week, month]
@@ -29,6 +30,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 			_format_contract_review_done(loop_snapshot),
 			_format_audit_room_done(loop_snapshot)
 		]
+		+ "\nSave: %s" % save_status
 	)
 
 func _extract_cash(financial_snapshot: Dictionary) -> float:
@@ -72,6 +74,12 @@ func _format_audit_room_done(loop_snapshot: Dictionary) -> String:
 	if bool(flags.get("tool_used.AUDIT_ROOM", false)):
 		return "\nAudit Room: Remediated"
 	return ""
+
+func _format_save_status() -> String:
+	var manager := get_node_or_null("/root/GameManager")
+	if manager and manager.has_method("has_saved_run"):
+		return "Available" if bool(manager.call("has_saved_run")) else "Unsaved"
+	return "Unknown"
 
 func _format_currency(value: float) -> String:
 	return "$" + _format_int_with_commas(int(round(value)))

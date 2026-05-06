@@ -28,6 +28,19 @@ func init_from_state(state_ref) -> void:
 	_inbox = _state_ref.inbox
 	emit_signal("inbox_updated", get_inbox())
 
+func bind_restored_state(state_ref) -> void:
+	# PATCH 9: full-run JSON saves are authoritative when loading/resuming a run.
+	# This bind intentionally skips the legacy partial ConfigFile load in init_from_state().
+	_state_ref = state_ref as LoopState
+	_ensure_state_defaults()
+	_inbox = _state_ref.inbox
+	emit_signal("inbox_updated", get_inbox())
+
+func clear_progress() -> void:
+	# PATCH 9: keep legacy MissionManager persistence available, but clear it on full-run reset.
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
 func enqueue_month_close(report: Dictionary, loop_snapshot: Dictionary) -> void:
 	if _state_ref == null:
 		return

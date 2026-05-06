@@ -317,3 +317,41 @@ Patch 8 turns the `AUDIT_ROOM` unlock into a working local review/remediation to
 ### Patch 9 Recommendation
 
 Patch 9 should add persistence and end-of-run review export: save/load the Month 1-3 run, replay selected decisions, and generate a concise CFO learning summary from local state.
+
+## Patch 9 — Persistence + End-of-Run Export
+
+### Goal
+
+Patch 9 makes the Month 1-3 Airport CFO MVP saveable, loadable, resettable, and exportable. The painting/archive hotspot opens a Run Menu for manual save, load, export, reset, and autosave-backed resume behavior.
+
+### Files Changed
+
+- `res://engine/RunSerializer.gd`
+- `res://engine/GameManager.gd`
+- `res://engine/MissionManager.gd`
+- `res://scenes/cfo_office.gd`
+- `res://ui/RunMenuPanel.gd`
+- `res://ui/RunMenuPanel.tscn`
+- `res://ui/StatusHUD.gd`
+- `res://docs/PATCH_9_PERSISTENCE_EXPORT.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- Painting hotspot opens RunMenuPanel.
+- Save Run writes `user://flightpath_run_save.json`.
+- Load Run restores week/month, points, audit score, reputation, ops risk, unlocks, flags, memory, completed missions, inbox, ledger, trial balance, and domain state.
+- Autosave runs after successful action/tool choices.
+- Autosave runs after week advance.
+- Autosave runs after boardroom mission completion.
+- Reset Run returns to the canonical Week 0 / Month 1 scenario and writes a fresh save.
+- Export Summary writes `user://flightpath_run_summary.md`.
+- Export Summary includes objectives, contract review, remediation, recent ledger transactions, and trial balance.
+- Malformed saves fail safely before active state mutation.
+- MissionManager's older partial ConfigFile behavior is retained, with a Patch 9 restored-state bind for full-run loads.
+- No backend or LLM call is required.
+
+### Patch 10 Recommendation
+
+Patch 10 should add a polished end-of-run review surface: decision timeline, objective trend cards, save-slot metadata, and a local run summary viewer that opens the exported Markdown inside the game.

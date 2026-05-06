@@ -47,6 +47,10 @@ Contract terms must affect later gameplay. Month 3 converts the BudgetAir agreem
 
 Audit Room is the post-Month-3 review/remediation tool. It summarizes the run audit trail and allows one ledger-backed remediation action after AUDIT_ROOM unlocks.
 
+## Patch 9 Persistence Rule
+
+The Month 1-3 MVP must be resumable and exportable. Save/load must preserve loop state, financial state, ledger, objectives, unlocks, contracts, action flags, and remediation history.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

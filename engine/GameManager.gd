@@ -8,12 +8,17 @@ signal state_updated()
 signal scorecard_ready(scorecard: Dictionary)
 
 const DEFAULT_SCENARIO_PATH := "res://data/scenarios/flightpath/scenario_001.json"
+const SAVE_PATH := "user://flightpath_run_save.json"
+const EXPORT_PATH := "user://flightpath_run_summary.md"
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
+const RunSerializer = preload("res://engine/RunSerializer.gd")
 
 var _resolver: Node = null
 var _current_scenario_config: Dictionary = {}
 var _objectives_evaluated: Dictionary = {}
 var _mission_manager_connected: bool = false
+var _serializer := RunSerializer.new()
+var _autosave_enabled := true
 
 func _ready() -> void:
 	_resolver = get_node_or_null("/root/DecisionResolver")
@@ -66,6 +71,7 @@ func advance_week(use_legacy_burn: bool = false) -> Dictionary:
 		emit_signal("mission_triggered", "month_end_close_" + str(closed_month))
 
 	emit_signal("state_updated")
+	autosave_run("advance_week")
 	return result
 
 func get_current_week() -> int:
@@ -192,6 +198,7 @@ func submit_intent(intent: Dictionary) -> Dictionary:
 	var result: Dictionary = _resolver.call("resolve_intent", intent) as Dictionary
 	if bool(result.get("ok", false)):
 		emit_signal("state_updated")
+		autosave_run(str(intent.get("id", "intent")))
 	return result
 
 func get_financial_state_ref() -> GameStateData:
@@ -264,6 +271,147 @@ func get_run_review_snapshot() -> Dictionary:
 		"objectives": _dictionary_from_memory(memory, "objective_results"),
 		"audit_room_remediation": _dictionary_from_memory(memory, "audit_room_remediation")
 	}
+
+func save_run(path: String = SAVE_PATH) -> Dictionary:
+	var loop_state := _get_loop_system_state()
+	var financial_state := _get_resolver_financial_state()
+	var errors: Array[String] = []
+	if loop_state == null:
+		errors.append("LoopState unavailable")
+	if financial_state == null:
+		errors.append("Financial state unavailable")
+	if not errors.is_empty():
+		return {"ok": false, "path": path, "errors": errors}
+
+	var payload := {
+		"schema_version": RunSerializer.SCHEMA_VERSION,
+		"saved_at": Time.get_unix_time_from_system(),
+		"scenario": _current_scenario_config.duplicate(true),
+		"objectives_evaluated": _objectives_evaluated.duplicate(true),
+		"loop_state": _serializer.serialize_loop_state(loop_state),
+		"financial_state": _serializer.serialize_financial_state(financial_state)
+	}
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return {"ok": false, "path": path, "errors": ["Unable to open save file for writing: %s" % path]}
+	file.store_string(JSON.stringify(payload, "\t"))
+	return {"ok": true, "path": path, "errors": []}
+
+func load_run(path: String = SAVE_PATH) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"ok": false, "path": path, "errors": ["Save file not found: %s" % path]}
+
+	var raw := FileAccess.get_file_as_string(path)
+	var parsed: Variant = JSON.parse_string(raw)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {"ok": false, "path": path, "errors": ["Save file is not valid JSON."]}
+
+	var payload: Dictionary = parsed as Dictionary
+	var errors := _validate_save_payload(payload)
+	if not errors.is_empty():
+		return {"ok": false, "path": path, "errors": errors}
+
+	var loop_state := _get_loop_system_state()
+	var financial_state := _get_resolver_financial_state()
+	if loop_state == null or financial_state == null:
+		return {"ok": false, "path": path, "errors": ["Runtime state unavailable."]}
+
+	_current_scenario_config = (payload.get("scenario", {}) as Dictionary).duplicate(true)
+	_objectives_evaluated = (payload.get("objectives_evaluated", {}) as Dictionary).duplicate(true)
+	_serializer.apply_financial_state(financial_state, payload.get("financial_state", {}) as Dictionary)
+	financial_state.get_financial_summary()
+	_serializer.apply_loop_state(loop_state, payload.get("loop_state", {}) as Dictionary)
+
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("notify_updated"):
+		loop_system.call("notify_updated")
+	_rebind_mission_manager_after_load()
+	emit_signal("state_updated")
+	return {"ok": true, "path": path, "errors": []}
+
+func has_saved_run(path: String = SAVE_PATH) -> bool:
+	return FileAccess.file_exists(path)
+
+func reset_run() -> Dictionary:
+	_current_scenario_config = {}
+	_objectives_evaluated = {}
+	load_scenario(DEFAULT_SCENARIO_PATH)
+	_rebind_mission_manager_after_load()
+	_clear_legacy_mission_save()
+	var result := save_run(SAVE_PATH)
+	emit_signal("state_updated")
+	return {
+		"ok": bool(result.get("ok", false)),
+		"path": SAVE_PATH,
+		"errors": result.get("errors", [])
+	}
+
+func export_run_summary(path: String = EXPORT_PATH) -> Dictionary:
+	var snapshot := get_run_review_snapshot()
+	var markdown := _serializer.build_export_markdown(snapshot)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return {"ok": false, "path": path, "errors": ["Unable to open export file for writing: %s" % path]}
+	file.store_string(markdown)
+	return {"ok": true, "path": path, "errors": []}
+
+func autosave_run(reason: String = "") -> void:
+	if not _autosave_enabled:
+		return
+	if _current_scenario_config.is_empty():
+		return
+	var result := save_run(SAVE_PATH)
+	if not bool(result.get("ok", false)):
+		push_warning("Autosave failed (%s): %s" % [reason, str(result.get("errors", []))])
+
+func get_save_path() -> String:
+	return SAVE_PATH
+
+func get_export_path() -> String:
+	return EXPORT_PATH
+
+func _get_resolver_financial_state() -> GameStateData:
+	if _resolver and _resolver.has_method("get_financial_state_ref"):
+		return _resolver.call("get_financial_state_ref") as GameStateData
+	return null
+
+func _get_loop_system_state() -> LoopState:
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("get_state_ref"):
+		return loop_system.call("get_state_ref") as LoopState
+	return null
+
+func _rebind_mission_manager_after_load() -> void:
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	var loop_state := _get_loop_system_state()
+	if mission_manager == null or loop_state == null:
+		return
+	if mission_manager.has_method("bind_restored_state"):
+		mission_manager.call("bind_restored_state", loop_state)
+	else:
+		# Legacy fallback may reload MissionManager's partial ConfigFile progress.
+		mission_manager.call("init_from_state", loop_state)
+
+func _clear_legacy_mission_save() -> void:
+	var mission_manager := get_node_or_null("/root/MissionManager")
+	if mission_manager and mission_manager.has_method("clear_progress"):
+		mission_manager.call("clear_progress")
+		return
+	# MissionManager's older partial save is user://save.cfg. Full-run JSON is authoritative in Patch 9.
+	var legacy_path := ProjectSettings.globalize_path("user://save.cfg")
+	if FileAccess.file_exists("user://save.cfg"):
+		DirAccess.remove_absolute(legacy_path)
+
+func _validate_save_payload(payload: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if not payload.has("schema_version"):
+		errors.append("Save missing schema_version.")
+	for key in ["scenario", "loop_state", "financial_state"]:
+		if not payload.has(key) or typeof(payload.get(key)) != TYPE_DICTIONARY:
+			errors.append("Save missing or invalid %s." % key)
+	if payload.has("objectives_evaluated") and typeof(payload.get("objectives_evaluated")) != TYPE_DICTIONARY:
+		errors.append("Save has invalid objectives_evaluated.")
+	return errors
 
 func _dictionary_from_memory(memory: Dictionary, key: String) -> Dictionary:
 	var value: Variant = memory.get(key, {})
@@ -421,6 +569,7 @@ func _on_mission_completed(result: Dictionary) -> void:
 	var scorecard := build_month_scorecard(objective_results)
 	emit_signal("scorecard_ready", scorecard)
 	emit_signal("state_updated")
+	autosave_run("mission_completed")
 
 func _get_last_month_report() -> Dictionary:
 	if _resolver and _resolver.has_method("get_last_month_report"):

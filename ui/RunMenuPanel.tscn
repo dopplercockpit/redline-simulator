@@ -1,0 +1,67 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://ui/RunMenuPanel.gd" id="1_runmenu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_run_menu"]
+bg_color = Color(0.09, 0.1, 0.11, 0.95)
+border_color = Color(0.56, 0.6, 0.64, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="RunMenuPanel" type="CanvasLayer"]
+visible = false
+script = ExtResource("1_runmenu")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = -1
+anchor_left = 0.32
+anchor_top = 0.18
+anchor_right = 0.68
+anchor_bottom = 0.82
+theme_override_styles/panel = SubResource("StyleBoxFlat_run_menu")
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="PanelContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Run Menu"
+
+[node name="Body" type="RichTextLabel" parent="PanelContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = false
+fit_content = true
+autowrap_mode = 3
+text = ""
+
+[node name="SaveRun" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Save Run"
+
+[node name="LoadRun" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Load Run"
+
+[node name="ExportSummary" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Export Summary"
+
+[node name="ResetRun" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Reset Run"
+
+[node name="Close" type="Button" parent="PanelContainer/VBox"]
+layout_mode = 2
+text = "Close"
