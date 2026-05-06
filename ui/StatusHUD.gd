@@ -31,6 +31,7 @@ func refresh(loop_snapshot: Dictionary, financial_snapshot: Dictionary) -> void:
 			_format_audit_room_done(loop_snapshot)
 		]
 		+ "\nSave: %s" % save_status
+		+ _format_demo_mode(loop_snapshot)
 	)
 
 func _extract_cash(financial_snapshot: Dictionary) -> float:
@@ -80,6 +81,13 @@ func _format_save_status() -> String:
 	if manager and manager.has_method("has_saved_run"):
 		return "Available" if bool(manager.call("has_saved_run")) else "Unsaved"
 	return "Unknown"
+
+func _format_demo_mode(loop_snapshot: Dictionary) -> String:
+	var flags: Dictionary = loop_snapshot.get("flags", {}) as Dictionary
+	if not bool(flags.get("demo_mode", false)):
+		return ""
+	var memory: Dictionary = loop_snapshot.get("memory", {}) as Dictionary
+	return "\nDEMO MODE: %s" % str(memory.get("demo_target", "demo"))
 
 func _format_currency(value: float) -> String:
 	return "$" + _format_int_with_commas(int(round(value)))

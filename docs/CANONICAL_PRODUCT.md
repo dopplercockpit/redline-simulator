@@ -51,6 +51,10 @@ Audit Room is the post-Month-3 review/remediation tool. It summarizes the run au
 
 The Month 1-3 MVP must be resumable and exportable. Save/load must preserve loop state, financial state, ledger, objectives, unlocks, contracts, action flags, and remediation history.
 
+## Patch 10 Demo and QA Rule
+
+The MVP includes local demo fixtures and smoke validation so instructors/developers can jump to key states, verify files, and export summaries without replaying the entire run.
+
 ## Future Layers
 
 LLM and backend services are optional future layers. They are not required for the v0.1 Godot MVP and should not drive core simulation state.

@@ -178,6 +178,11 @@ func _build_review_text(snapshot: Dictionary) -> String:
 			str(remediation.get("remediation_id", "remediation")),
 			str(remediation.get("feedback", ""))
 		])
+	if int(loop.get("week_number", loop.get("week", 0))) >= 12:
+		lines.append("")
+		lines.append("End-of-Run Review")
+		lines.append("- This run covers cash survival, route incentive economics, contract governance, compliance pressure, and audit remediation.")
+		lines.append("- Use Run Menu > Export Summary to save a teaching review.")
 	return "\n".join(PackedStringArray(lines))
 
 func _format_recent_transactions(recent_transactions: Array) -> String:

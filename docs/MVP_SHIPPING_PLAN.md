@@ -355,3 +355,43 @@ Patch 9 makes the Month 1-3 Airport CFO MVP saveable, loadable, resettable, and 
 ### Patch 10 Recommendation
 
 Patch 10 should add a polished end-of-run review surface: decision timeline, objective trend cards, save-slot metadata, and a local run summary viewer that opens the exported Markdown inside the game.
+
+## Patch 10 — Demo Polish + QA Harness
+
+### Goal
+
+Patch 10 makes the Month 1-3 Airport CFO MVP easier to test, demo, and ship. It adds local demo fixtures, a smoke-test validator, a Demo / QA panel, demo-mode HUD marking, and end-of-run review guidance.
+
+### Files Changed
+
+- `res://engine/DemoHarness.gd`
+- `res://engine/RunValidator.gd`
+- `res://engine/GameManager.gd`
+- `res://scenes/cfo_office.gd`
+- `res://ui/DemoQAPanel.gd`
+- `res://ui/DemoQAPanel.tscn`
+- `res://ui/StatusHUD.gd`
+- `res://ui/AuditRoomPanel.gd`
+- `res://docs/PATCH_10_DEMO_QA.md`
+- `res://docs/CANONICAL_PRODUCT.md`
+- `res://docs/MVP_SHIPPING_PLAN.md`
+
+### Acceptance Tests
+
+- `Ctrl+Alt+D` opens DemoQAPanel from CFO Office.
+- Run Smoke Test displays readable PASS/FAIL lines.
+- Smoke test verifies action cards weeks 1-12.
+- Smoke test verifies required COA accounts and mission/tool JSON files.
+- Fresh Start demo state resets to Week 0 / Month 1.
+- Month 1 Complete demo state unlocks `DEBT_DESK` and marks `obj_cash` passed.
+- Month 2 Complete demo state unlocks `CONTRACT_REVIEW` and marks Month 2 objectives passed.
+- Month 3 Complete demo state unlocks `AUDIT_ROOM`, marks Month 3 objectives passed, and includes contract review memory.
+- Full Demo Complete marks Audit Room remediation used and stores remediation memory.
+- StatusHUD shows DEMO MODE with the active demo target.
+- Export Summary works after applying a demo state.
+- Load Run works after saving a demo state.
+- No backend or LLM call is required.
+
+### Patch 11 Recommendation
+
+Patch 11 should add an in-game run review viewer: decision timeline, saved-run metadata, objective trend cards, and a Markdown preview for exported summaries.

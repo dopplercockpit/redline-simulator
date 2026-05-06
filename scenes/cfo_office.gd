@@ -10,6 +10,7 @@ const StatusHUDScene = preload("res://ui/StatusHUD.tscn")
 const MonthScorecardScene = preload("res://ui/MonthScorecard.tscn")
 const AuditRoomPanelScene = preload("res://ui/AuditRoomPanel.tscn")
 const RunMenuPanelScene = preload("res://ui/RunMenuPanel.tscn")
+const DemoQAPanelScene = preload("res://ui/DemoQAPanel.tscn")
 const INBOX_UNLOCKED := true
 
 # ===========================
@@ -33,6 +34,7 @@ var status_hud: CanvasLayer = null
 var month_scorecard: CanvasLayer = null
 var audit_room_panel: CanvasLayer = null
 var run_menu_panel: CanvasLayer = null
+var demo_qa_panel: CanvasLayer = null
 
 # Reference to GameController (if it exists as an autoload)
 # If GameController is registered as an autoload in Project Settings, it's accessible globally
@@ -215,6 +217,14 @@ func _ensure_run_menu_panel() -> void:
 	run_menu_panel = RunMenuPanelScene.instantiate() as CanvasLayer
 	run_menu_panel.name = "RunMenuPanel"
 	add_child(run_menu_panel)
+
+func _ensure_demo_qa_panel() -> void:
+	demo_qa_panel = get_node_or_null("DemoQAPanel") as CanvasLayer
+	if demo_qa_panel != null:
+		return
+	demo_qa_panel = DemoQAPanelScene.instantiate() as CanvasLayer
+	demo_qa_panel.name = "DemoQAPanel"
+	add_child(demo_qa_panel)
 
 func _connect_optional_hotspots() -> void:
 	var tv := get_node_or_null("Hotspots/Hotspot_TV") as Area2D
@@ -585,6 +595,15 @@ func _on_submit_http_completed(_result: int, response_code: int, _headers: Packe
 # ESC to close open panels
 # ===========================
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_D and key_event.ctrl_pressed and key_event.alt_pressed:
+			_ensure_demo_qa_panel()
+			if demo_qa_panel and demo_qa_panel.has_method("open_panel"):
+				demo_qa_panel.call("open_panel")
+				demo_qa_panel.visible = true
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("ui_cancel"):
 		if is_instance_valid(financial_panel) and financial_panel.visible:
 			financial_panel.visible = false
@@ -598,6 +617,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			audit_room_panel.visible = false
 		if run_menu_panel and run_menu_panel.visible:
 			run_menu_panel.visible = false
+		if demo_qa_panel and demo_qa_panel.visible:
+			demo_qa_panel.visible = false
 
 # =====================================================
 # SECTION 8: CFO OFFICE SCENE UPDATE

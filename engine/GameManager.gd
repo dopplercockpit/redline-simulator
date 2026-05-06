@@ -12,6 +12,8 @@ const SAVE_PATH := "user://flightpath_run_save.json"
 const EXPORT_PATH := "user://flightpath_run_summary.md"
 const DecisionIntent = preload("res://engine/DecisionIntent.gd")
 const RunSerializer = preload("res://engine/RunSerializer.gd")
+const DemoHarness = preload("res://engine/DemoHarness.gd")
+const RunValidator = preload("res://engine/RunValidator.gd")
 
 var _resolver: Node = null
 var _current_scenario_config: Dictionary = {}
@@ -19,6 +21,8 @@ var _objectives_evaluated: Dictionary = {}
 var _mission_manager_connected: bool = false
 var _serializer := RunSerializer.new()
 var _autosave_enabled := true
+var _demo_harness := DemoHarness.new()
+var _run_validator := RunValidator.new()
 
 func _ready() -> void:
 	_resolver = get_node_or_null("/root/DecisionResolver")
@@ -369,6 +373,45 @@ func get_save_path() -> String:
 
 func get_export_path() -> String:
 	return EXPORT_PATH
+
+func apply_demo_state(target: String) -> Dictionary:
+	var scenario := _current_scenario_config.duplicate(true)
+	if scenario.is_empty():
+		scenario = _read_json(DEFAULT_SCENARIO_PATH)
+	if scenario.is_empty():
+		return {"ok": false, "target": target, "errors": ["Unable to load default scenario for demo state."]}
+
+	var payload: Dictionary = _demo_harness.build_demo_state(target, scenario)
+	var errors := _validate_save_payload(payload)
+	if not errors.is_empty():
+		return {"ok": false, "target": target, "errors": errors}
+
+	var loop_state := _get_loop_system_state()
+	var financial_state := _get_resolver_financial_state()
+	if loop_state == null or financial_state == null:
+		return {"ok": false, "target": target, "errors": ["Runtime state unavailable."]}
+
+	_current_scenario_config = (payload.get("scenario", {}) as Dictionary).duplicate(true)
+	_objectives_evaluated = (payload.get("objectives_evaluated", {}) as Dictionary).duplicate(true)
+	_serializer.apply_financial_state(financial_state, payload.get("financial_state", {}) as Dictionary)
+	financial_state.get_financial_summary()
+	_serializer.apply_loop_state(loop_state, payload.get("loop_state", {}) as Dictionary)
+
+	var loop_system := get_node_or_null("/root/LoopSystem")
+	if loop_system and loop_system.has_method("notify_updated"):
+		loop_system.call("notify_updated")
+	_rebind_mission_manager_after_load()
+	emit_signal("state_updated")
+	var save_result := save_run(SAVE_PATH)
+	if not bool(save_result.get("ok", false)):
+		return {"ok": false, "target": target, "errors": save_result.get("errors", [])}
+	return {"ok": true, "target": target, "errors": []}
+
+func run_smoke_test() -> Dictionary:
+	return _run_validator.validate_runtime(self)
+
+func get_demo_targets() -> Array[String]:
+	return ["fresh_start", "month1_complete", "month2_complete", "month3_complete", "full_demo_complete"]
 
 func _get_resolver_financial_state() -> GameStateData:
 	if _resolver and _resolver.has_method("get_financial_state_ref"):
